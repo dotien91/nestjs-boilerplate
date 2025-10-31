@@ -77,15 +77,15 @@ export default registerAs<DatabaseConfig>('database', () => {
 
   return {
     isDocumentDatabase: ['mongodb'].includes(process.env.DATABASE_TYPE ?? ''),
-    url: process.env.DATABASE_URL,
+    url:
+      process.env.DATABASE_URL ||
+      (process.env.DATABASE_USERNAME && process.env.DATABASE_PASSWORD
+        ? `mongodb://${process.env.DATABASE_USERNAME}:${process.env.DATABASE_PASSWORD}@${process.env.DATABASE_HOST ?? 'localhost'}:${process.env.DATABASE_PORT ?? '27017'}/${process.env.DATABASE_NAME ?? ''}`
+        : `mongodb://${process.env.DATABASE_HOST ?? 'localhost'}:${process.env.DATABASE_PORT ?? '27017'}/${process.env.DATABASE_NAME ?? ''}`),
     type: process.env.DATABASE_TYPE,
-    host: process.env.DATABASE_HOST,
-    port: process.env.DATABASE_PORT
-      ? parseInt(process.env.DATABASE_PORT, 10)
-      : 5432,
-    password: process.env.DATABASE_PASSWORD,
+    host: process.env.DATABASE_HOST ?? 'localhost',
+    port: process.env.DATABASE_PORT ? parseInt(process.env.DATABASE_PORT, 10) : 27017,
     name: process.env.DATABASE_NAME,
-    username: process.env.DATABASE_USERNAME,
     synchronize: process.env.DATABASE_SYNCHRONIZE === 'true',
     maxConnections: process.env.DATABASE_MAX_CONNECTIONS
       ? parseInt(process.env.DATABASE_MAX_CONNECTIONS, 10)
@@ -96,4 +96,5 @@ export default registerAs<DatabaseConfig>('database', () => {
     key: process.env.DATABASE_KEY,
     cert: process.env.DATABASE_CERT,
   };
+  
 });
