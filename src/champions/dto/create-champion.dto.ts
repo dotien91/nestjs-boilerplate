@@ -1,7 +1,6 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import { Type } from 'class-transformer';
 import {
-  IsArray,
   IsBoolean,
   IsNotEmpty,
   IsNumber,
@@ -9,10 +8,8 @@ import {
   IsString,
   Max,
   Min,
-  ValidateNested,
 } from 'class-validator';
 import { FileDto } from '../../files/dto/file.dto';
-import { TraitDto } from './trait.dto';
 
 export class CreateChampionDto {
   @ApiProperty({
@@ -62,19 +59,6 @@ export class CreateChampionDto {
   @IsOptional()
   @IsString()
   abilityName?: string | null;
-
-  @ApiProperty({
-    type: [TraitDto],
-    description: 'Danh sách các trait của champion',
-    example: [
-      { name: 'Invoker', key: 'invoker' },
-      { name: 'Scholar', key: 'scholar' },
-    ],
-  })
-  @IsArray()
-  @ValidateNested({ each: true })
-  @Type(() => TraitDto)
-  traits: TraitDto[];
 
   @ApiPropertyOptional({
     type: Number,

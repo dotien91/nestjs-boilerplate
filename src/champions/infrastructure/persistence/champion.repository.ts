@@ -28,8 +28,6 @@ export abstract class ChampionRepository {
 
   abstract findByCost(cost: Champion['cost']): Promise<Champion[]>;
 
-  abstract findByTrait(traitKey: string): Promise<Champion[]>;
-
   abstract update(
     id: Champion['id'],
     payload: DeepPartial<Champion>,

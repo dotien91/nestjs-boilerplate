@@ -1,8 +1,5 @@
-import { Champion, Trait } from '../../../../domain/champion';
-import {
-  ChampionSchemaClass,
-  TraitSchemaClass,
-} from '../entities/champion.schema';
+import { Champion } from '../../../../domain/champion';
+import { ChampionSchemaClass } from '../entities/champion.schema';
 import { FileSchemaClass } from '../../../../../files/infrastructure/persistence/document/entities/file.schema';
 import { FileMapper } from '../../../../../files/infrastructure/persistence/document/mappers/file.mapper';
 
@@ -15,14 +12,6 @@ export class ChampionMapper {
     domainEntity.cost = raw.cost;
     domainEntity.abilityDescription = raw.abilityDescription;
     domainEntity.abilityName = raw.abilityName;
-
-    // Map traits
-    domainEntity.traits = raw.traits.map((trait) => {
-      const traitDomain = new Trait();
-      traitDomain.name = trait.name;
-      traitDomain.key = trait.key;
-      return traitDomain;
-    });
 
     domainEntity.health = raw.health;
     domainEntity.armor = raw.armor;
@@ -60,14 +49,6 @@ export class ChampionMapper {
     persistenceSchema.cost = domainEntity.cost;
     persistenceSchema.abilityDescription = domainEntity.abilityDescription;
     persistenceSchema.abilityName = domainEntity.abilityName;
-
-    // Map traits
-    persistenceSchema.traits = domainEntity.traits.map((trait) => {
-      const traitSchema = new TraitSchemaClass();
-      traitSchema.name = trait.name;
-      traitSchema.key = trait.key;
-      return traitSchema;
-    });
 
     persistenceSchema.health = domainEntity.health;
     persistenceSchema.armor = domainEntity.armor;

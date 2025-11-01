@@ -53,10 +53,6 @@ export class ChampionsDocumentRepository implements ChampionRepository {
       where.set = filterOptions.set;
     }
 
-    if (filterOptions?.trait) {
-      where['traits.key'] = filterOptions.trait;
-    }
-
     const championObjects = await this.championsModel
       .find(where)
       .sort(
@@ -91,15 +87,6 @@ export class ChampionsDocumentRepository implements ChampionRepository {
 
   async findByCost(cost: Champion['cost']): Promise<Champion[]> {
     const championObjects = await this.championsModel.find({ cost });
-    return championObjects.map((championObject) =>
-      ChampionMapper.toDomain(championObject),
-    );
-  }
-
-  async findByTrait(traitKey: string): Promise<Champion[]> {
-    const championObjects = await this.championsModel.find({
-      'traits.key': traitKey,
-    });
     return championObjects.map((championObject) =>
       ChampionMapper.toDomain(championObject),
     );

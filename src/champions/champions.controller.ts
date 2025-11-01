@@ -6,20 +6,17 @@ import {
   Patch,
   Param,
   Delete,
-  UseGuards,
   Query,
   HttpStatus,
   HttpCode,
 } from '@nestjs/common';
 import {
-  ApiBearerAuth,
   ApiCreatedResponse,
   ApiOkResponse,
   ApiParam,
   ApiTags,
   ApiOperation,
 } from '@nestjs/swagger';
-import { AuthGuard } from '@nestjs/passport';
 import { ChampionsService } from './champions.service';
 import { CreateChampionDto } from './dto/create-champion.dto';
 import { UpdateChampionDto } from './dto/update-champion.dto';
@@ -31,9 +28,6 @@ import {
 } from '../utils/dto/infinity-pagination-response.dto';
 import { infinityPagination } from '../utils/infinity-pagination';
 import { NullableType } from '../utils/types/nullable.type';
-import { Roles } from '../roles/roles.decorator';
-import { RoleEnum } from '../roles/roles.enum';
-import { RolesGuard } from '../roles/roles.guard';
 
 @ApiTags('Champions')
 @Controller({
@@ -47,9 +41,6 @@ export class ChampionsController {
   @ApiCreatedResponse({
     type: Champion,
   })
-  @ApiBearerAuth()
-  @Roles(RoleEnum.admin)
-  @UseGuards(AuthGuard('jwt'), RolesGuard)
   @Post()
   @HttpCode(HttpStatus.CREATED)
   create(@Body() createChampionDto: CreateChampionDto): Promise<Champion> {
@@ -133,29 +124,10 @@ export class ChampionsController {
     return this.championsService.findByCost(cost);
   }
 
-  @ApiOperation({ summary: 'Lấy champions theo trait' })
-  @ApiOkResponse({
-    type: [Champion],
-  })
-  @Get('trait/:traitKey')
-  @HttpCode(HttpStatus.OK)
-  @ApiParam({
-    name: 'traitKey',
-    type: String,
-    required: true,
-    example: 'invoker',
-  })
-  findByTrait(@Param('traitKey') traitKey: string): Promise<Champion[]> {
-    return this.championsService.findByTrait(traitKey);
-  }
-
   @ApiOperation({ summary: 'Cập nhật champion' })
   @ApiOkResponse({
     type: Champion,
   })
-  @ApiBearerAuth()
-  @Roles(RoleEnum.admin)
-  @UseGuards(AuthGuard('jwt'), RolesGuard)
   @Patch(':id')
   @HttpCode(HttpStatus.OK)
   @ApiParam({
@@ -171,9 +143,6 @@ export class ChampionsController {
   }
 
   @ApiOperation({ summary: 'Xóa champion' })
-  @ApiBearerAuth()
-  @Roles(RoleEnum.admin)
-  @UseGuards(AuthGuard('jwt'), RolesGuard)
   @Delete(':id')
   @ApiParam({
     name: 'id',

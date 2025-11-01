@@ -7,9 +7,9 @@ import {
   IsString,
   ValidateNested,
 } from 'class-validator';
-import { TraitType } from '../domain/trait';
+import { OriginType } from '../domain/origin';
 
-export class FilterTraitDto {
+export class FilterOriginDto {
   @ApiPropertyOptional({ type: String })
   @IsOptional()
   @IsString()
@@ -20,10 +20,10 @@ export class FilterTraitDto {
   @IsString()
   key?: string | null;
 
-  @ApiPropertyOptional({ enum: TraitType })
+  @ApiPropertyOptional({ enum: OriginType })
   @IsOptional()
-  @IsEnum(TraitType)
-  type?: TraitType | null;
+  @IsEnum(OriginType)
+  type?: OriginType | null;
 
   @ApiPropertyOptional({ type: String })
   @IsOptional()
@@ -31,7 +31,7 @@ export class FilterTraitDto {
   set?: string | null;
 }
 
-export class SortTraitDto {
+export class SortOriginDto {
   @ApiPropertyOptional()
   @IsString()
   orderBy: string;
@@ -41,7 +41,7 @@ export class SortTraitDto {
   order: string;
 }
 
-export class QueryTraitDto {
+export class QueryOriginDto {
   @ApiPropertyOptional()
   @Transform(({ value }) => (value ? Number(value) : 1))
   @IsNumber()
@@ -54,15 +54,15 @@ export class QueryTraitDto {
   @IsOptional()
   limit?: number;
 
-  @ApiPropertyOptional({ type: FilterTraitDto })
+  @ApiPropertyOptional({ type: FilterOriginDto })
   @IsOptional()
   @ValidateNested()
-  @Type(() => FilterTraitDto)
-  filters?: FilterTraitDto | null;
+  @Type(() => FilterOriginDto)
+  filters?: FilterOriginDto | null;
 
-  @ApiPropertyOptional({ type: [SortTraitDto] })
+  @ApiPropertyOptional({ type: [SortOriginDto] })
   @IsOptional()
   @ValidateNested({ each: true })
-  @Type(() => SortTraitDto)
-  sort?: SortTraitDto[] | null;
+  @Type(() => SortOriginDto)
+  sort?: SortOriginDto[] | null;
 }

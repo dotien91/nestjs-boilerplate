@@ -1,14 +1,14 @@
-import { Trait } from '../../../../domain/trait';
+import { Origin } from '../../../../domain/origin';
 import {
-  TraitSchemaClass,
-  TraitTierSchemaClass,
-} from '../entities/trait.schema';
+  OriginSchemaClass,
+  OriginTierSchemaClass,
+} from '../entities/origin.schema';
 import { FileSchemaClass } from '../../../../../files/infrastructure/persistence/document/entities/file.schema';
 import { FileMapper } from '../../../../../files/infrastructure/persistence/document/mappers/file.mapper';
 
-export class TraitMapper {
-  static toDomain(raw: TraitSchemaClass): Trait {
-    const domainEntity = new Trait();
+export class OriginMapper {
+  static toDomain(raw: OriginSchemaClass): Origin {
+    const domainEntity = new Origin();
     domainEntity.id = raw._id.toString();
     domainEntity.name = raw.name;
     domainEntity.key = raw.key;
@@ -31,6 +31,7 @@ export class TraitMapper {
 
     domainEntity.set = raw.set;
     domainEntity.isActive = raw.isActive;
+    domainEntity.champions = raw.champions;
     domainEntity.createdAt = raw.createdAt;
     domainEntity.updatedAt = raw.updatedAt;
     domainEntity.deletedAt = raw.deletedAt;
@@ -38,8 +39,8 @@ export class TraitMapper {
     return domainEntity;
   }
 
-  static toPersistence(domainEntity: Trait): TraitSchemaClass {
-    const persistenceSchema = new TraitSchemaClass();
+  static toPersistence(domainEntity: Origin): OriginSchemaClass {
+    const persistenceSchema = new OriginSchemaClass();
 
     if (domainEntity.id && typeof domainEntity.id === 'string') {
       persistenceSchema._id = domainEntity.id;
@@ -53,7 +54,7 @@ export class TraitMapper {
     // Map tiers
     if (domainEntity.tiers && domainEntity.tiers.length > 0) {
       persistenceSchema.tiers = domainEntity.tiers.map((tier) => {
-        const tierSchema = new TraitTierSchemaClass();
+        const tierSchema = new OriginTierSchemaClass();
         tierSchema.count = tier.count;
         tierSchema.effect = tier.effect;
         return tierSchema;
@@ -71,6 +72,7 @@ export class TraitMapper {
 
     persistenceSchema.set = domainEntity.set;
     persistenceSchema.isActive = domainEntity.isActive;
+    persistenceSchema.champions = domainEntity.champions;
     persistenceSchema.createdAt = domainEntity.createdAt;
     persistenceSchema.updatedAt = domainEntity.updatedAt;
     persistenceSchema.deletedAt = domainEntity.deletedAt;

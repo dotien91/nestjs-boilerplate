@@ -10,9 +10,9 @@ import {
   ValidateNested,
 } from 'class-validator';
 import { FileDto } from '../../files/dto/file.dto';
-import { TraitType } from '../domain/trait';
+import { OriginType } from '../domain/origin';
 
-class TraitTierDto {
+class OriginTierDto {
   @ApiProperty({
     type: Number,
     example: 2,
@@ -31,11 +31,11 @@ class TraitTierDto {
   effect: string;
 }
 
-export class CreateTraitDto {
+export class CreateOriginDto {
   @ApiProperty({
     type: String,
     example: 'Vệ Binh',
-    description: 'Tên hiển thị của trait',
+    description: 'Tên hiển thị của origin',
   })
   @IsNotEmpty()
   @IsString()
@@ -44,49 +44,49 @@ export class CreateTraitDto {
   @ApiProperty({
     type: String,
     example: 'guardian',
-    description: 'Key duy nhất của trait',
+    description: 'Key duy nhất của origin',
   })
   @IsNotEmpty()
   @IsString()
   key: string;
 
   @ApiProperty({
-    enum: TraitType,
-    example: TraitType.ORIGIN,
-    description: 'Loại trait: origin (tộc) hoặc class (hệ)',
+    enum: OriginType,
+    example: OriginType.ORIGIN,
+    description: 'Loại origin: origin (tộc) hoặc class (hệ)',
   })
   @IsNotEmpty()
-  @IsEnum(TraitType)
-  type: TraitType;
+  @IsEnum(OriginType)
+  type: OriginType;
 
   @ApiPropertyOptional({
     type: String,
     example:
       'Vệ Binh nhận giáp và kháng phép tăng lên. Khi có kẻ địch gần, họ nhận thêm giáp và kháng phép.',
-    description: 'Mô tả hiệu ứng của trait',
+    description: 'Mô tả hiệu ứng của origin',
   })
   @IsOptional()
   @IsString()
   description?: string | null;
 
   @ApiPropertyOptional({
-    type: [TraitTierDto],
+    type: [OriginTierDto],
     example: [
       { count: 2, effect: '+40 Armor' },
       { count: 4, effect: '+100 Armor' },
       { count: 6, effect: '+200 Armor' },
     ],
-    description: 'Các mốc kích hoạt trait',
+    description: 'Các mốc kích hoạt origin',
   })
   @IsOptional()
   @IsArray()
   @ValidateNested({ each: true })
-  @Type(() => TraitTierDto)
-  tiers?: TraitTierDto[] | null;
+  @Type(() => OriginTierDto)
+  tiers?: OriginTierDto[] | null;
 
   @ApiPropertyOptional({
     type: () => FileDto,
-    description: 'Icon của trait',
+    description: 'Icon của origin',
   })
   @IsOptional()
   @Type(() => FileDto)
@@ -104,9 +104,18 @@ export class CreateTraitDto {
   @ApiPropertyOptional({
     type: Boolean,
     example: true,
-    description: 'Trait có đang active trong meta không',
+    description: 'Origin có đang active trong meta không',
   })
   @IsOptional()
   @IsBoolean()
   isActive?: boolean;
+
+  @ApiPropertyOptional({
+    type: [String],
+    example: ['6904cf6d31b5cf113d6665ae', '6904cf6d31b5cf113d6665af'],
+    description: 'Danh sách ID của champions có origin này',
+  })
+  @IsOptional()
+  @IsArray()
+  champions?: string[];
 }

@@ -28,11 +28,6 @@ export class FilterChampionDto {
   @IsOptional()
   @IsString()
   set?: string | null;
-
-  @ApiPropertyOptional({ type: String, description: 'Tìm theo trait key' })
-  @IsOptional()
-  @IsString()
-  trait?: string | null;
 }
 
 export class SortChampionDto {

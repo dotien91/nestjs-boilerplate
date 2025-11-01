@@ -1,6 +1,5 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import { FileDto } from '../../files/dto/file.dto';
-import { TraitDto } from './trait.dto';
 
 export class ChampionDto {
   @ApiProperty({
@@ -35,11 +34,6 @@ export class ChampionDto {
     type: String,
   })
   abilityName?: string | null;
-
-  @ApiProperty({
-    type: [TraitDto],
-  })
-  traits: TraitDto[];
 
   @ApiPropertyOptional({
     type: Number,

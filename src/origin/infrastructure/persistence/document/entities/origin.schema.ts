@@ -2,13 +2,13 @@ import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
 import { now, HydratedDocument } from 'mongoose';
 import { EntityDocumentHelper } from '../../../../../utils/document-entity-helper';
 import { FileSchemaClass } from '../../../../../files/infrastructure/persistence/document/entities/file.schema';
-import { TraitType } from '../../../../domain/trait';
+import { OriginType } from '../../../../domain/origin';
 
-export type TraitSchemaDocument = HydratedDocument<TraitSchemaClass>;
+export type OriginSchemaDocument = HydratedDocument<OriginSchemaClass>;
 
-// Schema cho Trait Tier (mốc kích hoạt)
+// Schema cho Origin Tier (mốc kích hoạt)
 @Schema({ _id: false })
-export class TraitTierSchemaClass {
+export class OriginTierSchemaClass {
   @Prop({ required: true, type: Number })
   count: number;
 
@@ -16,10 +16,11 @@ export class TraitTierSchemaClass {
   effect: string;
 }
 
-export const TraitTierSchema =
-  SchemaFactory.createForClass(TraitTierSchemaClass);
+export const OriginTierSchema = SchemaFactory.createForClass(
+  OriginTierSchemaClass,
+);
 
-// Schema cho Trait
+// Schema cho Origin
 @Schema({
   timestamps: true,
   toJSON: {
@@ -27,7 +28,7 @@ export const TraitTierSchema =
     getters: true,
   },
 })
-export class TraitSchemaClass extends EntityDocumentHelper {
+export class OriginSchemaClass extends EntityDocumentHelper {
   @Prop({
     required: true,
     type: String,
@@ -44,9 +45,9 @@ export class TraitSchemaClass extends EntityDocumentHelper {
   @Prop({
     required: true,
     type: String,
-    enum: Object.values(TraitType),
+    enum: Object.values(OriginType),
   })
-  type: TraitType;
+  type: OriginType;
 
   @Prop({
     type: String,
@@ -55,10 +56,10 @@ export class TraitSchemaClass extends EntityDocumentHelper {
   description?: string | null;
 
   @Prop({
-    type: [TraitTierSchema],
+    type: [OriginTierSchema],
     default: null,
   })
-  tiers?: TraitTierSchemaClass[] | null;
+  tiers?: OriginTierSchemaClass[] | null;
 
   @Prop({
     type: FileSchemaClass,
@@ -78,6 +79,12 @@ export class TraitSchemaClass extends EntityDocumentHelper {
   })
   isActive?: boolean;
 
+  @Prop({
+    type: [String],
+    default: [],
+  })
+  champions?: string[];
+
   @Prop({ default: now })
   createdAt: Date;
 
@@ -88,10 +95,10 @@ export class TraitSchemaClass extends EntityDocumentHelper {
   deletedAt: Date;
 }
 
-export const TraitSchema = SchemaFactory.createForClass(TraitSchemaClass);
+export const OriginSchema = SchemaFactory.createForClass(OriginSchemaClass);
 
 // Indexes
-TraitSchema.index({ key: 1 });
-TraitSchema.index({ type: 1 });
-TraitSchema.index({ set: 1 });
-TraitSchema.index({ isActive: 1 });
+OriginSchema.index({ key: 1 });
+OriginSchema.index({ type: 1 });
+OriginSchema.index({ set: 1 });
+OriginSchema.index({ isActive: 1 });

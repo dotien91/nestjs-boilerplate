@@ -65,7 +65,6 @@ export class ChampionsService {
       cost: createChampionDto.cost,
       abilityDescription: createChampionDto.abilityDescription,
       abilityName: createChampionDto.abilityName,
-      traits: createChampionDto.traits,
       health: createChampionDto.health,
       armor: createChampionDto.armor,
       magicResist: createChampionDto.magicResist,
@@ -106,10 +105,6 @@ export class ChampionsService {
 
   findByCost(cost: Champion['cost']): Promise<Champion[]> {
     return this.championsRepository.findByCost(cost);
-  }
-
-  findByTrait(traitKey: string): Promise<Champion[]> {
-    return this.championsRepository.findByTrait(traitKey);
   }
 
   async update(
@@ -163,7 +158,6 @@ export class ChampionsService {
       cost: updateChampionDto.cost,
       abilityDescription: updateChampionDto.abilityDescription,
       abilityName: updateChampionDto.abilityName,
-      traits: updateChampionDto.traits,
       health: updateChampionDto.health,
       armor: updateChampionDto.armor,
       magicResist: updateChampionDto.magicResist,

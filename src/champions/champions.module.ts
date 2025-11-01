@@ -10,6 +10,9 @@ const infrastructurePersistenceModule = DocumentChampionPersistenceModule;
   imports: [infrastructurePersistenceModule, FilesModule],
   controllers: [ChampionsController],
   providers: [ChampionsService],
-  exports: [ChampionsService, infrastructurePersistenceModule],
+  exports: [
+    ChampionsService,
+    infrastructurePersistenceModule, // Exports ChampionRepository
+  ],
 })
 export class ChampionsModule {}

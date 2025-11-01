@@ -5,18 +5,6 @@ import { FileSchemaClass } from '../../../../../files/infrastructure/persistence
 
 export type ChampionSchemaDocument = HydratedDocument<ChampionSchemaClass>;
 
-// Schema cho Trait
-@Schema({ _id: false })
-export class TraitSchemaClass {
-  @Prop({ required: true, type: String })
-  name: string;
-
-  @Prop({ required: true, type: String })
-  key: string;
-}
-
-export const TraitSchema = SchemaFactory.createForClass(TraitSchemaClass);
-
 // Schema cho Champion
 @Schema({
   timestamps: true,
@@ -58,12 +46,6 @@ export class ChampionSchemaClass extends EntityDocumentHelper {
     default: null,
   })
   abilityName?: string | null;
-
-  @Prop({
-    required: true,
-    type: [TraitSchema],
-  })
-  traits: TraitSchemaClass[];
 
   @Prop({
     type: Number,
@@ -146,6 +128,5 @@ export const ChampionSchema = SchemaFactory.createForClass(ChampionSchemaClass);
 // Indexes để tối ưu query
 ChampionSchema.index({ key: 1 });
 ChampionSchema.index({ cost: 1 });
-ChampionSchema.index({ 'traits.key': 1 });
 ChampionSchema.index({ set: 1 });
 ChampionSchema.index({ isActive: 1 });

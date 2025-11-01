@@ -12,21 +12,6 @@ export enum ChampionCost {
   FIVE = 5,
 }
 
-// Enum cho traits (hệ tộc)
-export class Trait {
-  @ApiProperty({
-    type: String,
-    example: 'Invoker',
-  })
-  name: string;
-
-  @ApiProperty({
-    type: String,
-    example: 'invoker',
-  })
-  key: string;
-}
-
 export class Champion {
   @ApiProperty({
     type: idType,
@@ -68,16 +53,6 @@ export class Champion {
     description: 'Tên kỹ năng',
   })
   abilityName?: string | null;
-
-  @ApiProperty({
-    type: () => [Trait],
-    description: 'Danh sách các trait (hệ/class) của champion',
-    example: [
-      { name: 'Invoker', key: 'invoker' },
-      { name: 'Scholar', key: 'scholar' },
-    ],
-  })
-  traits: Trait[];
 
   @ApiPropertyOptional({
     type: Number,

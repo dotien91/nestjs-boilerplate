@@ -18,7 +18,7 @@ import { MailerModule } from './mailer/mailer.module';
 import { MongooseModule } from '@nestjs/mongoose';
 import { MongooseConfigService } from './database/mongoose-config.service';
 import { ChampionsModule } from './champions/champions.module';
-import { TraitsModule } from './traits/traits.module';
+import { OriginsModule } from './origin/origins.module';
 
 const infrastructureDatabaseModule = MongooseModule.forRootAsync({
   useClass: MongooseConfigService,
@@ -63,7 +63,7 @@ const infrastructureDatabaseModule = MongooseModule.forRootAsync({
     MailerModule,
     HomeModule,
     ChampionsModule,
-    TraitsModule,
+    OriginsModule,
   ],
 })
 export class AppModule {}
