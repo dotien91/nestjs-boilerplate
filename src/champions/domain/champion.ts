@@ -1,5 +1,6 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import { FileType } from '../../files/domain/file';
+import { Origin } from '../../origin/domain/origin';
 
 const idType = String;
 
@@ -129,6 +130,12 @@ export class Champion {
     description: 'Champion có đang active trong meta không',
   })
   isActive?: boolean;
+
+  @ApiPropertyOptional({
+    type: () => [Origin],
+    description: 'Danh sách các origin của champion',
+  })
+  origins?: Origin[] | null;
 
   @ApiProperty()
   createdAt: Date;

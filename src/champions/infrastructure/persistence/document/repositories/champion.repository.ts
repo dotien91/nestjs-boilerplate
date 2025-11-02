@@ -78,6 +78,11 @@ export class ChampionsDocumentRepository implements ChampionRepository {
     return championObject ? ChampionMapper.toDomain(championObject) : null;
   }
 
+  async findOriginsIds(id: Champion['id']): Promise<string[]> {
+    const championObject = await this.championsModel.findById(id);
+    return championObject?.origins || [];
+  }
+
   async findByKey(key: Champion['key']): Promise<NullableType<Champion>> {
     if (!key) return null;
 

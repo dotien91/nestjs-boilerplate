@@ -12,12 +12,17 @@ import { Champion } from './domain/champion';
 import { IPaginationOptions } from '../utils/types/pagination-options';
 import { FilesService } from '../files/files.service';
 import { FileType } from '../files/domain/file';
+import { OriginRepository } from '../origin/infrastructure/persistence/origin.repository';
+import { Origin } from '../origin/domain/origin';
+import { Inject, forwardRef } from '@nestjs/common';
 
 @Injectable()
 export class ChampionsService {
   constructor(
     private readonly championsRepository: ChampionRepository,
     private readonly filesService: FilesService,
+    @Inject(forwardRef(() => OriginRepository))
+    private readonly originRepository: OriginRepository,
   ) {}
 
   async create(createChampionDto: CreateChampionDto): Promise<Champion> {
@@ -59,7 +64,30 @@ export class ChampionsService {
       image = null;
     }
 
-    return this.championsRepository.create({
+    // Xử lý origins nếu có - validate và populate
+    let origins: Origin[] | undefined = undefined;
+    if (createChampionDto.origins && createChampionDto.origins.length > 0) {
+      const originPromises = createChampionDto.origins.map((originId) =>
+        this.originRepository.findById(originId),
+      );
+      const originResults = await Promise.all(originPromises);
+      const validOrigins = originResults.filter(
+        (o): o is Origin => o !== null && o !== undefined,
+      );
+
+      if (validOrigins.length !== createChampionDto.origins.length) {
+        throw new UnprocessableEntityException({
+          status: HttpStatus.UNPROCESSABLE_ENTITY,
+          errors: {
+            origins: 'someOriginsNotExist',
+          },
+        });
+      }
+
+      origins = validOrigins;
+    }
+
+    const champion = await this.championsRepository.create({
       name: createChampionDto.name,
       key: createChampionDto.key,
       cost: createChampionDto.cost,
@@ -76,10 +104,18 @@ export class ChampionsService {
       image: image,
       set: createChampionDto.set,
       isActive: createChampionDto.isActive ?? true,
+      origins: origins,
     });
+
+    // Populate origins for response
+    if (origins) {
+      champion.origins = origins;
+    }
+
+    return champion;
   }
 
-  findManyWithPagination({
+  async findManyWithPagination({
     filterOptions,
     sortOptions,
     paginationOptions,
@@ -88,23 +124,47 @@ export class ChampionsService {
     sortOptions?: SortChampionDto[] | null;
     paginationOptions: IPaginationOptions;
   }): Promise<Champion[]> {
-    return this.championsRepository.findManyWithPagination({
+    const champions = await this.championsRepository.findManyWithPagination({
       filterOptions,
       sortOptions,
       paginationOptions,
     });
+
+    // Populate origins for all champions
+    await Promise.all(
+      champions.map((champion) => this.populateOrigins(champion)),
+    );
+
+    return champions;
   }
 
-  findById(id: Champion['id']): Promise<NullableType<Champion>> {
-    return this.championsRepository.findById(id);
+  async findById(id: Champion['id']): Promise<NullableType<Champion>> {
+    const champion = await this.championsRepository.findById(id);
+    if (champion) {
+      // Populate origins if needed
+      await this.populateOrigins(champion);
+    }
+    return champion;
   }
 
-  findByKey(key: Champion['key']): Promise<NullableType<Champion>> {
-    return this.championsRepository.findByKey(key);
+  async findByKey(key: Champion['key']): Promise<NullableType<Champion>> {
+    const champion = await this.championsRepository.findByKey(key);
+    if (champion) {
+      // Populate origins if needed
+      await this.populateOrigins(champion);
+    }
+    return champion;
   }
 
-  findByCost(cost: Champion['cost']): Promise<Champion[]> {
-    return this.championsRepository.findByCost(cost);
+  async findByCost(cost: Champion['cost']): Promise<Champion[]> {
+    const champions = await this.championsRepository.findByCost(cost);
+
+    // Populate origins for all champions
+    await Promise.all(
+      champions.map((champion) => this.populateOrigins(champion)),
+    );
+
+    return champions;
   }
 
   async update(
@@ -152,7 +212,34 @@ export class ChampionsService {
       image = null;
     }
 
-    return this.championsRepository.update(id, {
+    // Xử lý origins nếu có - validate và populate
+    let origins: Origin[] | undefined = undefined;
+    if (updateChampionDto.origins !== undefined) {
+      if (updateChampionDto.origins.length > 0) {
+        const originPromises = updateChampionDto.origins.map((originId) =>
+          this.originRepository.findById(originId),
+        );
+        const originResults = await Promise.all(originPromises);
+        const validOrigins = originResults.filter(
+          (o): o is Origin => o !== null && o !== undefined,
+        );
+
+        if (validOrigins.length !== updateChampionDto.origins.length) {
+          throw new UnprocessableEntityException({
+            status: HttpStatus.UNPROCESSABLE_ENTITY,
+            errors: {
+              origins: 'someOriginsNotExist',
+            },
+          });
+        }
+
+        origins = validOrigins;
+      } else {
+        origins = [];
+      }
+    }
+
+    const champion = await this.championsRepository.update(id, {
       name: updateChampionDto.name,
       key: updateChampionDto.key,
       cost: updateChampionDto.cost,
@@ -169,10 +256,46 @@ export class ChampionsService {
       image: image,
       set: updateChampionDto.set,
       isActive: updateChampionDto.isActive,
+      origins: origins,
     });
+
+    // Populate origins for response
+    if (champion && origins !== undefined) {
+      champion.origins = origins;
+    } else if (champion) {
+      await this.populateOrigins(champion);
+    }
+
+    return champion;
   }
 
   async remove(id: Champion['id']): Promise<void> {
     await this.championsRepository.remove(id);
+  }
+
+  private async populateOrigins(champion: Champion): Promise<void> {
+    // Skip if already populated
+    if (champion.origins && champion.origins.length > 0) {
+      return;
+    }
+
+    // Get origins IDs from repository
+    const originsIds = await this.championsRepository.findOriginsIds(
+      champion.id,
+    );
+
+    if (originsIds && originsIds.length > 0) {
+      // Fetch origin objects
+      const originPromises = originsIds.map((originId) =>
+        this.originRepository.findById(originId),
+      );
+      const originResults = await Promise.all(originPromises);
+      const validOrigins = originResults.filter(
+        (o): o is Origin => o !== null && o !== undefined,
+      );
+      champion.origins = validOrigins;
+    } else {
+      champion.origins = [];
+    }
   }
 }

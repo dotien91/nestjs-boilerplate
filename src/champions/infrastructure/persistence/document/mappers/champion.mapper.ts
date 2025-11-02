@@ -2,6 +2,7 @@ import { Champion } from '../../../../domain/champion';
 import { ChampionSchemaClass } from '../entities/champion.schema';
 import { FileSchemaClass } from '../../../../../files/infrastructure/persistence/document/entities/file.schema';
 import { FileMapper } from '../../../../../files/infrastructure/persistence/document/mappers/file.mapper';
+import { Origin } from '../../../../../origin/domain/origin';
 
 export class ChampionMapper {
   static toDomain(raw: ChampionSchemaClass): Champion {
@@ -30,6 +31,8 @@ export class ChampionMapper {
 
     domainEntity.set = raw.set;
     domainEntity.isActive = raw.isActive;
+    // Origins IDs are stored in schema as string[], will be populated in service layer if needed
+    domainEntity.origins = undefined;
     domainEntity.createdAt = raw.createdAt;
     domainEntity.updatedAt = raw.updatedAt;
     domainEntity.deletedAt = raw.deletedAt;
@@ -70,6 +73,20 @@ export class ChampionMapper {
 
     persistenceSchema.set = domainEntity.set;
     persistenceSchema.isActive = domainEntity.isActive;
+
+    // Extract origin IDs from Origin objects
+    if (domainEntity.origins && Array.isArray(domainEntity.origins)) {
+      persistenceSchema.origins = domainEntity.origins.map((origin) =>
+        typeof origin === 'string'
+          ? origin
+          : typeof origin.id === 'string'
+            ? origin.id
+            : String(origin.id),
+      );
+    } else {
+      persistenceSchema.origins = [];
+    }
+
     persistenceSchema.createdAt = domainEntity.createdAt;
     persistenceSchema.updatedAt = domainEntity.updatedAt;
     persistenceSchema.deletedAt = domainEntity.deletedAt;

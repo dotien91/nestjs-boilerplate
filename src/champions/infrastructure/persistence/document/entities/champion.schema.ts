@@ -113,6 +113,12 @@ export class ChampionSchemaClass extends EntityDocumentHelper {
   })
   isActive?: boolean;
 
+  @Prop({
+    type: [String],
+    default: [],
+  })
+  origins?: string[];
+
   @Prop({ default: now })
   createdAt: Date;
 

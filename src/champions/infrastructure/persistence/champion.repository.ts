@@ -34,4 +34,6 @@ export abstract class ChampionRepository {
   ): Promise<Champion | null>;
 
   abstract remove(id: Champion['id']): Promise<void>;
+
+  abstract findOriginsIds(id: Champion['id']): Promise<string[]>;
 }

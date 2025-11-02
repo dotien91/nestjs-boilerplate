@@ -1,6 +1,7 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import { Type } from 'class-transformer';
 import {
+  IsArray,
   IsBoolean,
   IsNotEmpty,
   IsNumber,
@@ -157,4 +158,13 @@ export class CreateChampionDto {
   @IsOptional()
   @IsBoolean()
   isActive?: boolean;
+
+  @ApiPropertyOptional({
+    type: [String],
+    example: ['6904cf6d31b5cf113d6665ae', '6904cf6d31b5cf113d6665af'],
+    description: 'Danh sách ID của các origin của champion',
+  })
+  @IsOptional()
+  @IsArray()
+  origins?: string[];
 }
