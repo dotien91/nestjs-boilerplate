@@ -16,6 +16,7 @@ import { FileType } from '../files/domain/file';
 import { ChampionRepository } from '../champions/infrastructure/persistence/champion.repository';
 import { Champion } from '../champions/domain/champion';
 import { Inject, forwardRef } from '@nestjs/common';
+import { ChampionsService } from '../champions/champions.service';
 
 @Injectable()
 export class OriginsService {
@@ -24,6 +25,8 @@ export class OriginsService {
     private readonly filesService: FilesService,
     @Inject(forwardRef(() => ChampionRepository))
     private readonly championRepository: ChampionRepository,
+    @Inject(forwardRef(() => ChampionsService))
+    private readonly championsService: ChampionsService,
   ) {}
 
   async create(createOriginDto: CreateOriginDto): Promise<Origin> {
@@ -65,7 +68,7 @@ export class OriginsService {
       icon = null;
     }
 
-    return this.originsRepository.create({
+    const origin = await this.originsRepository.create({
       name: createOriginDto.name,
       key: createOriginDto.key,
       type: createOriginDto.type,
@@ -76,6 +79,11 @@ export class OriginsService {
       isActive: createOriginDto.isActive ?? true,
       champions: createOriginDto.champions ?? [],
     });
+
+    // Sync origins in champions
+    await this.syncOriginsInChampions(origin.id, origin.champions || []);
+
+    return origin;
   }
 
   findManyWithPagination({
@@ -155,6 +163,7 @@ export class OriginsService {
   async update(
     id: Origin['id'],
     updateOriginDto: UpdateOriginDto,
+    skipSync = false,
   ): Promise<Origin | null> {
     // Kiểm tra key có bị trùng không (nếu update key)
     if (updateOriginDto.key) {
@@ -197,7 +206,7 @@ export class OriginsService {
       icon = null;
     }
 
-    return this.originsRepository.update(id, {
+    const origin = await this.originsRepository.update(id, {
       name: updateOriginDto.name,
       key: updateOriginDto.key,
       type: updateOriginDto.type,
@@ -208,10 +217,24 @@ export class OriginsService {
       isActive: updateOriginDto.isActive,
       champions: updateOriginDto.champions,
     });
+
+    // Sync origins in champions if champions changed (skip if called from sync)
+    if (origin && updateOriginDto.champions !== undefined && !skipSync) {
+      await this.syncOriginsInChampions(origin.id, updateOriginDto.champions);
+    }
+
+    return origin;
   }
 
   async remove(id: Origin['id']): Promise<void> {
+    // Get champions before removing
+    const origin = await this.originsRepository.findById(id);
+    const championsIds = origin?.champions || [];
+
     await this.originsRepository.remove(id);
+
+    // Remove origin from all champions
+    await this.syncOriginsInChampions(id, []);
   }
 
   async getOriginWithChampions(id: Origin['id']) {
@@ -245,5 +268,63 @@ export class OriginsService {
       ...origin,
       championDetails,
     };
+  }
+
+  /**
+   * Đồng bộ origins trong champions
+   * Khi origin thay đổi champions, cần cập nhật origins trong các champion tương ứng
+   */
+  private async syncOriginsInChampions(
+    originId: Origin['id'],
+    newChampionsIds: string[],
+  ): Promise<void> {
+    const originIdString = String(originId);
+
+    // Lấy tất cả champions hiện tại có origin này
+    const allChampions = await this.championRepository.findManyWithPagination({
+      filterOptions: null,
+      sortOptions: null,
+      paginationOptions: { page: 1, limit: 1000 }, // Get all champions
+    });
+
+    for (const champion of allChampions) {
+      const originsIds = await this.championRepository.findOriginsIds(
+        champion.id,
+      );
+      if (!originsIds) {
+        continue;
+      }
+
+      const hasOrigin = originsIds.includes(originIdString);
+      const shouldHaveOrigin = newChampionsIds.includes(String(champion.id));
+
+      if (hasOrigin && !shouldHaveOrigin) {
+        // Remove origin from champion
+        const updatedOriginsIds = originsIds.filter(
+          (id) => id !== originIdString,
+        );
+        // Skip sync to avoid circular dependency
+        await this.championsService.update(
+          champion.id,
+          {
+            origins: updatedOriginsIds,
+          },
+          true, // skipSync = true
+        );
+      } else if (!hasOrigin && shouldHaveOrigin) {
+        // Add origin to champion
+        if (!originsIds.includes(originIdString)) {
+          originsIds.push(originIdString);
+          // Skip sync to avoid circular dependency
+          await this.championsService.update(
+            champion.id,
+            {
+              origins: originsIds,
+            },
+            true, // skipSync = true
+          );
+        }
+      }
+    }
   }
 }

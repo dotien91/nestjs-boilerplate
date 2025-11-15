@@ -15,6 +15,7 @@ import { FileType } from '../files/domain/file';
 import { OriginRepository } from '../origin/infrastructure/persistence/origin.repository';
 import { Origin } from '../origin/domain/origin';
 import { Inject, forwardRef } from '@nestjs/common';
+import { OriginsService } from '../origin/origins.service';
 
 @Injectable()
 export class ChampionsService {
@@ -23,6 +24,8 @@ export class ChampionsService {
     private readonly filesService: FilesService,
     @Inject(forwardRef(() => OriginRepository))
     private readonly originRepository: OriginRepository,
+    @Inject(forwardRef(() => OriginsService))
+    private readonly originsService: OriginsService,
   ) {}
 
   async create(createChampionDto: CreateChampionDto): Promise<Champion> {
@@ -112,6 +115,12 @@ export class ChampionsService {
       champion.origins = origins;
     }
 
+    // Sync champions in origins
+    const originsIds = origins
+      ? origins.map((o) => String(o.id))
+      : [];
+    await this.syncChampionsInOrigins(champion.id, originsIds);
+
     return champion;
   }
 
@@ -170,6 +179,7 @@ export class ChampionsService {
   async update(
     id: Champion['id'],
     updateChampionDto: UpdateChampionDto,
+    skipSync = false,
   ): Promise<Champion | null> {
     // Kiểm tra key có bị trùng không (nếu update key)
     if (updateChampionDto.key) {
@@ -266,11 +276,25 @@ export class ChampionsService {
       await this.populateOrigins(champion);
     }
 
+    // Sync champions in origins (skip if called from sync)
+    if (champion && !skipSync) {
+      const currentOriginsIds = origins
+        ? origins.map((o) => String(o.id))
+        : await this.championsRepository.findOriginsIds(champion.id);
+      await this.syncChampionsInOrigins(champion.id, currentOriginsIds);
+    }
+
     return champion;
   }
 
   async remove(id: Champion['id']): Promise<void> {
+    // Get origins before removing
+    const originsIds = await this.championsRepository.findOriginsIds(id);
+    
     await this.championsRepository.remove(id);
+
+    // Remove champion from all origins
+    await this.syncChampionsInOrigins(id, []);
   }
 
   private async populateOrigins(champion: Champion): Promise<void> {
@@ -296,6 +320,61 @@ export class ChampionsService {
       champion.origins = validOrigins;
     } else {
       champion.origins = [];
+    }
+  }
+
+  /**
+   * Đồng bộ champions trong origins
+   * Khi champion thay đổi origins, cần cập nhật champions trong các origin tương ứng
+   */
+  private async syncChampionsInOrigins(
+    championId: Champion['id'],
+    newOriginsIds: string[],
+  ): Promise<void> {
+    const championIdString = String(championId);
+
+    // Lấy tất cả origins hiện tại có champion này
+    const allOrigins = await this.originRepository.findManyWithPagination({
+      filterOptions: null,
+      sortOptions: null,
+      paginationOptions: { page: 1, limit: 1000 }, // Get all origins
+    });
+
+    for (const origin of allOrigins) {
+      if (!origin.champions) {
+        origin.champions = [];
+      }
+
+      const hasChampion = origin.champions.includes(championIdString);
+      const shouldHaveChampion = newOriginsIds.includes(String(origin.id));
+
+      if (hasChampion && !shouldHaveChampion) {
+        // Remove champion from origin
+        origin.champions = origin.champions.filter(
+          (id) => id !== championIdString,
+        );
+        // Skip sync to avoid circular dependency
+        await this.originsService.update(
+          origin.id,
+          {
+            champions: origin.champions,
+          },
+          true, // skipSync = true
+        );
+      } else if (!hasChampion && shouldHaveChampion) {
+        // Add champion to origin
+        if (!origin.champions.includes(championIdString)) {
+          origin.champions.push(championIdString);
+          // Skip sync to avoid circular dependency
+          await this.originsService.update(
+            origin.id,
+            {
+              champions: origin.champions,
+            },
+            true, // skipSync = true
+          );
+        }
+      }
     }
   }
 }
