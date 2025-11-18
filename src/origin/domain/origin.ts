@@ -9,6 +9,14 @@ export enum OriginType {
   CLASS = 'class', // Hệ (Sát Thủ, Đấu Sĩ, etc.)
 }
 
+// Interface cho effect/tier của origin
+export interface OriginEffect {
+  minUnits: number;
+  maxUnits: number;
+  style: string; // bronze, silver, gold
+  effect: string;
+}
+
 export class Origin {
   @ApiProperty({
     type: idType,
@@ -17,63 +25,76 @@ export class Origin {
 
   @ApiProperty({
     type: String,
-    example: 'Vệ Binh',
+    example: 'TFT16_Quickstriker',
+    description: 'API name của origin (unique identifier)',
+  })
+  apiName: string;
+
+  @ApiProperty({
+    type: String,
+    example: 'Quickstriker',
     description: 'Tên hiển thị của origin',
   })
   name: string;
 
   @ApiProperty({
     type: String,
-    example: 'guardian',
-    description: 'Key duy nhất của origin',
+    example: 'TFT16_Quickstriker',
+    description: 'Trait identifier',
   })
-  key: string;
+  trait: string;
 
   @ApiProperty({
-    enum: OriginType,
-    example: OriginType.ORIGIN,
-    description: 'Loại origin: origin (tộc) hoặc class (hệ)',
+    type: String,
+    example: 'Quickstriker',
+    description: 'Tên trait',
   })
-  type: OriginType;
+  trait_name: string;
 
   @ApiPropertyOptional({
     type: String,
     example:
-      'Vệ Binh nhận giáp và kháng phép tăng lên. Khi có kẻ địch gần, họ nhận thêm giáp và kháng phép.',
-    description: 'Mô tả hiệu ứng của origin',
+      'Your team gains 15% Attack Speed. Quickstrikers gain bonus Attack Speed...',
+    description: 'Mô tả hiệu ứng của origin (có thể chứa HTML)',
   })
   description?: string | null;
 
   @ApiPropertyOptional({
     type: [Object],
     example: [
-      { count: 2, effect: '+40 Armor' },
-      { count: 4, effect: '+100 Armor' },
-      { count: 6, effect: '+200 Armor' },
+      { minUnits: 2, maxUnits: 2, style: 'bronze', effect: '' },
+      { minUnits: 3, maxUnits: 3, style: 'silver', effect: '' },
     ],
-    description: 'Các mốc kích hoạt origin',
+    description: 'Các mốc kích hoạt origin với minUnits, maxUnits, style, effect',
   })
-  tiers?: { count: number; effect: string }[] | null;
-
-  @ApiPropertyOptional({
-    type: () => FileType,
-    description: 'Icon của origin',
-  })
-  icon?: FileType | null;
+  effects?: OriginEffect[] | null;
 
   @ApiPropertyOptional({
     type: String,
-    example: 'set13',
-    description: 'Set TFT hiện tại',
+    example: 'quickstriker',
+    description: 'Tên file ảnh của origin',
   })
-  set?: string | null;
+  img_name?: string | null;
+
+  @ApiPropertyOptional({
+    type: String,
+    example: 'quickstriker',
+    description: 'Tên ảnh trait',
+  })
+  trait_img?: string | null;
 
   @ApiPropertyOptional({
     type: Boolean,
     example: true,
-    description: 'Origin có đang active trong meta không',
+    description: 'Mô tả đã được fix chưa',
   })
-  isActive?: boolean;
+  description_fixed?: boolean;
+
+  @ApiPropertyOptional({
+    type: () => FileType,
+    description: 'Icon của origin (FileType object)',
+  })
+  icon?: FileType | null;
 
   @ApiPropertyOptional({
     type: [String],

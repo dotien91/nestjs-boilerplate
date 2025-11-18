@@ -2,22 +2,27 @@ import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
 import { now, HydratedDocument } from 'mongoose';
 import { EntityDocumentHelper } from '../../../../../utils/document-entity-helper';
 import { FileSchemaClass } from '../../../../../files/infrastructure/persistence/document/entities/file.schema';
-import { OriginType } from '../../../../domain/origin';
 
 export type OriginSchemaDocument = HydratedDocument<OriginSchemaClass>;
 
-// Schema cho Origin Tier (mốc kích hoạt)
+// Schema cho Origin Effect (mốc kích hoạt)
 @Schema({ _id: false })
-export class OriginTierSchemaClass {
+export class OriginEffectSchemaClass {
   @Prop({ required: true, type: Number })
-  count: number;
+  minUnits: number;
+
+  @Prop({ required: true, type: Number })
+  maxUnits: number;
 
   @Prop({ required: true, type: String })
+  style: string; // bronze, silver, gold
+
+  @Prop({ type: String, default: '' })
   effect: string;
 }
 
-export const OriginTierSchema = SchemaFactory.createForClass(
-  OriginTierSchemaClass,
+export const OriginEffectSchema = SchemaFactory.createForClass(
+  OriginEffectSchemaClass,
 );
 
 // Schema cho Origin
@@ -32,22 +37,27 @@ export class OriginSchemaClass extends EntityDocumentHelper {
   @Prop({
     required: true,
     type: String,
+    unique: true,
+  })
+  apiName: string;
+
+  @Prop({
+    required: true,
+    type: String,
   })
   name: string;
 
   @Prop({
     required: true,
     type: String,
-    unique: true,
   })
-  key: string;
+  trait: string;
 
   @Prop({
     required: true,
     type: String,
-    enum: Object.values(OriginType),
   })
-  type: OriginType;
+  trait_name: string;
 
   @Prop({
     type: String,
@@ -56,28 +66,34 @@ export class OriginSchemaClass extends EntityDocumentHelper {
   description?: string | null;
 
   @Prop({
-    type: [OriginTierSchema],
+    type: [OriginEffectSchema],
     default: null,
   })
-  tiers?: OriginTierSchemaClass[] | null;
+  effects?: OriginEffectSchemaClass[] | null;
+
+  @Prop({
+    type: String,
+    default: null,
+  })
+  img_name?: string | null;
+
+  @Prop({
+    type: String,
+    default: null,
+  })
+  trait_img?: string | null;
+
+  @Prop({
+    type: Boolean,
+    default: false,
+  })
+  description_fixed?: boolean;
 
   @Prop({
     type: FileSchemaClass,
     default: null,
   })
   icon?: FileSchemaClass | null;
-
-  @Prop({
-    type: String,
-    default: null,
-  })
-  set?: string | null;
-
-  @Prop({
-    type: Boolean,
-    default: true,
-  })
-  isActive?: boolean;
 
   @Prop({
     type: [String],
@@ -98,7 +114,6 @@ export class OriginSchemaClass extends EntityDocumentHelper {
 export const OriginSchema = SchemaFactory.createForClass(OriginSchemaClass);
 
 // Indexes
-OriginSchema.index({ key: 1 });
-OriginSchema.index({ type: 1 });
-OriginSchema.index({ set: 1 });
-OriginSchema.index({ isActive: 1 });
+OriginSchema.index({ apiName: 1 });
+OriginSchema.index({ trait: 1 });
+OriginSchema.index({ trait_name: 1 });

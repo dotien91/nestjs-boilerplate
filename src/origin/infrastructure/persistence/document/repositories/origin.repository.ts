@@ -84,10 +84,10 @@ export class OriginsDocumentRepository implements OriginRepository {
     return originObject ? OriginMapper.toDomain(originObject) : null;
   }
 
-  async findByKey(key: Origin['key']): Promise<NullableType<Origin>> {
-    if (!key) return null;
+  async findByApiName(apiName: string): Promise<NullableType<Origin>> {
+    if (!apiName) return null;
 
-    const originObject = await this.originsModel.findOne({ key });
+    const originObject = await this.originsModel.findOne({ apiName });
     return originObject ? OriginMapper.toDomain(originObject) : null;
   }
 

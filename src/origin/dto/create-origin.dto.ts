@@ -3,30 +3,47 @@ import { Type } from 'class-transformer';
 import {
   IsArray,
   IsBoolean,
-  IsEnum,
   IsNotEmpty,
+  IsNumber,
   IsOptional,
   IsString,
   ValidateNested,
 } from 'class-validator';
 import { FileDto } from '../../files/dto/file.dto';
-import { OriginType } from '../domain/origin';
 
-class OriginTierDto {
+class OriginEffectDto {
   @ApiProperty({
     type: Number,
     example: 2,
-    description: 'Số champions cần để kích hoạt',
+    description: 'Số units tối thiểu để kích hoạt',
   })
   @IsNotEmpty()
-  count: number;
+  @IsNumber()
+  minUnits: number;
+
+  @ApiProperty({
+    type: Number,
+    example: 2,
+    description: 'Số units tối đa cho mốc này',
+  })
+  @IsNotEmpty()
+  @IsNumber()
+  maxUnits: number;
 
   @ApiProperty({
     type: String,
-    example: '+40 Armor',
-    description: 'Hiệu ứng khi kích hoạt',
+    example: 'bronze',
+    description: 'Style của mốc (bronze, silver, gold)',
   })
   @IsNotEmpty()
+  @IsString()
+  style: string;
+
+  @ApiProperty({
+    type: String,
+    example: '',
+    description: 'Hiệu ứng khi kích hoạt',
+  })
   @IsString()
   effect: string;
 }
@@ -34,7 +51,16 @@ class OriginTierDto {
 export class CreateOriginDto {
   @ApiProperty({
     type: String,
-    example: 'Vệ Binh',
+    example: 'TFT16_Quickstriker',
+    description: 'API name của origin (unique identifier)',
+  })
+  @IsNotEmpty()
+  @IsString()
+  apiName: string;
+
+  @ApiProperty({
+    type: String,
+    example: 'Quickstriker',
     description: 'Tên hiển thị của origin',
   })
   @IsNotEmpty()
@@ -43,72 +69,79 @@ export class CreateOriginDto {
 
   @ApiProperty({
     type: String,
-    example: 'guardian',
-    description: 'Key duy nhất của origin',
+    example: 'TFT16_Quickstriker',
+    description: 'Trait identifier',
   })
   @IsNotEmpty()
   @IsString()
-  key: string;
+  trait: string;
 
   @ApiProperty({
-    enum: OriginType,
-    example: OriginType.ORIGIN,
-    description: 'Loại origin: origin (tộc) hoặc class (hệ)',
+    type: String,
+    example: 'Quickstriker',
+    description: 'Tên trait',
   })
   @IsNotEmpty()
-  @IsEnum(OriginType)
-  type: OriginType;
+  @IsString()
+  trait_name: string;
 
   @ApiPropertyOptional({
     type: String,
-    example:
-      'Vệ Binh nhận giáp và kháng phép tăng lên. Khi có kẻ địch gần, họ nhận thêm giáp và kháng phép.',
-    description: 'Mô tả hiệu ứng của origin',
+    example: 'Your team gains 15% Attack Speed...',
+    description: 'Mô tả hiệu ứng của origin (có thể chứa HTML)',
   })
   @IsOptional()
   @IsString()
   description?: string | null;
 
   @ApiPropertyOptional({
-    type: [OriginTierDto],
+    type: [OriginEffectDto],
     example: [
-      { count: 2, effect: '+40 Armor' },
-      { count: 4, effect: '+100 Armor' },
-      { count: 6, effect: '+200 Armor' },
+      { minUnits: 2, maxUnits: 2, style: 'bronze', effect: '' },
+      { minUnits: 3, maxUnits: 3, style: 'silver', effect: '' },
     ],
     description: 'Các mốc kích hoạt origin',
   })
   @IsOptional()
   @IsArray()
   @ValidateNested({ each: true })
-  @Type(() => OriginTierDto)
-  tiers?: OriginTierDto[] | null;
-
-  @ApiPropertyOptional({
-    type: () => FileDto,
-    description: 'Icon của origin',
-  })
-  @IsOptional()
-  @Type(() => FileDto)
-  icon?: FileDto | null;
+  @Type(() => OriginEffectDto)
+  effects?: OriginEffectDto[] | null;
 
   @ApiPropertyOptional({
     type: String,
-    example: 'set13',
-    description: 'Set TFT hiện tại',
+    example: 'quickstriker',
+    description: 'Tên file ảnh của origin',
   })
   @IsOptional()
   @IsString()
-  set?: string | null;
+  img_name?: string | null;
+
+  @ApiPropertyOptional({
+    type: String,
+    example: 'quickstriker',
+    description: 'Tên ảnh trait',
+  })
+  @IsOptional()
+  @IsString()
+  trait_img?: string | null;
 
   @ApiPropertyOptional({
     type: Boolean,
     example: true,
-    description: 'Origin có đang active trong meta không',
+    description: 'Mô tả đã được fix chưa',
   })
   @IsOptional()
   @IsBoolean()
-  isActive?: boolean;
+  description_fixed?: boolean;
+
+  @ApiPropertyOptional({
+    type: () => FileDto,
+    description: 'Icon của origin (FileType object)',
+  })
+  @IsOptional()
+  @Type(() => FileDto)
+  icon?: FileDto | null;
 
   @ApiPropertyOptional({
     type: [String],
