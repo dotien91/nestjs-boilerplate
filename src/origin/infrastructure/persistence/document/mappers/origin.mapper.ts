@@ -1,4 +1,4 @@
-import { Origin } from '../../../../domain/origin';
+import { Origin, OriginType } from '../../../../domain/origin';
 import {
   OriginSchemaClass,
   OriginEffectSchemaClass,
@@ -11,10 +11,15 @@ export class OriginMapper {
     const domainEntity = new Origin();
     domainEntity.id = raw._id.toString();
     domainEntity.apiName = raw.apiName;
+    domainEntity.key = raw.key;
     domainEntity.name = raw.name;
+    domainEntity.type = raw.type as OriginType | null | undefined;
     domainEntity.trait = raw.trait;
     domainEntity.trait_name = raw.trait_name;
     domainEntity.description = raw.description;
+    domainEntity.tiers = raw.tiers;
+    domainEntity.set = raw.set;
+    domainEntity.isActive = raw.isActive;
 
     // Map effects
     if (raw.effects && raw.effects.length > 0) {
@@ -52,10 +57,15 @@ export class OriginMapper {
     }
 
     persistenceSchema.apiName = domainEntity.apiName;
+    persistenceSchema.key = domainEntity.key;
     persistenceSchema.name = domainEntity.name;
+    persistenceSchema.type = domainEntity.type;
     persistenceSchema.trait = domainEntity.trait;
     persistenceSchema.trait_name = domainEntity.trait_name;
     persistenceSchema.description = domainEntity.description;
+    persistenceSchema.tiers = domainEntity.tiers;
+    persistenceSchema.set = domainEntity.set;
+    persistenceSchema.isActive = domainEntity.isActive;
 
     // Map effects
     if (domainEntity.effects && domainEntity.effects.length > 0) {

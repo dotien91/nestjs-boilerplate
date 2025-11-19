@@ -30,12 +30,47 @@ export class Origin {
   })
   apiName: string;
 
+  @ApiPropertyOptional({
+    type: String,
+    example: 'quickstriker',
+    description: 'Key đơn giản của origin (unique identifier)',
+  })
+  key?: string | null;
+
   @ApiProperty({
     type: String,
     example: 'Quickstriker',
     description: 'Tên hiển thị của origin',
   })
   name: string;
+
+  @ApiPropertyOptional({
+    enum: OriginType,
+    example: OriginType.ORIGIN,
+    description: 'Loại origin (origin hoặc class)',
+  })
+  type?: OriginType | null;
+
+  @ApiPropertyOptional({
+    type: [Number],
+    example: [2, 4, 6],
+    description: 'Danh sách các tier của origin',
+  })
+  tiers?: number[] | null;
+
+  @ApiPropertyOptional({
+    type: String,
+    example: 'TFT16',
+    description: 'Set của origin (ví dụ: TFT16)',
+  })
+  set?: string | null;
+
+  @ApiPropertyOptional({
+    type: Boolean,
+    example: true,
+    description: 'Origin có đang active không',
+  })
+  isActive?: boolean;
 
   @ApiProperty({
     type: String,

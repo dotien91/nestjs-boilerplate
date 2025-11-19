@@ -45,7 +45,7 @@ export class OriginsDocumentRepository implements OriginRepository {
     }
 
     if (filterOptions?.key) {
-      where.key = filterOptions.key;
+      where.key = { $regex: filterOptions.key, $options: 'i' };
     }
 
     if (filterOptions?.type) {
@@ -88,6 +88,13 @@ export class OriginsDocumentRepository implements OriginRepository {
     if (!apiName) return null;
 
     const originObject = await this.originsModel.findOne({ apiName });
+    return originObject ? OriginMapper.toDomain(originObject) : null;
+  }
+
+  async findByKey(key: string): Promise<NullableType<Origin>> {
+    if (!key) return null;
+
+    const originObject = await this.originsModel.findOne({ key });
     return originObject ? OriginMapper.toDomain(originObject) : null;
   }
 

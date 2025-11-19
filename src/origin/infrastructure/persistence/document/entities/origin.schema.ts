@@ -42,10 +42,40 @@ export class OriginSchemaClass extends EntityDocumentHelper {
   apiName: string;
 
   @Prop({
+    type: String,
+    default: null,
+  })
+  key?: string | null;
+
+  @Prop({
     required: true,
     type: String,
   })
   name: string;
+
+  @Prop({
+    type: String,
+    default: null,
+  })
+  type?: string | null;
+
+  @Prop({
+    type: [Number],
+    default: null,
+  })
+  tiers?: number[] | null;
+
+  @Prop({
+    type: String,
+    default: null,
+  })
+  set?: string | null;
+
+  @Prop({
+    type: Boolean,
+    default: true,
+  })
+  isActive?: boolean;
 
   @Prop({
     required: true,
@@ -115,5 +145,8 @@ export const OriginSchema = SchemaFactory.createForClass(OriginSchemaClass);
 
 // Indexes
 OriginSchema.index({ apiName: 1 });
+OriginSchema.index({ key: 1 });
 OriginSchema.index({ trait: 1 });
 OriginSchema.index({ trait_name: 1 });
+OriginSchema.index({ type: 1 });
+OriginSchema.index({ set: 1 });

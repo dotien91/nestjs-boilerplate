@@ -23,6 +23,8 @@ export abstract class OriginRepository {
 
   abstract findByApiName(apiName: string): Promise<NullableType<Origin>>;
 
+  abstract findByKey(key: string): Promise<NullableType<Origin>>;
+
   abstract update(
     id: Origin['id'],
     payload: DeepPartial<Origin>,

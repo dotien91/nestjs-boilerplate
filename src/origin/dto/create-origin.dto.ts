@@ -3,6 +3,7 @@ import { Type } from 'class-transformer';
 import {
   IsArray,
   IsBoolean,
+  IsEnum,
   IsNotEmpty,
   IsNumber,
   IsOptional,
@@ -10,6 +11,7 @@ import {
   ValidateNested,
 } from 'class-validator';
 import { FileDto } from '../../files/dto/file.dto';
+import { OriginType } from '../domain/origin';
 
 class OriginEffectDto {
   @ApiProperty({
@@ -58,6 +60,15 @@ export class CreateOriginDto {
   @IsString()
   apiName: string;
 
+  @ApiPropertyOptional({
+    type: String,
+    example: 'quickstriker',
+    description: 'Key đơn giản của origin (unique identifier)',
+  })
+  @IsOptional()
+  @IsString()
+  key?: string | null;
+
   @ApiProperty({
     type: String,
     example: 'Quickstriker',
@@ -66,6 +77,43 @@ export class CreateOriginDto {
   @IsNotEmpty()
   @IsString()
   name: string;
+
+  @ApiPropertyOptional({
+    enum: OriginType,
+    example: OriginType.ORIGIN,
+    description: 'Loại origin (origin hoặc class)',
+  })
+  @IsOptional()
+  @IsEnum(OriginType)
+  type?: OriginType | null;
+
+  @ApiPropertyOptional({
+    type: [Number],
+    example: [2, 4, 6],
+    description: 'Danh sách các tier của origin',
+  })
+  @IsOptional()
+  @IsArray()
+  @IsNumber({}, { each: true })
+  tiers?: number[] | null;
+
+  @ApiPropertyOptional({
+    type: String,
+    example: 'TFT16',
+    description: 'Set của origin (ví dụ: TFT16)',
+  })
+  @IsOptional()
+  @IsString()
+  set?: string | null;
+
+  @ApiPropertyOptional({
+    type: Boolean,
+    example: true,
+    description: 'Origin có đang active không',
+  })
+  @IsOptional()
+  @IsBoolean()
+  isActive?: boolean;
 
   @ApiProperty({
     type: String,
