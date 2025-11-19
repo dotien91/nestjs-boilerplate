@@ -1,7 +1,7 @@
-import { Origin } from '../../../../domain/origin';
+import { Origin, OriginType } from '../../../../domain/origin';
 import {
   OriginSchemaClass,
-  OriginTierSchemaClass,
+  OriginEffectSchemaClass,
 } from '../entities/origin.schema';
 import { FileSchemaClass } from '../../../../../files/infrastructure/persistence/document/entities/file.schema';
 import { FileMapper } from '../../../../../files/infrastructure/persistence/document/mappers/file.mapper';
@@ -10,18 +10,30 @@ export class OriginMapper {
   static toDomain(raw: OriginSchemaClass): Origin {
     const domainEntity = new Origin();
     domainEntity.id = raw._id.toString();
-    domainEntity.name = raw.name;
+    domainEntity.apiName = raw.apiName;
     domainEntity.key = raw.key;
-    domainEntity.type = raw.type;
+    domainEntity.name = raw.name;
+    domainEntity.type = raw.type as OriginType | null | undefined;
+    domainEntity.trait = raw.trait;
+    domainEntity.trait_name = raw.trait_name;
     domainEntity.description = raw.description;
+    domainEntity.tiers = raw.tiers;
+    domainEntity.set = raw.set;
+    domainEntity.isActive = raw.isActive;
 
-    // Map tiers
-    if (raw.tiers && raw.tiers.length > 0) {
-      domainEntity.tiers = raw.tiers.map((tier) => ({
-        count: tier.count,
-        effect: tier.effect,
+    // Map effects
+    if (raw.effects && raw.effects.length > 0) {
+      domainEntity.effects = raw.effects.map((effect) => ({
+        minUnits: effect.minUnits,
+        maxUnits: effect.maxUnits,
+        style: effect.style,
+        effect: effect.effect,
       }));
     }
+
+    domainEntity.img_name = raw.img_name;
+    domainEntity.trait_img = raw.trait_img;
+    domainEntity.description_fixed = raw.description_fixed;
 
     if (raw.icon) {
       domainEntity.icon = FileMapper.toDomain(raw.icon);
@@ -29,8 +41,6 @@ export class OriginMapper {
       domainEntity.icon = null;
     }
 
-    domainEntity.set = raw.set;
-    domainEntity.isActive = raw.isActive;
     domainEntity.champions = raw.champions;
     domainEntity.createdAt = raw.createdAt;
     domainEntity.updatedAt = raw.updatedAt;
@@ -39,39 +49,49 @@ export class OriginMapper {
     return domainEntity;
   }
 
-  static toPersistence(domainEntity: Origin): OriginSchemaClass {
-    const persistenceSchema = new OriginSchemaClass();
+  static toPersistence(domainEntity: Origin): Partial<OriginSchemaClass> {
+    const persistenceSchema: Partial<OriginSchemaClass> = {};
 
     if (domainEntity.id && typeof domainEntity.id === 'string') {
-      persistenceSchema._id = domainEntity.id;
+      persistenceSchema._id = domainEntity.id as any;
     }
 
-    persistenceSchema.name = domainEntity.name;
+    persistenceSchema.apiName = domainEntity.apiName;
     persistenceSchema.key = domainEntity.key;
+    persistenceSchema.name = domainEntity.name;
     persistenceSchema.type = domainEntity.type;
+    persistenceSchema.trait = domainEntity.trait;
+    persistenceSchema.trait_name = domainEntity.trait_name;
     persistenceSchema.description = domainEntity.description;
+    persistenceSchema.tiers = domainEntity.tiers;
+    persistenceSchema.set = domainEntity.set;
+    persistenceSchema.isActive = domainEntity.isActive;
 
-    // Map tiers
-    if (domainEntity.tiers && domainEntity.tiers.length > 0) {
-      persistenceSchema.tiers = domainEntity.tiers.map((tier) => {
-        const tierSchema = new OriginTierSchemaClass();
-        tierSchema.count = tier.count;
-        tierSchema.effect = tier.effect;
-        return tierSchema;
+    // Map effects
+    if (domainEntity.effects && domainEntity.effects.length > 0) {
+      persistenceSchema.effects = domainEntity.effects.map((effect) => {
+        const effectSchema = new OriginEffectSchemaClass();
+        effectSchema.minUnits = effect.minUnits;
+        effectSchema.maxUnits = effect.maxUnits;
+        effectSchema.style = effect.style;
+        effectSchema.effect = effect.effect;
+        return effectSchema;
       });
     }
 
+    persistenceSchema.img_name = domainEntity.img_name;
+    persistenceSchema.trait_img = domainEntity.trait_img;
+    persistenceSchema.description_fixed = domainEntity.description_fixed;
+
     if (domainEntity.icon) {
       const iconSchema = new FileSchemaClass();
-      iconSchema._id = domainEntity.icon.id;
+      iconSchema._id = domainEntity.icon.id as any;
       iconSchema.path = domainEntity.icon.path;
       persistenceSchema.icon = iconSchema;
     } else if (domainEntity.icon === null) {
       persistenceSchema.icon = null;
     }
 
-    persistenceSchema.set = domainEntity.set;
-    persistenceSchema.isActive = domainEntity.isActive;
     persistenceSchema.champions = domainEntity.champions;
     persistenceSchema.createdAt = domainEntity.createdAt;
     persistenceSchema.updatedAt = domainEntity.updatedAt;

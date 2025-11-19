@@ -1,0 +1,36 @@
+{
+    "apiName": "TFT16_Quickstriker",
+    "name": "Quickstriker",
+    "description": "Your team gains 15% Attack Speed. Quickstrikers gain bonus Attack Speed based on their target's missing <img src=\"/icons/Health.svg\" alt=\"Health\" class=\"statIcon scaleHealthIcon\">.<br><br><br>(2) 10-30% <img src=\"/icons/AS.svg\" alt=\"AS\" class=\"statIcon scaleASIcon\"><br><br>(3) 20-45% <img src=\"/icons/AS.svg\" alt=\"AS\" class=\"statIcon scaleASIcon\"><br><br>(4) 30-60% <img src=\"/icons/AS.svg\" alt=\"AS\" class=\"statIcon scaleASIcon\"><br><br>(5) 40-80% <img src=\"/icons/AS.svg\" alt=\"AS\" class=\"statIcon scaleASIcon\">",
+    "effects": [
+      {
+        "minUnits": 2,
+        "maxUnits": 2,
+        "style": "bronze",
+        "effect": ""
+      },
+      {
+        "minUnits": 3,
+        "maxUnits": 3,
+        "style": "silver",
+        "effect": ""
+      },
+      {
+        "minUnits": 4,
+        "maxUnits": 4,
+        "style": "silver",
+        "effect": ""
+      },
+      {
+        "minUnits": 5,
+        "maxUnits": 999,
+        "style": "gold",
+        "effect": ""
+      }
+    ],
+    "trait_name": "Quickstriker",
+    "img_name": "quickstriker",
+    "trait_img": "quickstriker",
+    "trait": "TFT16_Quickstriker",
+    "description_fixed": true
+  }

@@ -30,17 +30,19 @@ export class OriginsService {
   ) {}
 
   async create(createOriginDto: CreateOriginDto): Promise<Origin> {
-    // Kiểm tra key đã tồn tại chưa
-    const originObject = await this.originsRepository.findByKey(
-      createOriginDto.key,
-    );
-    if (originObject) {
-      throw new UnprocessableEntityException({
-        status: HttpStatus.UNPROCESSABLE_ENTITY,
-        errors: {
-          key: 'originKeyAlreadyExists',
-        },
-      });
+    // Kiểm tra key đã tồn tại chưa (nếu có key)
+    if (createOriginDto.key) {
+      const originObject = await this.originsRepository.findByKey(
+        createOriginDto.key,
+      );
+      if (originObject) {
+        throw new UnprocessableEntityException({
+          status: HttpStatus.UNPROCESSABLE_ENTITY,
+          errors: {
+            key: 'originKeyAlreadyExists',
+          },
+        });
+      }
     }
 
     // Xử lý icon nếu có
@@ -69,10 +71,17 @@ export class OriginsService {
     }
 
     const origin = await this.originsRepository.create({
+      apiName: createOriginDto.apiName,
       name: createOriginDto.name,
+      trait: createOriginDto.trait,
+      trait_name: createOriginDto.trait_name,
       key: createOriginDto.key,
       type: createOriginDto.type,
       description: createOriginDto.description,
+      effects: createOriginDto.effects,
+      img_name: createOriginDto.img_name,
+      trait_img: createOriginDto.trait_img,
+      description_fixed: createOriginDto.description_fixed,
       tiers: createOriginDto.tiers,
       icon: icon,
       set: createOriginDto.set,
@@ -134,6 +143,9 @@ export class OriginsService {
   async findByKey(
     key: Origin['key'],
   ): Promise<NullableType<Origin & { championDetails?: Champion[] }>> {
+    if (!key) {
+      return null;
+    }
     const origin = await this.originsRepository.findByKey(key);
 
     if (!origin) {

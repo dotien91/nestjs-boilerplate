@@ -21,7 +21,9 @@ export abstract class OriginRepository {
 
   abstract findById(id: Origin['id']): Promise<NullableType<Origin>>;
 
-  abstract findByKey(key: Origin['key']): Promise<NullableType<Origin>>;
+  abstract findByApiName(apiName: string): Promise<NullableType<Origin>>;
+
+  abstract findByKey(key: string): Promise<NullableType<Origin>>;
 
   abstract update(
     id: Origin['id'],

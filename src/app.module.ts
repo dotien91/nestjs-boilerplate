@@ -20,6 +20,7 @@ import { MongooseConfigService } from './database/mongoose-config.service';
 import { ChampionsModule } from './champions/champions.module';
 import { OriginsModule } from './origin/origins.module';
 import { ItemsModule } from './items/items.module';
+import { CompositionsModule } from './compositions/compositions.module';
 
 const infrastructureDatabaseModule = MongooseModule.forRootAsync({
   useClass: MongooseConfigService,
@@ -66,6 +67,7 @@ const infrastructureDatabaseModule = MongooseModule.forRootAsync({
     ChampionsModule,
     OriginsModule,
     ItemsModule,
+    CompositionsModule,
   ],
 })
 export class AppModule {}
