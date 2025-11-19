@@ -12,13 +12,30 @@ import { AppModule } from './app.module';
 import validationOptions from './utils/validation-options';
 import { AllConfigType } from './config/config.type';
 import { ResolvePromisesInterceptor } from './utils/serializer.interceptor';
+import { NestExpressApplication } from '@nestjs/platform-express';
+import { join } from 'path';
+import * as express from 'express';
 
 async function bootstrap() {
-  const app = await NestFactory.create(AppModule, { cors: true });
+  const app = await NestFactory.create<NestExpressApplication>(AppModule, { cors: true });
   useContainer(app.select(AppModule), { fallbackOnErrors: true });
   const configService = app.get(ConfigService<AllConfigType>);
 
   app.enableShutdownHooks();
+  
+  // Serve static files for icons - đặt TRƯỚC global prefix
+  // Sử dụng express.static trực tiếp để đảm bảo hoạt động
+  const iconsPath = join(process.cwd(), 'src', 'asset', 'icons');
+  app.use('/icons', express.static(iconsPath, {
+    setHeaders: (res, path) => {
+      if (path.endsWith('.svg')) {
+        res.setHeader('Content-Type', 'image/svg+xml');
+        res.setHeader('Cache-Control', 'public, max-age=31536000');
+      }
+    },
+  }));
+
+  // Set global prefix sau
   app.setGlobalPrefix(
     configService.getOrThrow('app.apiPrefix', { infer: true }),
     {

@@ -19,6 +19,7 @@ import { MongooseModule } from '@nestjs/mongoose';
 import { MongooseConfigService } from './database/mongoose-config.service';
 import { ChampionsModule } from './champions/champions.module';
 import { OriginsModule } from './origin/origins.module';
+import { ItemsModule } from './items/items.module';
 
 const infrastructureDatabaseModule = MongooseModule.forRootAsync({
   useClass: MongooseConfigService,
@@ -64,6 +65,7 @@ const infrastructureDatabaseModule = MongooseModule.forRootAsync({
     HomeModule,
     ChampionsModule,
     OriginsModule,
+    ItemsModule,
   ],
 })
 export class AppModule {}
