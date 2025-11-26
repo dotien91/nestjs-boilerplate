@@ -27,6 +27,7 @@ import { TftArmoryItemsModule } from './tft-armory-items/tft-armory-items.module
 import { TftAugmentOddsModule } from './tft-augment-odds/tft-augment-odds.module';
 import { TftRolesModule } from './tft-roles/tft-roles.module';
 import { TftUnitsModule } from './tft-units/tft-units.module';
+import { DataModule } from './data/data.module';
 
 const infrastructureDatabaseModule = MongooseModule.forRootAsync({
   useClass: MongooseConfigService,
@@ -80,6 +81,7 @@ const infrastructureDatabaseModule = MongooseModule.forRootAsync({
     TftAugmentOddsModule,
     TftRolesModule,
     TftUnitsModule,
+    DataModule,
   ],
 })
 export class AppModule {}
