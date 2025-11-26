@@ -17,10 +17,16 @@ import { SessionModule } from './session/session.module';
 import { MailerModule } from './mailer/mailer.module';
 import { MongooseModule } from '@nestjs/mongoose';
 import { MongooseConfigService } from './database/mongoose-config.service';
-import { ChampionsModule } from './champions/champions.module';
 import { OriginsModule } from './origin/origins.module';
 import { ItemsModule } from './items/items.module';
 import { CompositionsModule } from './compositions/compositions.module';
+import { TftItemsModule } from './tft-items/tft-items.module';
+import { TftAugmentsModule } from './tft-augments/tft-augments.module';
+import { TftTraitsModule } from './tft-traits/tft-traits.module';
+import { TftArmoryItemsModule } from './tft-armory-items/tft-armory-items.module';
+import { TftAugmentOddsModule } from './tft-augment-odds/tft-augment-odds.module';
+import { TftRolesModule } from './tft-roles/tft-roles.module';
+import { TftUnitsModule } from './tft-units/tft-units.module';
 
 const infrastructureDatabaseModule = MongooseModule.forRootAsync({
   useClass: MongooseConfigService,
@@ -64,10 +70,16 @@ const infrastructureDatabaseModule = MongooseModule.forRootAsync({
     MailModule,
     MailerModule,
     HomeModule,
-    ChampionsModule,
     OriginsModule,
     ItemsModule,
     CompositionsModule,
+    TftItemsModule,
+    TftAugmentsModule,
+    TftTraitsModule,
+    TftArmoryItemsModule,
+    TftAugmentOddsModule,
+    TftRolesModule,
+    TftUnitsModule,
   ],
 })
 export class AppModule {}

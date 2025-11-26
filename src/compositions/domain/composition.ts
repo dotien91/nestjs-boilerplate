@@ -1,5 +1,5 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
-import { Champion } from '../../champions/domain/champion';
+// Champions module removed
 
 const idType = String;
 
@@ -143,10 +143,10 @@ export class Unit {
   items?: string[];
 
   @ApiPropertyOptional({
-    type: () => Champion,
+    type: Object,
     description: 'Thông tin đầy đủ của champion (populated)',
   })
-  championDetails?: Champion;
+  championDetails?: any;
 }
 
 export class CarryItem {
@@ -193,10 +193,10 @@ export class CarryItem {
   items: string[];
 
   @ApiPropertyOptional({
-    type: () => Champion,
+    type: Object,
     description: 'Thông tin đầy đủ của champion (populated)',
   })
-  championDetails?: Champion;
+  championDetails?: any;
 }
 
 export class Composition {

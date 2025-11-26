@@ -146,11 +146,10 @@ export class OriginsController {
   }
 
   @ApiOperation({
-    summary: 'Lấy origin theo ID (có populate champions)',
+    summary: 'Lấy origin theo ID',
   })
   @ApiOkResponse({
     type: Origin,
-    description: 'Origin với championDetails được populate',
   })
   @Get(':id')
   @HttpCode(HttpStatus.OK)
@@ -164,11 +163,10 @@ export class OriginsController {
   }
 
   @ApiOperation({
-    summary: 'Lấy origin theo key (có populate champions)',
+    summary: 'Lấy origin theo key',
   })
   @ApiOkResponse({
     type: Origin,
-    description: 'Origin với championDetails được populate',
   })
   @Get('key/:key')
   @HttpCode(HttpStatus.OK)
@@ -183,10 +181,10 @@ export class OriginsController {
   }
 
   @ApiOperation({
-    summary: 'Lấy danh sách champions của origin (populate)',
+    summary: 'Lấy origin với thông tin champions (champions module removed)',
   })
   @ApiOkResponse({
-    description: 'Origin với champions được populate đầy đủ',
+    description: 'Origin (champions field chỉ là array of IDs)',
   })
   @Get(':id/champions')
   @HttpCode(HttpStatus.OK)

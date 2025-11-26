@@ -13,20 +13,13 @@ import { Origin } from './domain/origin';
 import { IPaginationOptions } from '../utils/types/pagination-options';
 import { FilesService } from '../files/files.service';
 import { FileType } from '../files/domain/file';
-import { ChampionRepository } from '../champions/infrastructure/persistence/champion.repository';
-import { Champion } from '../champions/domain/champion';
-import { Inject, forwardRef } from '@nestjs/common';
-import { ChampionsService } from '../champions/champions.service';
+// Champions module removed
 
 @Injectable()
 export class OriginsService {
   constructor(
     private readonly originsRepository: OriginRepository,
     private readonly filesService: FilesService,
-    @Inject(forwardRef(() => ChampionRepository))
-    private readonly championRepository: ChampionRepository,
-    @Inject(forwardRef(() => ChampionsService))
-    private readonly championsService: ChampionsService,
   ) {}
 
   async create(createOriginDto: CreateOriginDto): Promise<Origin> {
@@ -89,9 +82,6 @@ export class OriginsService {
       champions: createOriginDto.champions ?? [],
     });
 
-    // Sync origins in champions
-    await this.syncOriginsInChampions(origin.id, origin.champions || []);
-
     return origin;
   }
 
@@ -111,65 +101,15 @@ export class OriginsService {
     });
   }
 
-  async findById(
-    id: Origin['id'],
-  ): Promise<NullableType<Origin & { championDetails?: Champion[] }>> {
-    const origin = await this.originsRepository.findById(id);
-
-    if (!origin) {
-      return null;
-    }
-
-    // Populate champions nếu có
-    const championDetails: Champion[] = [];
-    if (origin.champions && origin.champions.length > 0) {
-      const championPromises = origin.champions.map((championId) =>
-        this.championRepository.findById(championId),
-      );
-      const championResults = await Promise.all(championPromises);
-      championDetails.push(
-        ...championResults.filter(
-          (c): c is Champion => c !== null && c !== undefined,
-        ),
-      );
-    }
-
-    return {
-      ...origin,
-      championDetails,
-    };
+  async findById(id: Origin['id']): Promise<NullableType<Origin>> {
+    return this.originsRepository.findById(id);
   }
 
-  async findByKey(
-    key: Origin['key'],
-  ): Promise<NullableType<Origin & { championDetails?: Champion[] }>> {
+  async findByKey(key: Origin['key']): Promise<NullableType<Origin>> {
     if (!key) {
       return null;
     }
-    const origin = await this.originsRepository.findByKey(key);
-
-    if (!origin) {
-      return null;
-    }
-
-    // Populate champions nếu có
-    const championDetails: Champion[] = [];
-    if (origin.champions && origin.champions.length > 0) {
-      const championPromises = origin.champions.map((championId) =>
-        this.championRepository.findById(championId),
-      );
-      const championResults = await Promise.all(championPromises);
-      championDetails.push(
-        ...championResults.filter(
-          (c): c is Champion => c !== null && c !== undefined,
-        ),
-      );
-    }
-
-    return {
-      ...origin,
-      championDetails,
-    };
+    return this.originsRepository.findByKey(key);
   }
 
   async update(
@@ -230,23 +170,11 @@ export class OriginsService {
       champions: updateOriginDto.champions,
     });
 
-    // Sync origins in champions if champions changed (skip if called from sync)
-    if (origin && updateOriginDto.champions !== undefined && !skipSync) {
-      await this.syncOriginsInChampions(origin.id, updateOriginDto.champions);
-    }
-
     return origin;
   }
 
   async remove(id: Origin['id']): Promise<void> {
-    // Get champions before removing
-    const origin = await this.originsRepository.findById(id);
-    const championsIds = origin?.champions || [];
-
     await this.originsRepository.remove(id);
-
-    // Remove origin from all champions
-    await this.syncOriginsInChampions(id, []);
   }
 
   async getOriginWithChampions(id: Origin['id']) {
@@ -261,82 +189,7 @@ export class OriginsService {
       });
     }
 
-    // Nếu origin có champions, lấy thông tin champions
-    const championDetails: Champion[] = [];
-    if (origin.champions && origin.champions.length > 0) {
-      // Lấy champions từ repository
-      const championPromises = origin.champions.map((championId) =>
-        this.championRepository.findById(championId),
-      );
-      const championResults = await Promise.all(championPromises);
-      championDetails.push(
-        ...championResults.filter(
-          (c): c is Champion => c !== null && c !== undefined,
-        ),
-      );
-    }
-
-    return {
-      ...origin,
-      championDetails,
-    };
-  }
-
-  /**
-   * Đồng bộ origins trong champions
-   * Khi origin thay đổi champions, cần cập nhật origins trong các champion tương ứng
-   */
-  private async syncOriginsInChampions(
-    originId: Origin['id'],
-    newChampionsIds: string[],
-  ): Promise<void> {
-    const originIdString = String(originId);
-
-    // Lấy tất cả champions hiện tại có origin này
-    const allChampions = await this.championRepository.findManyWithPagination({
-      filterOptions: null,
-      sortOptions: null,
-      paginationOptions: { page: 1, limit: 1000 }, // Get all champions
-    });
-
-    for (const champion of allChampions) {
-      const originsIds = await this.championRepository.findOriginsIds(
-        champion.id,
-      );
-      if (!originsIds) {
-        continue;
-      }
-
-      const hasOrigin = originsIds.includes(originIdString);
-      const shouldHaveOrigin = newChampionsIds.includes(String(champion.id));
-
-      if (hasOrigin && !shouldHaveOrigin) {
-        // Remove origin from champion
-        const updatedOriginsIds = originsIds.filter(
-          (id) => id !== originIdString,
-        );
-        // Skip sync to avoid circular dependency
-        await this.championsService.update(
-          champion.id,
-          {
-            origins: updatedOriginsIds,
-          },
-          true, // skipSync = true
-        );
-      } else if (!hasOrigin && shouldHaveOrigin) {
-        // Add origin to champion
-        if (!originsIds.includes(originIdString)) {
-          originsIds.push(originIdString);
-          // Skip sync to avoid circular dependency
-          await this.championsService.update(
-            champion.id,
-            {
-              origins: originsIds,
-            },
-            true, // skipSync = true
-          );
-        }
-      }
-    }
+    // Champions module removed - return origin without populating champions
+    return origin;
   }
 }
