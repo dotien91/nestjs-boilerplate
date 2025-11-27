@@ -71,6 +71,10 @@ export class TftUnitsService {
     });
   }
 
+  async findAll(): Promise<TftUnit[]> {
+    return this.tftUnitsRepository.findAll();
+  }
+
   async findById(id: TftUnit['id']): Promise<NullableType<TftUnit>> {
     return this.tftUnitsRepository.findById(id);
   }

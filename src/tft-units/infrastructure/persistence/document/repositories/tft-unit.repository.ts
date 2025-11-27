@@ -19,6 +19,32 @@ export class TftUnitsDocumentRepository implements TftUnitRepository {
     private readonly tftUnitsModel: Model<TftUnitSchemaClass>,
   ) {}
 
+  /**
+   * Convert lean MongoDB object to TftUnit domain entity
+   * This avoids circular reference issues when serializing
+   */
+  private leanToDomain(unitObject: any): TftUnit {
+    const domainEntity = new TftUnit();
+    domainEntity.id = unitObject._id?.toString() || unitObject._id;
+    domainEntity.apiName = unitObject.apiName;
+    domainEntity.name = unitObject.name;
+    domainEntity.enName = unitObject.enName;
+    domainEntity.characterName = unitObject.characterName;
+    domainEntity.cost = unitObject.cost;
+    domainEntity.icon = unitObject.icon;
+    domainEntity.squareIcon = unitObject.squareIcon;
+    domainEntity.tileIcon = unitObject.tileIcon;
+    domainEntity.role = unitObject.role;
+    // Deep clone nested objects to avoid circular references
+    domainEntity.ability = unitObject.ability ? JSON.parse(JSON.stringify(unitObject.ability)) : null;
+    domainEntity.stats = unitObject.stats ? JSON.parse(JSON.stringify(unitObject.stats)) : null;
+    domainEntity.traits = unitObject.traits || [];
+    domainEntity.createdAt = unitObject.createdAt;
+    domainEntity.updatedAt = unitObject.updatedAt;
+    domainEntity.deletedAt = unitObject.deletedAt;
+    return domainEntity;
+  }
+
   async create(data: TftUnit): Promise<TftUnit> {
     const persistenceModel = TftUnitMapper.toPersistence(data);
     const createdUnit = new this.tftUnitsModel(persistenceModel);
@@ -70,21 +96,27 @@ export class TftUnitsDocumentRepository implements TftUnitRepository {
         ),
       )
       .skip((paginationOptions.page - 1) * paginationOptions.limit)
-      .limit(paginationOptions.limit);
+      .limit(paginationOptions.limit)
+      .lean();
 
-    return unitObjects.map((unitObject) => TftUnitMapper.toDomain(unitObject));
+    return unitObjects.map((unitObject: any) => this.leanToDomain(unitObject));
+  }
+
+  async findAll(): Promise<TftUnit[]> {
+    const unitObjects = await this.tftUnitsModel.find().sort({ name: 1 }).lean();
+    return unitObjects.map((unitObject: any) => this.leanToDomain(unitObject));
   }
 
   async findById(id: TftUnit['id']): Promise<NullableType<TftUnit>> {
-    const unitObject = await this.tftUnitsModel.findById(id);
-    return unitObject ? TftUnitMapper.toDomain(unitObject) : null;
+    const unitObject = await this.tftUnitsModel.findById(id).lean();
+    return unitObject ? this.leanToDomain(unitObject) : null;
   }
 
   async findByApiName(apiName: string): Promise<NullableType<TftUnit>> {
     if (!apiName) return null;
 
-    const unitObject = await this.tftUnitsModel.findOne({ apiName });
-    return unitObject ? TftUnitMapper.toDomain(unitObject) : null;
+    const unitObject = await this.tftUnitsModel.findOne({ apiName }).lean();
+    return unitObject ? this.leanToDomain(unitObject) : null;
   }
 
   async update(
@@ -95,22 +127,23 @@ export class TftUnitsDocumentRepository implements TftUnitRepository {
     delete clonedPayload.id;
 
     const filter = { _id: id.toString() };
-    const unit = await this.tftUnitsModel.findOne(filter);
+    const unit = await this.tftUnitsModel.findOne(filter).lean();
 
     if (!unit) {
       return null;
     }
 
+    const currentUnit = this.leanToDomain(unit);
     const unitObject = await this.tftUnitsModel.findOneAndUpdate(
       filter,
       TftUnitMapper.toPersistence({
-        ...TftUnitMapper.toDomain(unit),
+        ...currentUnit,
         ...clonedPayload,
       }),
       { new: true },
-    );
+    ).lean();
 
-    return unitObject ? TftUnitMapper.toDomain(unitObject) : null;
+    return unitObject ? this.leanToDomain(unitObject) : null;
   }
 
   async remove(id: TftUnit['id']): Promise<void> {

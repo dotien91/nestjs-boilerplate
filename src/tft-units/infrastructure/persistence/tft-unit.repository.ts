@@ -19,6 +19,8 @@ export abstract class TftUnitRepository {
     paginationOptions: IPaginationOptions;
   }): Promise<TftUnit[]>;
 
+  abstract findAll(): Promise<TftUnit[]>;
+
   abstract findById(id: TftUnit['id']): Promise<NullableType<TftUnit>>;
 
   abstract findByApiName(apiName: string): Promise<NullableType<TftUnit>>;

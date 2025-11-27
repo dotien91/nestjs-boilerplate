@@ -75,19 +75,15 @@ export class TftUnitsController {
     );
   }
 
-  @ApiOperation({ summary: 'Lấy TFT unit theo ID' })
+  @ApiOperation({ summary: 'Lấy tất cả TFT units (không phân trang)' })
   @ApiOkResponse({
-    type: TftUnit,
+    type: [TftUnit],
   })
-  @Get(':id')
+  @Get('list-all')
   @HttpCode(HttpStatus.OK)
-  @ApiParam({
-    name: 'id',
-    type: String,
-    required: true,
-  })
-  findOne(@Param('id') id: TftUnit['id']): Promise<NullableType<TftUnit>> {
-    return this.tftUnitsService.findById(id);
+  async findAllUnits(): Promise<TftUnit[]> {
+    console.log('findAllUnits');
+    return this.tftUnitsService.findAll();
   }
 
   @ApiOperation({ summary: 'Lấy TFT unit theo API name' })
@@ -128,6 +124,21 @@ export class TftUnitsController {
       sortOptions: null,
       paginationOptions: { page: 1, limit: 100 },
     });
+  }
+
+  @ApiOperation({ summary: 'Lấy TFT unit theo ID' })
+  @ApiOkResponse({
+    type: TftUnit,
+  })
+  @Get(':id')
+  @HttpCode(HttpStatus.OK)
+  @ApiParam({
+    name: 'id',
+    type: String,
+    required: true,
+  })
+  findOne(@Param('id') id: TftUnit['id']): Promise<NullableType<TftUnit>> {
+    return this.tftUnitsService.findById(id);
   }
 
   @ApiOperation({ summary: 'Cập nhật TFT unit' })
