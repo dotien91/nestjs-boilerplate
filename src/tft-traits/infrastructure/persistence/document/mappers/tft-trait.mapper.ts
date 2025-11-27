@@ -2,6 +2,19 @@ import { TftTrait } from '../../../../domain/tft-trait';
 import { TftTraitSchemaClass } from '../entities/tft-trait.schema';
 
 export class TftTraitMapper {
+  /**
+   * Generate icon URL from CDN based on trait name
+   */
+  private static generateIconUrl(apiName: string, name: string): string {
+    // Extract trait name from apiName (e.g., TFT16_Longshot -> longshot)
+    // or use name directly
+    const traitName = apiName
+      ? apiName.replace(/^TFT\d+_/, '').toLowerCase()
+      : name.toLowerCase();
+    
+    return `https://cdn.metatft.com/file/metatft/traits/${traitName}.png`;
+  }
+
   static toDomain(raw: TftTraitSchemaClass): TftTrait {
     const domainEntity = new TftTrait();
     domainEntity.id = raw._id.toString();
@@ -9,7 +22,8 @@ export class TftTraitMapper {
     domainEntity.name = raw.name;
     domainEntity.enName = raw.enName;
     domainEntity.desc = raw.desc;
-    domainEntity.icon = raw.icon;
+    // Always generate icon from CDN (override any existing icon in DB)
+    domainEntity.icon = TftTraitMapper.generateIconUrl(raw.apiName, raw.name);
     domainEntity.effects = raw.effects || [];
     domainEntity.units = raw.units || [];
     domainEntity.unitProperties = raw.unitProperties || {};
