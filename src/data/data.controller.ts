@@ -56,7 +56,7 @@ export class DataController {
     res.setHeader('Content-Disposition', `inline; filename="${fileName}"`);
 
     // Stream file to response
-    return res.sendFile(filePath);
+    res.sendFile(filePath);
   }
 
   @ApiOperation({
@@ -95,8 +95,35 @@ export class DataController {
   }
 
   @ApiOperation({
+    summary: 'Lấy dữ liệu Units theo ngôn ngữ',
+    description: 'Trả về dữ liệu Units từ TFTSet16 file theo ngôn ngữ',
+  })
+  @ApiParam({
+    name: 'locale',
+    type: String,
+    description: 'Mã ngôn ngữ (en_us, vi_vn, ...)',
+    example: 'en_us',
+    required: true,
+  })
+  @Get('units/:locale')
+  async getUnitsData(@Param('locale') locale: string, @Res() res: Response) {
+    if (!/^[a-z]{2}_[a-z]{2}$/.test(locale)) {
+      throw new BadRequestException(
+        'Invalid locale format. Expected format: xx_xx (e.g., en_us, vi_vn)',
+      );
+    }
+
+    const units = this.getTftSet16Section(locale, 'units');
+
+    res.setHeader('Content-Type', 'application/json; charset=utf-8');
+    res.setHeader('Cache-Control', 'public, max-age=3600');
+
+    res.json(units);
+  }
+
+  @ApiOperation({
     summary: 'Lấy dữ liệu Items theo ngôn ngữ',
-    description: 'Trả về file JSON chứa dữ liệu Items theo ngôn ngữ',
+    description: 'Trả về dữ liệu Items từ TFTSet16 file theo ngôn ngữ',
   })
   @ApiParam({
     name: 'locale',
@@ -113,20 +140,340 @@ export class DataController {
       );
     }
 
-    const fileName = `Items_${locale}.json`;
+    const items = this.getTftSet16Section(locale, 'items');
+
+    res.setHeader('Content-Type', 'application/json; charset=utf-8');
+    res.setHeader('Cache-Control', 'public, max-age=3600');
+
+    res.json(items);
+  }
+
+  /**
+   * Helper method to extract a specific section from TFTSet16 JSON file
+   */
+  private getTftSet16Section(locale: string, section: string): any {
+    const fileName = `TFTSet16_latest_${locale}.json`;
     const filePath = path.join(this.assetPath, fileName);
 
     if (!fs.existsSync(filePath)) {
       throw new NotFoundException(
-        `Items data file for locale '${locale}' not found`,
+        `Data file for locale '${locale}' not found`,
       );
     }
 
+    const fileContent = fs.readFileSync(filePath, 'utf-8');
+    const jsonData = JSON.parse(fileContent);
+
+    // Map section names (some use snake_case in API, camelCase in JSON)
+    const sectionMap: Record<string, string> = {
+      'armory-items': 'armory_items',
+      'augment-odds': 'augmentOdds',
+      'augment-categories': 'augmentCategories',
+      'extra-translations': 'extraTranslations',
+    };
+
+    const jsonKey = sectionMap[section] || section;
+
+    if (!(jsonKey in jsonData)) {
+      throw new NotFoundException(
+        `Section '${section}' not found in data file for locale '${locale}'`,
+      );
+    }
+
+    return jsonData[jsonKey];
+  }
+
+  @ApiOperation({
+    summary: 'Lấy dữ liệu Augments theo ngôn ngữ',
+    description: 'Trả về dữ liệu Augments từ TFTSet16 file theo ngôn ngữ',
+  })
+  @ApiParam({
+    name: 'locale',
+    type: String,
+    description: 'Mã ngôn ngữ (en_us, vi_vn, ...)',
+    example: 'en_us',
+    required: true,
+  })
+  @Get('augments/:locale')
+  async getAugmentsData(@Param('locale') locale: string, @Res() res: Response) {
+    if (!/^[a-z]{2}_[a-z]{2}$/.test(locale)) {
+      throw new BadRequestException(
+        'Invalid locale format. Expected format: xx_xx (e.g., en_us, vi_vn)',
+      );
+    }
+
+    const augments = this.getTftSet16Section(locale, 'augments');
+
     res.setHeader('Content-Type', 'application/json; charset=utf-8');
     res.setHeader('Cache-Control', 'public, max-age=3600');
-    res.setHeader('Content-Disposition', `inline; filename="${fileName}"`);
 
-    return res.sendFile(filePath);
+    res.json(augments);
+  }
+
+  @ApiOperation({
+    summary: 'Lấy dữ liệu Traits theo ngôn ngữ',
+    description: 'Trả về dữ liệu Traits từ TFTSet16 file theo ngôn ngữ',
+  })
+  @ApiParam({
+    name: 'locale',
+    type: String,
+    description: 'Mã ngôn ngữ (en_us, vi_vn, ...)',
+    example: 'en_us',
+    required: true,
+  })
+  @Get('traits/:locale')
+  async getTraitsData(@Param('locale') locale: string, @Res() res: Response) {
+    if (!/^[a-z]{2}_[a-z]{2}$/.test(locale)) {
+      throw new BadRequestException(
+        'Invalid locale format. Expected format: xx_xx (e.g., en_us, vi_vn)',
+      );
+    }
+
+    const traits = this.getTftSet16Section(locale, 'traits');
+
+    res.setHeader('Content-Type', 'application/json; charset=utf-8');
+    res.setHeader('Cache-Control', 'public, max-age=3600');
+
+    res.json(traits);
+  }
+
+  @ApiOperation({
+    summary: 'Lấy dữ liệu Armory Items theo ngôn ngữ',
+    description: 'Trả về dữ liệu Armory Items từ TFTSet16 file theo ngôn ngữ',
+  })
+  @ApiParam({
+    name: 'locale',
+    type: String,
+    description: 'Mã ngôn ngữ (en_us, vi_vn, ...)',
+    example: 'en_us',
+    required: true,
+  })
+  @Get('armory-items/:locale')
+  async getArmoryItemsData(
+    @Param('locale') locale: string,
+    @Res() res: Response,
+  ) {
+    if (!/^[a-z]{2}_[a-z]{2}$/.test(locale)) {
+      throw new BadRequestException(
+        'Invalid locale format. Expected format: xx_xx (e.g., en_us, vi_vn)',
+      );
+    }
+
+    const armoryItems = this.getTftSet16Section(locale, 'armory-items');
+
+    res.setHeader('Content-Type', 'application/json; charset=utf-8');
+    res.setHeader('Cache-Control', 'public, max-age=3600');
+
+    res.json(armoryItems);
+  }
+
+  @ApiOperation({
+    summary: 'Lấy dữ liệu Augment Odds theo ngôn ngữ',
+    description: 'Trả về dữ liệu Augment Odds từ TFTSet16 file theo ngôn ngữ',
+  })
+  @ApiParam({
+    name: 'locale',
+    type: String,
+    description: 'Mã ngôn ngữ (en_us, vi_vn, ...)',
+    example: 'en_us',
+    required: true,
+  })
+  @Get('augment-odds/:locale')
+  async getAugmentOddsData(
+    @Param('locale') locale: string,
+    @Res() res: Response,
+  ) {
+    if (!/^[a-z]{2}_[a-z]{2}$/.test(locale)) {
+      throw new BadRequestException(
+        'Invalid locale format. Expected format: xx_xx (e.g., en_us, vi_vn)',
+      );
+    }
+
+    const augmentOdds = this.getTftSet16Section(locale, 'augment-odds');
+
+    res.setHeader('Content-Type', 'application/json; charset=utf-8');
+    res.setHeader('Cache-Control', 'public, max-age=3600');
+
+    res.json(augmentOdds);
+  }
+
+  @ApiOperation({
+    summary: 'Lấy dữ liệu Roles theo ngôn ngữ',
+    description: 'Trả về dữ liệu Roles từ TFTSet16 file theo ngôn ngữ',
+  })
+  @ApiParam({
+    name: 'locale',
+    type: String,
+    description: 'Mã ngôn ngữ (en_us, vi_vn, ...)',
+    example: 'en_us',
+    required: true,
+  })
+  @Get('roles/:locale')
+  async getRolesData(@Param('locale') locale: string, @Res() res: Response) {
+    if (!/^[a-z]{2}_[a-z]{2}$/.test(locale)) {
+      throw new BadRequestException(
+        'Invalid locale format. Expected format: xx_xx (e.g., en_us, vi_vn)',
+      );
+    }
+
+    const roles = this.getTftSet16Section(locale, 'roles');
+
+    res.setHeader('Content-Type', 'application/json; charset=utf-8');
+    res.setHeader('Cache-Control', 'public, max-age=3600');
+
+    res.json(roles);
+  }
+
+  @ApiOperation({
+    summary: 'Lấy dữ liệu Portals theo ngôn ngữ',
+    description: 'Trả về dữ liệu Portals từ TFTSet16 file theo ngôn ngữ',
+  })
+  @ApiParam({
+    name: 'locale',
+    type: String,
+    description: 'Mã ngôn ngữ (en_us, vi_vn, ...)',
+    example: 'en_us',
+    required: true,
+  })
+  @Get('portals/:locale')
+  async getPortalsData(@Param('locale') locale: string, @Res() res: Response) {
+    if (!/^[a-z]{2}_[a-z]{2}$/.test(locale)) {
+      throw new BadRequestException(
+        'Invalid locale format. Expected format: xx_xx (e.g., en_us, vi_vn)',
+      );
+    }
+
+    const portals = this.getTftSet16Section(locale, 'portals');
+
+    res.setHeader('Content-Type', 'application/json; charset=utf-8');
+    res.setHeader('Cache-Control', 'public, max-age=3600');
+
+    res.json(portals);
+  }
+
+  @ApiOperation({
+    summary: 'Lấy dữ liệu Encounters theo ngôn ngữ',
+    description: 'Trả về dữ liệu Encounters từ TFTSet16 file theo ngôn ngữ',
+  })
+  @ApiParam({
+    name: 'locale',
+    type: String,
+    description: 'Mã ngôn ngữ (en_us, vi_vn, ...)',
+    example: 'en_us',
+    required: true,
+  })
+  @Get('encounters/:locale')
+  async getEncountersData(
+    @Param('locale') locale: string,
+    @Res() res: Response,
+  ) {
+    if (!/^[a-z]{2}_[a-z]{2}$/.test(locale)) {
+      throw new BadRequestException(
+        'Invalid locale format. Expected format: xx_xx (e.g., en_us, vi_vn)',
+      );
+    }
+
+    const encounters = this.getTftSet16Section(locale, 'encounters');
+
+    res.setHeader('Content-Type', 'application/json; charset=utf-8');
+    res.setHeader('Cache-Control', 'public, max-age=3600');
+
+    res.json(encounters);
+  }
+
+  @ApiOperation({
+    summary: 'Lấy dữ liệu Augment Categories theo ngôn ngữ',
+    description:
+      'Trả về dữ liệu Augment Categories từ TFTSet16 file theo ngôn ngữ',
+  })
+  @ApiParam({
+    name: 'locale',
+    type: String,
+    description: 'Mã ngôn ngữ (en_us, vi_vn, ...)',
+    example: 'en_us',
+    required: true,
+  })
+  @Get('augment-categories/:locale')
+  async getAugmentCategoriesData(
+    @Param('locale') locale: string,
+    @Res() res: Response,
+  ) {
+    if (!/^[a-z]{2}_[a-z]{2}$/.test(locale)) {
+      throw new BadRequestException(
+        'Invalid locale format. Expected format: xx_xx (e.g., en_us, vi_vn)',
+      );
+    }
+
+    const augmentCategories = this.getTftSet16Section(
+      locale,
+      'augment-categories',
+    );
+
+    res.setHeader('Content-Type', 'application/json; charset=utf-8');
+    res.setHeader('Cache-Control', 'public, max-age=3600');
+
+    res.json(augmentCategories);
+  }
+
+  @ApiOperation({
+    summary: 'Lấy dữ liệu Extra Translations theo ngôn ngữ',
+    description:
+      'Trả về dữ liệu Extra Translations từ TFTSet16 file theo ngôn ngữ',
+  })
+  @ApiParam({
+    name: 'locale',
+    type: String,
+    description: 'Mã ngôn ngữ (en_us, vi_vn, ...)',
+    example: 'en_us',
+    required: true,
+  })
+  @Get('extra-translations/:locale')
+  async getExtraTranslationsData(
+    @Param('locale') locale: string,
+    @Res() res: Response,
+  ) {
+    if (!/^[a-z]{2}_[a-z]{2}$/.test(locale)) {
+      throw new BadRequestException(
+        'Invalid locale format. Expected format: xx_xx (e.g., en_us, vi_vn)',
+      );
+    }
+
+    const extraTranslations = this.getTftSet16Section(
+      locale,
+      'extra-translations',
+    );
+
+    res.setHeader('Content-Type', 'application/json; charset=utf-8');
+    res.setHeader('Cache-Control', 'public, max-age=3600');
+
+    res.json(extraTranslations);
+  }
+
+  @ApiOperation({
+    summary: 'Lấy dữ liệu Zaps theo ngôn ngữ',
+    description: 'Trả về dữ liệu Zaps từ TFTSet16 file theo ngôn ngữ',
+  })
+  @ApiParam({
+    name: 'locale',
+    type: String,
+    description: 'Mã ngôn ngữ (en_us, vi_vn, ...)',
+    example: 'en_us',
+    required: true,
+  })
+  @Get('zaps/:locale')
+  async getZapsData(@Param('locale') locale: string, @Res() res: Response) {
+    if (!/^[a-z]{2}_[a-z]{2}$/.test(locale)) {
+      throw new BadRequestException(
+        'Invalid locale format. Expected format: xx_xx (e.g., en_us, vi_vn)',
+      );
+    }
+
+    const zaps = this.getTftSet16Section(locale, 'zaps');
+
+    res.setHeader('Content-Type', 'application/json; charset=utf-8');
+    res.setHeader('Cache-Control', 'public, max-age=3600');
+
+    res.json(zaps);
   }
 
   @ApiOperation({
@@ -166,7 +513,7 @@ export class DataController {
     res.setHeader('Cache-Control', 'public, max-age=3600');
     res.setHeader('Content-Disposition', `inline; filename="${filename}"`);
 
-    return res.sendFile(filePath);
+    res.sendFile(filePath);
   }
 }
 
