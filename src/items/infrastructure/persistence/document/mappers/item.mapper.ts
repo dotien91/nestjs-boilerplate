@@ -16,6 +16,7 @@ export class ItemMapper {
     domainEntity.tags = raw.tags;
     domainEntity.unique = raw.unique;
     domainEntity.disabled = raw.disabled;
+    domainEntity.status = raw.status;
     // Deep clone effects để tránh circular reference
     domainEntity.effects = raw.effects ? JSON.parse(JSON.stringify(raw.effects)) : null;
     domainEntity.variableMatches = raw.variableMatches ? JSON.parse(JSON.stringify(raw.variableMatches)) : null;
@@ -45,6 +46,7 @@ export class ItemMapper {
     persistenceSchema.tags = domainEntity.tags || [];
     persistenceSchema.unique = domainEntity.unique ?? false;
     persistenceSchema.disabled = domainEntity.disabled ?? false;
+    persistenceSchema.status = domainEntity.status || 'active';
     persistenceSchema.effects = domainEntity.effects || {};
     persistenceSchema.variableMatches = domainEntity.variableMatches || [];
     persistenceSchema.from = domainEntity.from;

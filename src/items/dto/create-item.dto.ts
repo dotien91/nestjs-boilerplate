@@ -2,11 +2,13 @@ import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import {
   IsArray,
   IsBoolean,
+  IsEnum,
   IsNotEmpty,
   IsObject,
   IsOptional,
   IsString,
 } from 'class-validator';
+import { ItemStatusEnum } from '../items-status.enum';
 import { VariableMatchDto } from './item.dto';
 
 export class CreateItemDto {
@@ -100,6 +102,16 @@ export class CreateItemDto {
   @IsOptional()
   @IsBoolean()
   disabled?: boolean | null;
+
+  @ApiPropertyOptional({
+    type: String,
+    enum: ItemStatusEnum,
+    example: ItemStatusEnum.ACTIVE,
+    description: 'Trạng thái của item: active hoặc disabled',
+  })
+  @IsOptional()
+  @IsEnum(ItemStatusEnum)
+  status?: ItemStatusEnum | null;
 
   @ApiPropertyOptional({
     type: Object,

@@ -81,6 +81,13 @@ export class ItemSchemaClass extends EntityDocumentHelper {
   disabled?: boolean | null;
 
   @Prop({
+    type: String,
+    enum: ['active', 'disabled'],
+    default: 'active',
+  })
+  status?: string | null;
+
+  @Prop({
     type: MongooseSchema.Types.Mixed,
     default: {},
   })
@@ -135,4 +142,5 @@ ItemSchema.index({ name: 1 });
 ItemSchema.index({ tags: 1 });
 ItemSchema.index({ unique: 1 });
 ItemSchema.index({ disabled: 1 });
+ItemSchema.index({ status: 1 });
 

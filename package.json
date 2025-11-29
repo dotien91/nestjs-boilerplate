@@ -19,6 +19,8 @@
     "import:tft-augment-odds": "ts-node -r tsconfig-paths/register ./src/asset/import-tft-augment-odds.ts",
     "import:tft-roles": "ts-node -r tsconfig-paths/register ./src/asset/import-tft-roles.ts",
     "import:tft-units": "ts-node -r tsconfig-paths/register ./src/asset/import-tft-units.ts",
+    "delete:items-by-name-list": "ts-node -r tsconfig-paths/register ./src/asset/delete-items-by-name-list.ts",
+    "debug:items": "ts-node -r tsconfig-paths/register ./src/asset/debug-items.ts",
     "prebuild": "rimraf dist",
     "build": "nest build",
     "format": "prettier --write \"src/**/*.ts\" \"test/**/*.ts\"",

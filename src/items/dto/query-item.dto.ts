@@ -2,11 +2,13 @@ import { ApiPropertyOptional } from '@nestjs/swagger';
 import { Transform, Type } from 'class-transformer';
 import {
   IsBoolean,
+  IsEnum,
   IsNumber,
   IsOptional,
   IsString,
   ValidateNested,
 } from 'class-validator';
+import { ItemStatusEnum } from '../items-status.enum';
 
 export class FilterItemDto {
   @ApiPropertyOptional({ type: String })
@@ -35,6 +37,15 @@ export class FilterItemDto {
   @IsBoolean()
   @Transform(({ value }) => (value === 'true' || value === true))
   disabled?: boolean | null;
+
+  @ApiPropertyOptional({
+    type: String,
+    enum: ItemStatusEnum,
+    description: 'Lọc theo trạng thái: active hoặc disabled',
+  })
+  @IsOptional()
+  @IsEnum(ItemStatusEnum)
+  status?: ItemStatusEnum | null;
 }
 
 export class SortItemDto {

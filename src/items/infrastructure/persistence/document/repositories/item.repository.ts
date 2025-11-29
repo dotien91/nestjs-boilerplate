@@ -11,6 +11,7 @@ import { Item } from '../../../../domain/item';
 import { ItemRepository } from '../../item.repository';
 import { ItemSchemaClass } from '../entities/item.schema';
 import { ItemMapper } from '../mappers/item.mapper';
+import { ItemStatusEnum } from '../../../../items-status.enum';
 
 @Injectable()
 export class ItemsDocumentRepository implements ItemRepository {
@@ -61,6 +62,14 @@ export class ItemsDocumentRepository implements ItemRepository {
 
     if (filterOptions?.disabled !== undefined) {
       where.disabled = filterOptions.disabled;
+    }
+
+    // Mặc định chỉ trả về items có status = 'active'
+    // Nếu user truyền filter status khác thì dùng filter đó
+    if (filterOptions?.status !== undefined) {
+      where.status = filterOptions.status;
+    } else {
+      where.status = ItemStatusEnum.ACTIVE;
     }
 
     const itemObjects = await this.itemsModel
@@ -121,10 +130,78 @@ export class ItemsDocumentRepository implements ItemRepository {
     return itemObject ? ItemMapper.toDomain(itemObject) : null;
   }
 
+  async updateByApiName(
+    apiName: Item['apiName'],
+    payload: Partial<Item>,
+  ): Promise<Item | null> {
+    if (!apiName) return null;
+
+    const clonedPayload = { ...payload };
+    delete clonedPayload.id;
+
+    const filter = { apiName };
+    const item = await this.itemsModel.findOne(filter);
+
+    if (!item) {
+      return null;
+    }
+
+    const itemObject = await this.itemsModel.findOneAndUpdate(
+      filter,
+      ItemMapper.toPersistence({
+        ...ItemMapper.toDomain(item),
+        ...clonedPayload,
+      }),
+      { new: true },
+    );
+
+    return itemObject ? ItemMapper.toDomain(itemObject) : null;
+  }
+
   async remove(id: Item['id']): Promise<void> {
     await this.itemsModel.deleteOne({
       _id: id.toString(),
     });
+  }
+
+  async findItemsWithoutIcon(): Promise<Item[]> {
+    const itemObjects = await this.itemsModel.find({
+      $or: [
+        { icon: null },
+        { icon: { $exists: false } },
+        { icon: '' },
+      ],
+    });
+
+    return itemObjects.map((itemObject) =>
+      ItemMapper.toDomain(itemObject),
+    );
+  }
+
+  async bulkUpdateItemsWithoutIcon(): Promise<number> {
+    const result = await this.itemsModel.updateMany(
+      {
+        $or: [
+          { icon: null },
+          { icon: { $exists: false } },
+          { icon: '' },
+        ],
+      },
+      {
+        $set: {
+          disabled: false,
+        },
+      },
+    );
+
+    return result.modifiedCount;
+  }
+
+  async findAll(): Promise<Item[]> {
+    const itemObjects = await this.itemsModel.find({});
+    return itemObjects.map((itemObject) =>
+      ItemMapper.toDomain(itemObject),
+    );
   }
 }
 

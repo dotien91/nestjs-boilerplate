@@ -144,7 +144,7 @@ export class ItemsController {
     return this.itemsService.findById(id);
   }
 
-  @ApiOperation({ summary: 'Cập nhật item' })
+  @ApiOperation({ summary: 'Cập nhật item theo ID' })
   @ApiOkResponse({
     type: Item,
   })
@@ -162,6 +162,25 @@ export class ItemsController {
     return this.itemsService.update(id, updateItemDto);
   }
 
+  @ApiOperation({ summary: 'Cập nhật item theo API name' })
+  @ApiOkResponse({
+    type: Item,
+  })
+  @Patch('api-name/:apiName')
+  @HttpCode(HttpStatus.OK)
+  @ApiParam({
+    name: 'apiName',
+    type: String,
+    required: true,
+    example: 'TFT_Item_RabadonsDeathcap',
+  })
+  updateByApiName(
+    @Param('apiName') apiName: Item['apiName'],
+    @Body() updateItemDto: UpdateItemDto,
+  ): Promise<Item | null> {
+    return this.itemsService.updateByApiName(apiName, updateItemDto);
+  }
+
   @ApiOperation({ summary: 'Xóa item' })
   @Delete(':id')
   @ApiParam({
@@ -172,6 +191,57 @@ export class ItemsController {
   @HttpCode(HttpStatus.NO_CONTENT)
   remove(@Param('id') id: Item['id']): Promise<void> {
     return this.itemsService.remove(id);
+  }
+
+  @ApiOperation({ summary: 'Update tất cả items không có icon/avatar URL, set disabled: false' })
+  @ApiOkResponse({
+    description: 'Update items không có icon',
+    schema: {
+      type: 'object',
+      properties: {
+        updated: { type: 'number', description: 'Số lượng items đã được update' },
+        items: {
+          type: 'array',
+          items: { $ref: '#/components/schemas/Item' },
+          description: 'Danh sách items không có icon',
+        },
+      },
+    },
+  })
+  @Post('update-items-without-icon')
+  @HttpCode(HttpStatus.OK)
+  async updateItemsWithoutIcon(): Promise<{ updated: number; items: Item[] }> {
+    return this.itemsService.updateItemsWithoutIcon();
+  }
+
+  @ApiOperation({ summary: 'Xóa các items có tên trong danh sách TFT Set 16' })
+  @ApiOkResponse({
+    description: 'Xóa items theo danh sách tên',
+    schema: {
+      type: 'object',
+      properties: {
+        deleted: { type: 'number', description: 'Số lượng items đã xóa' },
+        items: {
+          type: 'array',
+          items: { $ref: '#/components/schemas/Item' },
+          description: 'Danh sách items đã xóa',
+        },
+        errors: {
+          type: 'array',
+          items: { type: 'string' },
+          description: 'Danh sách lỗi nếu có',
+        },
+      },
+    },
+  })
+  @Delete('cleanup/by-name-list')
+  @HttpCode(HttpStatus.OK)
+  async deleteItemsByNameList(): Promise<{
+    deleted: number;
+    items: Item[];
+    errors: string[];
+  }> {
+    return this.itemsService.deleteItemsByNameList();
   }
 }
 

@@ -31,8 +31,19 @@ export abstract class ItemRepository {
     payload: DeepPartial<Item>,
   ): Promise<Item | null>;
 
+  abstract updateByApiName(
+    apiName: Item['apiName'],
+    payload: DeepPartial<Item>,
+  ): Promise<Item | null>;
+
   abstract remove(id: Item['id']): Promise<void>;
 
   abstract bulkCreate(items: Omit<Item, 'id' | 'createdAt' | 'deletedAt' | 'updatedAt'>[]): Promise<Item[]>;
+
+  abstract findItemsWithoutIcon(): Promise<Item[]>;
+
+  abstract bulkUpdateItemsWithoutIcon(): Promise<number>;
+
+  abstract findAll(): Promise<Item[]>;
 }
 

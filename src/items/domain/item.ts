@@ -88,6 +88,14 @@ export class Item {
   disabled?: boolean | null;
 
   @ApiPropertyOptional({
+    type: String,
+    enum: ['active', 'disabled'],
+    example: 'active',
+    description: 'Trạng thái của item: active hoặc disabled',
+  })
+  status?: string | null;
+
+  @ApiPropertyOptional({
     type: Object,
     description: 'Effects của item (stats)',
     additionalProperties: true,

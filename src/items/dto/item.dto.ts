@@ -83,6 +83,13 @@ export class ItemDto {
   disabled?: boolean | null;
 
   @ApiPropertyOptional({
+    type: String,
+    enum: ['active', 'disabled'],
+    example: 'active',
+  })
+  status?: string | null;
+
+  @ApiPropertyOptional({
     type: Object,
   })
   effects?: Record<string, any> | null;
