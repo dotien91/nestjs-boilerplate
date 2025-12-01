@@ -64,15 +64,18 @@ export class TftUnitsDocumentRepository implements TftUnitRepository {
     const where: FilterQuery<TftUnitSchemaClass> = {};
 
     if (filterOptions?.name) {
-      where.name = { $regex: filterOptions.name, $options: 'i' };
+      // Escape special regex characters và tìm partial match
+      const escapedName = filterOptions.name.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+      where.name = { $regex: escapedName, $options: 'i' };
     }
 
     if (filterOptions?.apiName) {
       where.apiName = filterOptions.apiName;
     }
 
+    // traits là array, dùng $in để filter
     if (filterOptions?.trait) {
-      where.traits = filterOptions.trait;
+      where.traits = { $in: [filterOptions.trait] };
     }
 
     if (filterOptions?.cost !== undefined && filterOptions?.cost !== null) {
