@@ -21,7 +21,7 @@ import { TftAugmentsService } from './tft-augments.service';
 import { CreateTftAugmentDto } from './dto/create-tft-augment.dto';
 import { UpdateTftAugmentDto } from './dto/update-tft-augment.dto';
 import { TftAugment } from './domain/tft-augment';
-import { QueryTftAugmentDto } from './dto/query-tft-augment.dto';
+import { QueryTftAugmentDto, FilterTftAugmentDto, SortTftAugmentDto } from './dto/query-tft-augment.dto';
 import {
   InfinityPaginationResponse,
   InfinityPaginationResponseDto,
@@ -62,10 +62,35 @@ export class TftAugmentsController {
       limit = 50;
     }
 
+    // Build filters từ flat properties - chỉ giữ field có giá trị
+    let filters: FilterTftAugmentDto | undefined = undefined;
+    const filterObj: Partial<FilterTftAugmentDto> = {};
+    
+    if (query?.name) filterObj.name = query.name;
+    if (query?.apiName) filterObj.apiName = query.apiName;
+    if (query?.trait) filterObj.trait = query.trait;
+    if (query?.stage) filterObj.stage = query.stage;
+    if (query?.unique !== undefined && query?.unique !== null) filterObj.unique = query.unique;
+    
+    if (Object.keys(filterObj).length > 0) {
+      filters = filterObj as FilterTftAugmentDto;
+    }
+
+    // Build sort từ flat properties
+    let sort: SortTftAugmentDto[] | undefined = undefined;
+    if (query?.orderBy && query?.order) {
+      sort = [
+        {
+          orderBy: query.orderBy,
+          order: query.order,
+        },
+      ];
+    }
+
     return infinityPagination(
       await this.tftAugmentsService.findManyWithPagination({
-        filterOptions: query?.filters,
-        sortOptions: query?.sort,
+        filterOptions: filters,
+        sortOptions: sort,
         paginationOptions: {
           page,
           limit,

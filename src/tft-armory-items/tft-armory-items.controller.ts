@@ -21,7 +21,7 @@ import { TftArmoryItemsService } from './tft-armory-items.service';
 import { CreateTftArmoryItemDto } from './dto/create-tft-armory-item.dto';
 import { UpdateTftArmoryItemDto } from './dto/update-tft-armory-item.dto';
 import { TftArmoryItem } from './domain/tft-armory-item';
-import { QueryTftArmoryItemDto } from './dto/query-tft-armory-item.dto';
+import { QueryTftArmoryItemDto, FilterTftArmoryItemDto, SortTftArmoryItemDto } from './dto/query-tft-armory-item.dto';
 import {
   InfinityPaginationResponse,
   InfinityPaginationResponseDto,
@@ -66,10 +66,32 @@ export class TftArmoryItemsController {
       limit = 50;
     }
 
+    // Build filters từ flat properties - chỉ giữ field có giá trị
+    let filters: FilterTftArmoryItemDto | undefined = undefined;
+    const filterObj: Partial<FilterTftArmoryItemDto> = {};
+    
+    if (query?.name) filterObj.name = query.name;
+    if (query?.apiName) filterObj.apiName = query.apiName;
+    
+    if (Object.keys(filterObj).length > 0) {
+      filters = filterObj as FilterTftArmoryItemDto;
+    }
+
+    // Build sort từ flat properties
+    let sort: SortTftArmoryItemDto[] | undefined = undefined;
+    if (query?.orderBy && query?.order) {
+      sort = [
+        {
+          orderBy: query.orderBy,
+          order: query.order,
+        },
+      ];
+    }
+
     return infinityPagination(
       await this.tftArmoryItemsService.findManyWithPagination({
-        filterOptions: query?.filters,
-        sortOptions: query?.sort,
+        filterOptions: filters,
+        sortOptions: sort,
         paginationOptions: {
           page,
           limit,

@@ -1,12 +1,11 @@
 import { ApiPropertyOptional } from '@nestjs/swagger';
-import { Transform, Type } from 'class-transformer';
+import { Transform } from 'class-transformer';
 import {
   IsBoolean,
   IsEnum,
   IsNumber,
   IsOptional,
   IsString,
-  ValidateNested,
 } from 'class-validator';
 import { ItemStatusEnum } from '../items-status.enum';
 
@@ -71,16 +70,50 @@ export class QueryItemDto {
   @IsOptional()
   limit?: number;
 
-  @ApiPropertyOptional({ type: FilterItemDto })
+  // Flat format: name=ItemName
+  @ApiPropertyOptional({ type: String })
   @IsOptional()
-  @ValidateNested()
-  @Type(() => FilterItemDto)
-  filters?: FilterItemDto | null;
+  @IsString()
+  name?: string | null;
 
-  @ApiPropertyOptional({ type: [SortItemDto] })
+  @ApiPropertyOptional({ type: String })
   @IsOptional()
-  @ValidateNested({ each: true })
-  @Type(() => SortItemDto)
-  sort?: SortItemDto[] | null;
+  @IsString()
+  apiName?: string | null;
+
+  @ApiPropertyOptional({ type: String })
+  @IsOptional()
+  @IsString()
+  tag?: string | null;
+
+  @ApiPropertyOptional({ type: Boolean })
+  @IsOptional()
+  @Transform(({ value }) => value === 'true' || value === true)
+  unique?: boolean | null;
+
+  @ApiPropertyOptional({ type: Boolean })
+  @IsOptional()
+  @Transform(({ value }) => value === 'true' || value === true)
+  disabled?: boolean | null;
+
+  @ApiPropertyOptional({
+    type: String,
+    enum: ItemStatusEnum,
+    description: 'Lọc theo trạng thái: active hoặc disabled',
+  })
+  @IsOptional()
+  @IsEnum(ItemStatusEnum)
+  status?: ItemStatusEnum | null;
+
+  // Flat format: orderBy=name&order=asc
+  @ApiPropertyOptional({ type: String })
+  @IsOptional()
+  @IsString()
+  orderBy?: string | null;
+
+  @ApiPropertyOptional({ type: String })
+  @IsOptional()
+  @IsString()
+  order?: string | null;
 }
 

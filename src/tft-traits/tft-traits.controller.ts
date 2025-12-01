@@ -21,7 +21,7 @@ import { TftTraitsService } from './tft-traits.service';
 import { CreateTftTraitDto } from './dto/create-tft-trait.dto';
 import { UpdateTftTraitDto } from './dto/update-tft-trait.dto';
 import { TftTrait } from './domain/tft-trait';
-import { QueryTftTraitDto } from './dto/query-tft-trait.dto';
+import { QueryTftTraitDto, FilterTftTraitDto, SortTftTraitDto } from './dto/query-tft-trait.dto';
 import {
   InfinityPaginationResponse,
   InfinityPaginationResponseDto,
@@ -62,10 +62,32 @@ export class TftTraitsController {
       limit = 50;
     }
 
+    // Build filters từ flat properties - chỉ giữ field có giá trị
+    let filters: FilterTftTraitDto | undefined = undefined;
+    const filterObj: Partial<FilterTftTraitDto> = {};
+    
+    if (query?.name) filterObj.name = query.name;
+    if (query?.apiName) filterObj.apiName = query.apiName;
+    
+    if (Object.keys(filterObj).length > 0) {
+      filters = filterObj as FilterTftTraitDto;
+    }
+
+    // Build sort từ flat properties
+    let sort: SortTftTraitDto[] | undefined = undefined;
+    if (query?.orderBy && query?.order) {
+      sort = [
+        {
+          orderBy: query.orderBy,
+          order: query.order,
+        },
+      ];
+    }
+
     return infinityPagination(
       await this.tftTraitsService.findManyWithPagination({
-        filterOptions: query?.filters,
-        sortOptions: query?.sort,
+        filterOptions: filters,
+        sortOptions: sort,
         paginationOptions: {
           page,
           limit,

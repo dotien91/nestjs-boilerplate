@@ -1,10 +1,9 @@
 import { ApiPropertyOptional } from '@nestjs/swagger';
-import { Transform, Type } from 'class-transformer';
+import { Transform } from 'class-transformer';
 import {
   IsNumber,
   IsOptional,
   IsString,
-  ValidateNested,
 } from 'class-validator';
 
 export class FilterTftArmoryItemDto {
@@ -42,16 +41,26 @@ export class QueryTftArmoryItemDto {
   @IsOptional()
   limit?: number;
 
-  @ApiPropertyOptional({ type: FilterTftArmoryItemDto })
+  // Flat format: name=ItemName
+  @ApiPropertyOptional({ type: String })
   @IsOptional()
-  @ValidateNested()
-  @Type(() => FilterTftArmoryItemDto)
-  filters?: FilterTftArmoryItemDto | null;
+  @IsString()
+  name?: string | null;
 
-  @ApiPropertyOptional({ type: [SortTftArmoryItemDto] })
+  @ApiPropertyOptional({ type: String })
   @IsOptional()
-  @ValidateNested({ each: true })
-  @Type(() => SortTftArmoryItemDto)
-  sort?: SortTftArmoryItemDto[] | null;
+  @IsString()
+  apiName?: string | null;
+
+  // Flat format: orderBy=name&order=asc
+  @ApiPropertyOptional({ type: String })
+  @IsOptional()
+  @IsString()
+  orderBy?: string | null;
+
+  @ApiPropertyOptional({ type: String })
+  @IsOptional()
+  @IsString()
+  order?: string | null;
 }
 

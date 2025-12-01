@@ -1,10 +1,10 @@
 import { ApiPropertyOptional } from '@nestjs/swagger';
-import { Transform, Type } from 'class-transformer';
+import { Transform } from 'class-transformer';
 import {
+  IsBoolean,
   IsNumber,
   IsOptional,
   IsString,
-  ValidateNested,
 } from 'class-validator';
 
 export class FilterTftAugmentDto {
@@ -57,16 +57,41 @@ export class QueryTftAugmentDto {
   @IsOptional()
   limit?: number;
 
-  @ApiPropertyOptional({ type: FilterTftAugmentDto })
+  // Flat format: name=AugmentName
+  @ApiPropertyOptional({ type: String })
   @IsOptional()
-  @ValidateNested()
-  @Type(() => FilterTftAugmentDto)
-  filters?: FilterTftAugmentDto | null;
+  @IsString()
+  name?: string | null;
 
-  @ApiPropertyOptional({ type: [SortTftAugmentDto] })
+  @ApiPropertyOptional({ type: String })
   @IsOptional()
-  @ValidateNested({ each: true })
-  @Type(() => SortTftAugmentDto)
-  sort?: SortTftAugmentDto[] | null;
+  @IsString()
+  apiName?: string | null;
+
+  @ApiPropertyOptional({ type: String })
+  @IsOptional()
+  @IsString()
+  trait?: string | null;
+
+  @ApiPropertyOptional({ type: String })
+  @IsOptional()
+  @IsString()
+  stage?: string | null;
+
+  @ApiPropertyOptional({ type: Boolean })
+  @IsOptional()
+  @Transform(({ value }) => value === 'true' || value === true)
+  unique?: boolean | null;
+
+  // Flat format: orderBy=name&order=asc
+  @ApiPropertyOptional({ type: String })
+  @IsOptional()
+  @IsString()
+  orderBy?: string | null;
+
+  @ApiPropertyOptional({ type: String })
+  @IsOptional()
+  @IsString()
+  order?: string | null;
 }
 

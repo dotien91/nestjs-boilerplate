@@ -21,7 +21,7 @@ import { ItemsService } from './items.service';
 import { CreateItemDto } from './dto/create-item.dto';
 import { UpdateItemDto } from './dto/update-item.dto';
 import { Item } from './domain/item';
-import { QueryItemDto } from './dto/query-item.dto';
+import { QueryItemDto, FilterItemDto, SortItemDto } from './dto/query-item.dto';
 import {
   InfinityPaginationResponse,
   InfinityPaginationResponseDto,
@@ -62,10 +62,36 @@ export class ItemsController {
       limit = 50;
     }
 
+    // Build filters từ flat properties - chỉ giữ field có giá trị
+    let filters: FilterItemDto | undefined = undefined;
+    const filterObj: Partial<FilterItemDto> = {};
+    
+    if (query?.name) filterObj.name = query.name;
+    if (query?.apiName) filterObj.apiName = query.apiName;
+    if (query?.tag) filterObj.tag = query.tag;
+    if (query?.unique !== undefined && query?.unique !== null) filterObj.unique = query.unique;
+    if (query?.disabled !== undefined && query?.disabled !== null) filterObj.disabled = query.disabled;
+    if (query?.status) filterObj.status = query.status;
+    
+    if (Object.keys(filterObj).length > 0) {
+      filters = filterObj as FilterItemDto;
+    }
+
+    // Build sort từ flat properties
+    let sort: SortItemDto[] | undefined = undefined;
+    if (query?.orderBy && query?.order) {
+      sort = [
+        {
+          orderBy: query.orderBy,
+          order: query.order,
+        },
+      ];
+    }
+
     return infinityPagination(
       await this.itemsService.findManyWithPagination({
-        filterOptions: query?.filters,
-        sortOptions: query?.sort,
+        filterOptions: filters,
+        sortOptions: sort,
         paginationOptions: {
           page,
           limit,

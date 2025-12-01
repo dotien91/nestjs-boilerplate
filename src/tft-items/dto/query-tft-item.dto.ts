@@ -1,10 +1,10 @@
 import { ApiPropertyOptional } from '@nestjs/swagger';
-import { Transform, Type } from 'class-transformer';
+import { Transform } from 'class-transformer';
 import {
+  IsBoolean,
   IsNumber,
   IsOptional,
   IsString,
-  ValidateNested,
 } from 'class-validator';
 
 export class FilterTftItemDto {
@@ -52,16 +52,36 @@ export class QueryTftItemDto {
   @IsOptional()
   limit?: number;
 
-  @ApiPropertyOptional({ type: FilterTftItemDto })
+  // Flat format: name=ItemName
+  @ApiPropertyOptional({ type: String })
   @IsOptional()
-  @ValidateNested()
-  @Type(() => FilterTftItemDto)
-  filters?: FilterTftItemDto | null;
+  @IsString()
+  name?: string | null;
 
-  @ApiPropertyOptional({ type: [SortTftItemDto] })
+  @ApiPropertyOptional({ type: String })
   @IsOptional()
-  @ValidateNested({ each: true })
-  @Type(() => SortTftItemDto)
-  sort?: SortTftItemDto[] | null;
+  @IsString()
+  apiName?: string | null;
+
+  @ApiPropertyOptional({ type: String })
+  @IsOptional()
+  @IsString()
+  trait?: string | null;
+
+  @ApiPropertyOptional({ type: Boolean })
+  @IsOptional()
+  @Transform(({ value }) => value === 'true' || value === true)
+  unique?: boolean | null;
+
+  // Flat format: orderBy=name&order=asc
+  @ApiPropertyOptional({ type: String })
+  @IsOptional()
+  @IsString()
+  orderBy?: string | null;
+
+  @ApiPropertyOptional({ type: String })
+  @IsOptional()
+  @IsString()
+  order?: string | null;
 }
 
