@@ -18,6 +18,7 @@ export class CompositionMapper {
     domainEntity.difficulty = raw.difficulty ?? undefined;
     domainEntity.metaDescription = raw.metaDescription ?? undefined;
     domainEntity.isLateGame = raw.isLateGame;
+    domainEntity.tier = raw.tier ?? undefined;
 
     // Map boardSize
     if (raw.boardSize) {
@@ -50,6 +51,7 @@ export class CompositionMapper {
         cost: unit.cost,
         star: unit.star,
         carry: unit.carry,
+        need3Star: unit.need3Star,
         position: {
           row: unit.position.row,
           col: unit.position.col,
@@ -70,6 +72,7 @@ export class CompositionMapper {
         cost: unit.cost,
         star: unit.star,
         carry: unit.carry,
+        need3Star: unit.need3Star,
         position: {
           row: unit.position.row,
           col: unit.position.col,
@@ -116,6 +119,7 @@ export class CompositionMapper {
     persistenceSchema.difficulty = domainEntity.difficulty;
     persistenceSchema.metaDescription = domainEntity.metaDescription;
     persistenceSchema.isLateGame = domainEntity.isLateGame;
+    persistenceSchema.tier = domainEntity.tier;
 
     // Map boardSize
     if (domainEntity.boardSize) {
@@ -149,6 +153,7 @@ export class CompositionMapper {
         unitSchema.cost = unit.cost;
         unitSchema.star = unit.star;
         unitSchema.carry = unit.carry;
+        unitSchema.need3Star = unit.need3Star;
         const positionSchema = new PositionSchemaClass();
         positionSchema.row = unit.position.row;
         positionSchema.col = unit.position.col;
@@ -169,6 +174,7 @@ export class CompositionMapper {
         unitSchema.cost = unit.cost;
         unitSchema.star = unit.star;
         unitSchema.carry = unit.carry;
+        unitSchema.need3Star = unit.need3Star;
         const positionSchema = new PositionSchemaClass();
         positionSchema.row = unit.position.row;
         positionSchema.col = unit.position.col;

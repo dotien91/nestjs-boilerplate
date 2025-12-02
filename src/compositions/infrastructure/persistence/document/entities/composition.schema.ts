@@ -73,6 +73,9 @@ export class UnitSchemaClass {
   @Prop({ type: Boolean, default: false })
   carry?: boolean;
 
+  @Prop({ type: Boolean, default: false })
+  need3Star?: boolean;
+
   @Prop({ required: true, type: PositionSchemaClass })
   position: PositionSchemaClass;
 
@@ -154,6 +157,12 @@ export class CompositionSchemaClass extends EntityDocumentHelper {
     default: false,
   })
   isLateGame?: boolean;
+
+  @Prop({
+    type: String,
+    default: null,
+  })
+  tier?: string | null;
 
   @Prop({
     required: true,

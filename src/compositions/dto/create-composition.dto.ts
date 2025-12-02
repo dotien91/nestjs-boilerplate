@@ -161,6 +161,15 @@ class UnitDto {
   @IsBoolean()
   carry?: boolean;
 
+  @ApiPropertyOptional({
+    type: Boolean,
+    example: false,
+    description: 'Có cần lên 3 sao không',
+  })
+  @IsOptional()
+  @IsBoolean()
+  need3Star?: boolean;
+
   @ApiProperty({
     type: PositionDto,
     description: 'Vị trí trên bàn cờ',
@@ -251,11 +260,11 @@ export class CreateCompositionDto {
   @ApiProperty({
     type: String,
     example: 'comp-daicogiap-yone',
-    description: 'ID của composition (unique)',
+    description: 'ID của composition (unique) - tự động tạo nếu không có',
   })
-  @IsNotEmpty()
+  @IsOptional()
   @IsString()
-  compId: string;
+  compId?: string;
 
   @ApiProperty({
     type: String,
@@ -301,6 +310,16 @@ export class CreateCompositionDto {
   @IsOptional()
   @IsBoolean()
   isLateGame?: boolean;
+
+  @ApiPropertyOptional({
+    type: String,
+    example: 'S',
+    description: 'Tier của composition (S, A, B, C, D)',
+    enum: ['S', 'A', 'B', 'C', 'D'],
+  })
+  @IsOptional()
+  @IsString()
+  tier?: string;
 
   @ApiProperty({
     type: BoardSizeDto,

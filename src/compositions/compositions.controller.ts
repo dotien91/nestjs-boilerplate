@@ -81,6 +81,7 @@ export class CompositionsController {
         queryParams['filters[name]'] ||
         queryParams['filters[compId]'] ||
         queryParams['filters[difficulty]'] ||
+        queryParams['filters[tier]'] ||
         queryParams['filters[isLateGame]']
       ) {
         filters = {};
@@ -93,17 +94,21 @@ export class CompositionsController {
         if (queryParams['filters[difficulty]']) {
           filters.difficulty = queryParams['filters[difficulty]'];
         }
+        if (queryParams['filters[tier]']) {
+          filters.tier = queryParams['filters[tier]'];
+        }
         if (queryParams['filters[isLateGame]']) {
           filters.isLateGame =
             queryParams['filters[isLateGame]'] === 'true' ||
             queryParams['filters[isLateGame]'] === true;
         }
       }
-      // Check for flat format: name, compId, difficulty, isLateGame
+      // Check for flat format: name, compId, difficulty, tier, isLateGame
       else if (
         queryParams['name'] ||
         queryParams['compId'] ||
         queryParams['difficulty'] ||
+        queryParams['tier'] ||
         queryParams['isLateGame']
       ) {
         filters = {};
@@ -115,6 +120,9 @@ export class CompositionsController {
         }
         if (queryParams['difficulty']) {
           filters.difficulty = queryParams['difficulty'];
+        }
+        if (queryParams['tier']) {
+          filters.tier = queryParams['tier'];
         }
         if (queryParams['isLateGame']) {
           filters.isLateGame =

@@ -122,6 +122,13 @@ export class Unit {
   })
   carry?: boolean;
 
+  @ApiPropertyOptional({
+    type: Boolean,
+    example: false,
+    description: 'Có cần lên 3 sao không',
+  })
+  need3Star?: boolean;
+
   @ApiProperty({
     type: Position,
     description: 'Vị trí trên bàn cờ',
@@ -138,9 +145,22 @@ export class Unit {
   @ApiPropertyOptional({
     type: [String],
     example: ['item-uuid-789', 'item-uuid-101'],
-    description: 'Danh sách ID items (tạm thời dùng string)',
+    description: 'Danh sách ID items',
   })
   items?: string[];
+
+  @ApiPropertyOptional({
+    type: [Object],
+    description: 'Thông tin đầy đủ của items (populated)',
+  })
+  itemsDetails?: Array<{
+    id: string | number;
+    apiName?: string | null;
+    name: string;
+    icon?: string | null;
+    tag?: string | null;
+    unique?: boolean | null;
+  }>;
 
   @ApiPropertyOptional({
     type: Object,
@@ -246,6 +266,14 @@ export class Composition {
     description: 'Có phải late game không',
   })
   isLateGame?: boolean;
+
+  @ApiPropertyOptional({
+    type: String,
+    example: 'S',
+    description: 'Tier của composition (S, A, B, C, D)',
+    enum: ['S', 'A', 'B', 'C', 'D'],
+  })
+  tier?: string;
 
   @ApiProperty({
     type: BoardSize,

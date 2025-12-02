@@ -25,6 +25,11 @@ export class FilterCompositionDto {
   @IsString()
   difficulty?: string | null;
 
+  @ApiPropertyOptional({ type: String })
+  @IsOptional()
+  @IsString()
+  tier?: string | null;
+
   @ApiPropertyOptional({ type: Boolean })
   @IsOptional()
   @IsBoolean()

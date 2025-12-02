@@ -51,6 +51,10 @@ export class CompositionsDocumentRepository
       where.difficulty = filterOptions.difficulty;
     }
 
+    if (filterOptions?.tier) {
+      where.tier = filterOptions.tier;
+    }
+
     if (filterOptions?.isLateGame !== undefined && filterOptions?.isLateGame !== null) {
       where.isLateGame = filterOptions.isLateGame;
     }
