@@ -4,7 +4,6 @@ import { CompositionsController } from './compositions.controller';
 import { DocumentCompositionPersistenceModule } from './infrastructure/persistence/document/document-persistence.module';
 import { TftUnitsModule } from '../tft-units/tft-units.module';
 import { TftTraitsModule } from '../tft-traits/tft-traits.module';
-import { ItemsModule } from '../items/items.module';
 
 const infrastructurePersistenceModule = DocumentCompositionPersistenceModule;
 
@@ -13,7 +12,6 @@ const infrastructurePersistenceModule = DocumentCompositionPersistenceModule;
     infrastructurePersistenceModule,
     TftUnitsModule,
     TftTraitsModule,
-    ItemsModule,
   ],
   controllers: [CompositionsController],
   providers: [CompositionsService],

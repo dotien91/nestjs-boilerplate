@@ -16,8 +16,8 @@ import { Composition, Synergy } from './domain/composition';
 import { IPaginationOptions } from '../utils/types/pagination-options';
 import { TftUnitsService } from '../tft-units/tft-units.service';
 import { TftTraitsService } from '../tft-traits/tft-traits.service';
-import { ItemsService } from '../items/items.service';
 // Champions module removed
+// Items module removed
 
 @Injectable()
 export class CompositionsService {
@@ -25,7 +25,6 @@ export class CompositionsService {
     private readonly compositionsRepository: CompositionRepository,
     private readonly tftUnitsService: TftUnitsService,
     private readonly tftTraitsService: TftTraitsService,
-    private readonly itemsService: ItemsService,
   ) {}
 
   async create(
@@ -85,8 +84,7 @@ export class CompositionsService {
       notes: createCompositionDto.notes ?? [],
     });
 
-    // Populate items cho units
-    await this.populateItems(composition);
+    // Items population removed (items module deleted)
 
     return composition;
   }
@@ -197,10 +195,7 @@ export class CompositionsService {
       paginationOptions,
     });
 
-    // Populate items cho tất cả compositions
-    for (const composition of compositions) {
-      await this.populateItems(composition);
-    }
+    // Items population removed (items module deleted)
 
     return compositions;
   }
@@ -214,8 +209,7 @@ export class CompositionsService {
       return null;
     }
 
-    // Populate items cho units
-    await this.populateItems(composition);
+    // Items population removed (items module deleted)
 
     return composition;
   }
@@ -232,8 +226,7 @@ export class CompositionsService {
       return null;
     }
 
-    // Populate items cho units
-    await this.populateItems(composition);
+    // Items population removed (items module deleted)
 
     return composition;
   }
@@ -291,8 +284,7 @@ export class CompositionsService {
       return null;
     }
 
-    // Populate items cho units
-    await this.populateItems(composition);
+    // Items population removed (items module deleted)
 
     return composition;
   }
@@ -301,62 +293,6 @@ export class CompositionsService {
     await this.compositionsRepository.remove(id);
   }
 
-  /**
-   * Populate items cho units trong composition
-   */
-  private async populateItems(composition: Composition): Promise<void> {
-    // Populate items cho units
-    if (composition.units && composition.units.length > 0) {
-      for (const unit of composition.units) {
-        if (unit.items && unit.items.length > 0) {
-          const itemsDetails = await Promise.all(
-            unit.items.map(async (itemId) => {
-              try {
-                const item = await this.itemsService.findById(itemId);
-                return item ? {
-                  id: item.id,
-                  apiName: item.apiName,
-                  name: item.name,
-                  icon: item.icon,
-                  tag: item.tags?.[0] || null,
-                  unique: item.unique,
-                } : null;
-              } catch (error) {
-                return null;
-              }
-            })
-          );
-          // Thêm itemsDetails vào unit (giữ nguyên items là array string)
-          (unit as any).itemsDetails = itemsDetails.filter(item => item !== null);
-        }
-      }
-    }
-
-    // Populate items cho bench
-    if (composition.bench && composition.bench.length > 0) {
-      for (const unit of composition.bench) {
-        if (unit.items && unit.items.length > 0) {
-          const itemsDetails = await Promise.all(
-            unit.items.map(async (itemId) => {
-              try {
-                const item = await this.itemsService.findById(itemId);
-                return item ? {
-                  id: item.id,
-                  apiName: item.apiName,
-                  name: item.name,
-                  icon: item.icon,
-                  tag: item.tags?.[0] || null,
-                  unique: item.unique,
-                } : null;
-              } catch (error) {
-                return null;
-              }
-            })
-          );
-          (unit as any).itemsDetails = itemsDetails.filter(item => item !== null);
-        }
-      }
-    }
-  }
+  // populateItems method removed (items module deleted)
 }
 
