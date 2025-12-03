@@ -17,7 +17,6 @@ import { IPaginationOptions } from '../utils/types/pagination-options';
 import { TftUnitsService } from '../tft-units/tft-units.service';
 import { TftTraitsService } from '../tft-traits/tft-traits.service';
 // Champions module removed
-// Items module removed
 
 @Injectable()
 export class CompositionsService {
@@ -83,8 +82,6 @@ export class CompositionsService {
       carryItems: createCompositionDto.carryItems,
       notes: createCompositionDto.notes ?? [],
     });
-
-    // Items population removed (items module deleted)
 
     return composition;
   }
@@ -195,8 +192,6 @@ export class CompositionsService {
       paginationOptions,
     });
 
-    // Items population removed (items module deleted)
-
     return compositions;
   }
 
@@ -208,8 +203,6 @@ export class CompositionsService {
     if (!composition) {
       return null;
     }
-
-    // Items population removed (items module deleted)
 
     return composition;
   }
@@ -225,8 +218,6 @@ export class CompositionsService {
     if (!composition) {
       return null;
     }
-
-    // Items population removed (items module deleted)
 
     return composition;
   }
@@ -284,15 +275,11 @@ export class CompositionsService {
       return null;
     }
 
-    // Items population removed (items module deleted)
-
     return composition;
   }
 
   async remove(id: Composition['id']): Promise<void> {
     await this.compositionsRepository.remove(id);
   }
-
-  // populateItems method removed (items module deleted)
 }
 

@@ -18,6 +18,8 @@ export abstract class TftItemRepository {
 
   abstract findById(id: TftItem['id']): Promise<NullableType<TftItem>>;
 
+  abstract findByIds(ids: TftItem['id'][]): Promise<TftItem[]>;
+
   abstract findByApiName(apiName: string): Promise<NullableType<TftItem>>;
 
   abstract update(

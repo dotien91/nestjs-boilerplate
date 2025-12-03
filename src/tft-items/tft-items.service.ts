@@ -79,6 +79,10 @@ export class TftItemsService {
     return this.tftItemsRepository.findById(id);
   }
 
+  async findByIds(ids: TftItem['id'][]): Promise<TftItem[]> {
+    return this.tftItemsRepository.findByIds(ids);
+  }
+
   async findByApiName(apiName: string): Promise<NullableType<TftItem>> {
     return this.tftItemsRepository.findByApiName(apiName);
   }
