@@ -35,6 +35,7 @@ export class TftUnitsDocumentRepository implements TftUnitRepository {
     domainEntity.squareIcon = unitObject.squareIcon;
     domainEntity.tileIcon = unitObject.tileIcon;
     domainEntity.role = unitObject.role;
+    domainEntity.needUnlock = unitObject.needUnlock;
     // Deep clone nested objects to avoid circular references
     domainEntity.ability = unitObject.ability ? JSON.parse(JSON.stringify(unitObject.ability)) : null;
     domainEntity.stats = unitObject.stats ? JSON.parse(JSON.stringify(unitObject.stats)) : null;
