@@ -95,6 +95,13 @@ export class TftUnit {
   role?: string | null;
 
   @ApiPropertyOptional({
+    type: Boolean,
+    description: 'Có cần unlock hay không',
+    example: false,
+  })
+  needUnlock?: boolean;
+
+  @ApiPropertyOptional({
     type: Object,
     description: 'Ability của unit',
   })

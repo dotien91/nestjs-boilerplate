@@ -14,6 +14,7 @@ export class TftUnitMapper {
     domainEntity.squareIcon = raw.squareIcon;
     domainEntity.tileIcon = raw.tileIcon;
     domainEntity.role = raw.role;
+    domainEntity.needUnlock = raw.needUnlock;
     domainEntity.ability = raw.ability;
     domainEntity.stats = raw.stats;
     domainEntity.traits = raw.traits || [];
@@ -40,6 +41,7 @@ export class TftUnitMapper {
     persistenceSchema.squareIcon = domainEntity.squareIcon;
     persistenceSchema.tileIcon = domainEntity.tileIcon;
     persistenceSchema.role = domainEntity.role;
+    persistenceSchema.needUnlock = domainEntity.needUnlock;
     persistenceSchema.ability = domainEntity.ability;
     persistenceSchema.stats = domainEntity.stats;
     persistenceSchema.traits = domainEntity.traits || [];

@@ -68,6 +68,12 @@ export class TftUnitSchemaClass extends EntityDocumentHelper {
   role?: string | null;
 
   @Prop({
+    type: Boolean,
+    default: false,
+  })
+  needUnlock?: boolean;
+
+  @Prop({
     type: {
       desc: { type: String },
       icon: { type: String },
