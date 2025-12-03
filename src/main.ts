@@ -35,6 +35,17 @@ async function bootstrap() {
     },
   }));
 
+  // Serve composition builder HTML
+  const assetPath = join(process.cwd(), 'src', 'asset');
+  app.use('/builder', express.static(assetPath, {
+    setHeaders: (res, path) => {
+      if (path.endsWith('.html')) {
+        res.setHeader('Content-Type', 'text/html');
+        res.setHeader('Cache-Control', 'no-cache');
+      }
+    },
+  }));
+
   // Set global prefix sau
   app.setGlobalPrefix(
     configService.getOrThrow('app.apiPrefix', { infer: true }),
@@ -117,6 +128,31 @@ async function bootstrap() {
       .swagger-ui .opblock-tag-section { border-bottom: none; }
     `,
     customSiteTitle: 'API Documentation',
+    customJs: `
+      // Add Composition Builder link
+      window.addEventListener('load', function() {
+        const infoContainer = document.querySelector('.info');
+        if (infoContainer) {
+          const builderLink = document.createElement('div');
+          builderLink.style.marginTop = '20px';
+          builderLink.style.padding = '16px';
+          builderLink.style.background = '#21262d';
+          builderLink.style.borderRadius = '6px';
+          builderLink.innerHTML = \`
+            <h3 style="color: #58a6ff; margin-bottom: 10px;">🎮 Composition Builder</h3>
+            <p style="color: #8b949e; margin-bottom: 15px;">Tạo đội hình TFT trực quan với UI builder</p>
+            <a href="/builder/composition-builder.html" target="_blank" 
+               style="display: inline-block; padding: 10px 20px; background: #238636; color: white; 
+                      text-decoration: none; border-radius: 6px; font-weight: 600; transition: all 0.2s;"
+               onmouseover="this.style.background='#2ea043'"
+               onmouseout="this.style.background='#238636'">
+              Mở Composition Builder →
+            </a>
+          \`;
+          infoContainer.appendChild(builderLink);
+        }
+      });
+    `,
   });
 
   await app.listen(configService.getOrThrow('app.port', { infer: true }));

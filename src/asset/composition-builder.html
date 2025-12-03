@@ -1,0 +1,700 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Composition Builder</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: #0d1117;
+            color: #c9d1d9;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+
+        .header {
+            background: #161b22;
+            padding: 20px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+        }
+
+        .header h1 {
+            color: #58a6ff;
+            margin-bottom: 20px;
+        }
+
+        .form-section {
+            background: #161b22;
+            padding: 20px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+        }
+
+        .form-group {
+            margin-bottom: 15px;
+        }
+
+        .form-group label {
+            display: block;
+            color: #c9d1d9;
+            margin-bottom: 5px;
+            font-weight: 600;
+        }
+
+        .form-group input,
+        .form-group select,
+        .form-group textarea {
+            width: 100%;
+            padding: 10px;
+            background: #0d1117;
+            color: #c9d1d9;
+            border: 1px solid #30363d;
+            border-radius: 6px;
+            font-size: 14px;
+        }
+
+        .form-group textarea {
+            min-height: 80px;
+            resize: vertical;
+        }
+
+        .board-container {
+            background: #161b22;
+            padding: 20px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+        }
+
+        .board-title {
+            color: #58a6ff;
+            margin-bottom: 15px;
+            font-size: 18px;
+            font-weight: 600;
+        }
+
+        .board {
+            display: grid;
+            gap: 4px;
+            background: #0d1117;
+            padding: 10px;
+            border-radius: 6px;
+            margin-bottom: 15px;
+        }
+
+        .board-cell {
+            aspect-ratio: 1;
+            background: #21262d;
+            border: 2px dashed #30363d;
+            border-radius: 4px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            position: relative;
+            transition: all 0.2s;
+        }
+
+        .board-cell:hover {
+            background: #30363d;
+            border-color: #58a6ff;
+        }
+
+        .board-cell.occupied {
+            background: #1a1a1a;
+            border: 2px solid #58a6ff;
+        }
+
+        .unit-card {
+            width: 100%;
+            height: 100%;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 4px;
+            position: relative;
+        }
+
+        .unit-image {
+            width: 100%;
+            height: 70%;
+            object-fit: contain;
+            border-radius: 4px;
+        }
+
+        .unit-name {
+            font-size: 10px;
+            color: #c9d1d9;
+            text-align: center;
+            margin-top: 2px;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+            width: 100%;
+        }
+
+        .unit-cost {
+            position: absolute;
+            top: 2px;
+            right: 2px;
+            background: #238636;
+            color: white;
+            border-radius: 50%;
+            width: 18px;
+            height: 18px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 10px;
+            font-weight: bold;
+        }
+
+        .unit-star {
+            position: absolute;
+            bottom: 2px;
+            left: 2px;
+            color: #facc15;
+            font-size: 12px;
+        }
+
+        .units-panel {
+            background: #161b22;
+            padding: 20px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+        }
+
+        .units-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(80px, 1fr));
+            gap: 10px;
+            max-height: 400px;
+            overflow-y: auto;
+            padding: 10px;
+            background: #0d1117;
+            border-radius: 6px;
+        }
+
+        .unit-item {
+            aspect-ratio: 1;
+            background: #21262d;
+            border: 2px solid #30363d;
+            border-radius: 6px;
+            padding: 8px;
+            cursor: pointer;
+            transition: all 0.2s;
+            position: relative;
+        }
+
+        .unit-item:hover {
+            border-color: #58a6ff;
+            transform: scale(1.05);
+        }
+
+        .unit-item.selected {
+            border-color: #238636;
+            background: #1a3a1a;
+        }
+
+        .synergies-panel {
+            background: #161b22;
+            padding: 20px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+        }
+
+        .synergies-list {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+        }
+
+        .synergy-badge {
+            padding: 8px 16px;
+            border-radius: 6px;
+            font-weight: 600;
+            font-size: 14px;
+        }
+
+        .actions {
+            display: flex;
+            gap: 10px;
+            margin-top: 20px;
+        }
+
+        .btn {
+            padding: 12px 24px;
+            border: none;
+            border-radius: 6px;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .btn-primary {
+            background: #238636;
+            color: white;
+        }
+
+        .btn-primary:hover {
+            background: #2ea043;
+        }
+
+        .btn-secondary {
+            background: #21262d;
+            color: #c9d1d9;
+        }
+
+        .btn-secondary:hover {
+            background: #30363d;
+        }
+
+        .json-output {
+            background: #0d1117;
+            padding: 15px;
+            border-radius: 6px;
+            border: 1px solid #30363d;
+            font-family: 'Courier New', monospace;
+            font-size: 12px;
+            color: #c9d1d9;
+            white-space: pre-wrap;
+            word-wrap: break-word;
+            max-height: 400px;
+            overflow-y: auto;
+        }
+
+        .bench-section {
+            margin-top: 20px;
+        }
+
+        .bench-grid {
+            display: grid;
+            grid-template-columns: repeat(9, 1fr);
+            gap: 4px;
+            background: #0d1117;
+            padding: 10px;
+            border-radius: 6px;
+        }
+
+        .filter-section {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 15px;
+            flex-wrap: wrap;
+        }
+
+        .filter-input {
+            flex: 1;
+            min-width: 200px;
+            padding: 8px;
+            background: #0d1117;
+            color: #c9d1d9;
+            border: 1px solid #30363d;
+            border-radius: 6px;
+        }
+
+        .loading {
+            text-align: center;
+            padding: 20px;
+            color: #8b949e;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🎮 Composition Builder</h1>
+            <p style="color: #8b949e;">Tạo đội hình TFT trực quan</p>
+        </div>
+
+        <div class="form-section">
+            <div class="form-group">
+                <label>Comp ID *</label>
+                <input type="text" id="compId" placeholder="comp-daicogiap-yone" required>
+            </div>
+            <div class="form-group">
+                <label>Tên Composition *</label>
+                <input type="text" id="name" placeholder="Đại Cơ Giáp Yone" required>
+            </div>
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px;">
+                <div class="form-group">
+                    <label>Plan</label>
+                    <input type="text" id="plan" placeholder="Lvl 7/8 Roll">
+                </div>
+                <div class="form-group">
+                    <label>Difficulty</label>
+                    <select id="difficulty">
+                        <option value="">Chọn độ khó</option>
+                        <option value="Dễ">Dễ</option>
+                        <option value="Trung bình">Trung bình</option>
+                        <option value="Khó">Khó</option>
+                    </select>
+                </div>
+            </div>
+            <div class="form-group">
+                <label>Meta Description</label>
+                <textarea id="metaDescription" placeholder="Roll nhẹ ở cấp 7..."></textarea>
+            </div>
+            <div class="form-group">
+                <label>
+                    <input type="checkbox" id="isLateGame" style="width: auto; margin-right: 8px;">
+                    Is Late Game
+                </label>
+            </div>
+        </div>
+
+        <div class="board-container">
+            <div class="board-title">Bàn cờ (Board)</div>
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-bottom: 15px;">
+                <div class="form-group">
+                    <label>Số hàng (Rows)</label>
+                    <input type="number" id="boardRows" value="4" min="1" max="7">
+                </div>
+                <div class="form-group">
+                    <label>Số cột (Cols)</label>
+                    <input type="number" id="boardCols" value="7" min="1" max="7">
+                </div>
+            </div>
+            <div id="board" class="board"></div>
+            <div class="bench-section">
+                <div class="board-title">Bench</div>
+                <div id="bench" class="bench-grid"></div>
+            </div>
+        </div>
+
+        <div class="units-panel">
+            <div class="board-title">Danh sách Units</div>
+            <div class="filter-section">
+                <input type="text" id="unitSearch" class="filter-input" placeholder="Tìm unit...">
+                <select id="costFilter" class="filter-input" style="max-width: 150px;">
+                    <option value="">Tất cả Cost</option>
+                    <option value="1">Cost 1</option>
+                    <option value="2">Cost 2</option>
+                    <option value="3">Cost 3</option>
+                    <option value="4">Cost 4</option>
+                    <option value="5">Cost 5</option>
+                </select>
+            </div>
+            <div id="unitsGrid" class="units-grid">
+                <div class="loading">Đang tải units...</div>
+            </div>
+        </div>
+
+        <div class="synergies-panel">
+            <div class="board-title">Synergies</div>
+            <div id="synergiesList" class="synergies-list"></div>
+        </div>
+
+        <div class="form-section">
+            <div class="board-title">JSON Output</div>
+            <div class="json-output" id="jsonOutput">{}</div>
+            <div class="actions">
+                <button class="btn btn-primary" onclick="copyJSON()">Copy JSON</button>
+                <button class="btn btn-primary" onclick="fillSwagger()">Fill Swagger Form</button>
+                <button class="btn btn-secondary" onclick="clearBoard()">Clear Board</button>
+                <button class="btn btn-secondary" onclick="loadExample()">Load Example</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const API_BASE = window.location.origin;
+        let allUnits = [];
+        let filteredUnits = [];
+        let selectedUnit = null;
+        let boardData = {};
+        let benchData = [];
+        let boardRows = 4;
+        let boardCols = 7;
+
+        // Initialize
+        document.getElementById('boardRows').addEventListener('input', updateBoard);
+        document.getElementById('boardCols').addEventListener('input', updateBoard);
+        document.getElementById('unitSearch').addEventListener('input', filterUnits);
+        document.getElementById('costFilter').addEventListener('change', filterUnits);
+        
+        // Auto update JSON on change
+        ['compId', 'name', 'plan', 'difficulty', 'metaDescription', 'isLateGame'].forEach(id => {
+            document.getElementById(id).addEventListener('input', updateJSON);
+        });
+
+        async function loadUnits() {
+            try {
+                const response = await fetch(`${API_BASE}/api/v1/tft-units/list-all`);
+                allUnits = await response.json();
+                filteredUnits = allUnits;
+                renderUnits();
+            } catch (error) {
+                console.error('Error loading units:', error);
+                document.getElementById('unitsGrid').innerHTML = '<div class="loading">Lỗi khi tải units</div>';
+            }
+        }
+
+        function filterUnits() {
+            const search = document.getElementById('unitSearch').value.toLowerCase();
+            const cost = document.getElementById('costFilter').value;
+            
+            filteredUnits = allUnits.filter(unit => {
+                const matchSearch = !search || 
+                    unit.name.toLowerCase().includes(search) ||
+                    unit.apiName.toLowerCase().includes(search);
+                const matchCost = !cost || unit.cost === parseInt(cost);
+                return matchSearch && matchCost;
+            });
+            
+            renderUnits();
+        }
+
+        function renderUnits() {
+            const grid = document.getElementById('unitsGrid');
+            if (filteredUnits.length === 0) {
+                grid.innerHTML = '<div class="loading">Không tìm thấy unit nào</div>';
+                return;
+            }
+
+            grid.innerHTML = filteredUnits.map(unit => `
+                <div class="unit-item ${selectedUnit?.id === unit.id ? 'selected' : ''}" 
+                     onclick="selectUnit(${JSON.stringify(unit).replace(/"/g, '&quot;')})">
+                    <div class="unit-card">
+                        ${unit.squareIcon ? `<img src="${unit.squareIcon}" class="unit-image" alt="${unit.name}">` : ''}
+                        <div class="unit-name">${unit.name}</div>
+                        ${unit.cost ? `<div class="unit-cost">${unit.cost}</div>` : ''}
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        function selectUnit(unit) {
+            selectedUnit = unit;
+            renderUnits();
+        }
+
+        function updateBoard() {
+            boardRows = parseInt(document.getElementById('boardRows').value) || 4;
+            boardCols = parseInt(document.getElementById('boardCols').value) || 7;
+            
+            const board = document.getElementById('board');
+            board.style.gridTemplateColumns = `repeat(${boardCols}, 1fr)`;
+            board.style.gridTemplateRows = `repeat(${boardRows}, 1fr)`;
+            
+            board.innerHTML = '';
+            for (let row = 0; row < boardRows; row++) {
+                for (let col = 0; col < boardCols; col++) {
+                    const cell = document.createElement('div');
+                    cell.className = 'board-cell';
+                    cell.dataset.row = row;
+                    cell.dataset.col = col;
+                    cell.onclick = () => placeUnitOnBoard(row, col);
+                    
+                    const key = `${row}-${col}`;
+                    if (boardData[key]) {
+                        cell.classList.add('occupied');
+                        cell.innerHTML = renderUnitCard(boardData[key]);
+                    }
+                    
+                    board.appendChild(cell);
+                }
+            }
+
+            // Update bench
+            const bench = document.getElementById('bench');
+            bench.innerHTML = '';
+            for (let i = 0; i < 9; i++) {
+                const cell = document.createElement('div');
+                cell.className = 'board-cell';
+                cell.dataset.index = i;
+                cell.onclick = () => placeUnitOnBench(i);
+                
+                if (benchData[i]) {
+                    cell.classList.add('occupied');
+                    cell.innerHTML = renderUnitCard(benchData[i]);
+                }
+                
+                bench.appendChild(cell);
+            }
+
+            updateJSON();
+        }
+
+        function renderUnitCard(unit) {
+            return `
+                <div class="unit-card">
+                    ${unit.squareIcon ? `<img src="${unit.squareIcon}" class="unit-image" alt="${unit.name}">` : ''}
+                    <div class="unit-name">${unit.name}</div>
+                    ${unit.cost ? `<div class="unit-cost">${unit.cost}</div>` : ''}
+                    ${unit.star ? `<div class="unit-star">★${unit.star}</div>` : ''}
+                </div>
+            `;
+        }
+
+        function placeUnitOnBoard(row, col) {
+            if (!selectedUnit) {
+                alert('Vui lòng chọn unit trước!');
+                return;
+            }
+
+            const key = `${row}-${col}`;
+            if (boardData[key]) {
+                delete boardData[key];
+            } else {
+                boardData[key] = {
+                    ...selectedUnit,
+                    position: { row, col },
+                    star: 1
+                };
+            }
+            
+            updateBoard();
+        }
+
+        function placeUnitOnBench(index) {
+            if (!selectedUnit) {
+                alert('Vui lòng chọn unit trước!');
+                return;
+            }
+
+            if (benchData[index]) {
+                benchData[index] = null;
+            } else {
+                benchData[index] = {
+                    ...selectedUnit,
+                    star: 1
+                };
+            }
+            
+            updateBoard();
+        }
+
+        function calculateSynergies() {
+            const synergyMap = {};
+            
+            // Count units by trait
+            Object.values(boardData).forEach(unit => {
+                if (unit.traits) {
+                    unit.traits.forEach(trait => {
+                        synergyMap[trait] = (synergyMap[trait] || 0) + 1;
+                    });
+                }
+            });
+
+            return Object.entries(synergyMap).map(([id, count]) => ({
+                id,
+                name: id,
+                abbreviation: id.substring(0, 2).toUpperCase(),
+                count,
+                max: count,
+                color: '#facc15'
+            }));
+        }
+
+        function updateJSON() {
+            const composition = {
+                compId: document.getElementById('compId').value,
+                name: document.getElementById('name').value,
+                plan: document.getElementById('plan').value || undefined,
+                difficulty: document.getElementById('difficulty').value || undefined,
+                metaDescription: document.getElementById('metaDescription').value || undefined,
+                isLateGame: document.getElementById('isLateGame').checked,
+                boardSize: {
+                    rows: boardRows,
+                    cols: boardCols
+                },
+                synergies: calculateSynergies(),
+                units: Object.values(boardData).map(unit => ({
+                    championId: unit.id,
+                    championKey: unit.apiName,
+                    name: unit.name,
+                    cost: unit.cost || 1,
+                    star: unit.star || 1,
+                    carry: unit.carry || false,
+                    position: unit.position,
+                    image: unit.squareIcon || undefined,
+                    items: unit.items || []
+                })),
+                bench: benchData.filter(Boolean).map(unit => ({
+                    championId: unit.id,
+                    championKey: unit.apiName,
+                    name: unit.name,
+                    cost: unit.cost || 1,
+                    star: unit.star || 1,
+                    carry: unit.carry || false,
+                    position: { row: -1, col: -1 },
+                    image: unit.squareIcon || undefined,
+                    items: unit.items || []
+                })),
+                notes: []
+            };
+
+            document.getElementById('jsonOutput').textContent = JSON.stringify(composition, null, 2);
+            
+            // Update synergies display
+            const synergiesList = document.getElementById('synergiesList');
+            synergiesList.innerHTML = composition.synergies.map(syn => `
+                <div class="synergy-badge" style="background: ${syn.color}; color: #000;">
+                    ${syn.name} (${syn.count})
+                </div>
+            `).join('');
+        }
+
+        function copyJSON() {
+            const json = document.getElementById('jsonOutput').textContent;
+            navigator.clipboard.writeText(json).then(() => {
+                alert('Đã copy JSON vào clipboard!');
+            });
+        }
+
+        function fillSwagger() {
+            const json = JSON.parse(document.getElementById('jsonOutput').textContent);
+            
+            // Store in localStorage để Swagger có thể đọc
+            localStorage.setItem('compositionBuilderData', JSON.stringify(json));
+            
+            // Copy to clipboard
+            navigator.clipboard.writeText(JSON.stringify(json, null, 2)).then(() => {
+                // Open Swagger in new tab
+                const swaggerUrl = `${API_BASE}/docs#/Compositions/CompositionsController_create`;
+                window.open(swaggerUrl, '_blank');
+                
+                alert('✅ Đã copy JSON vào clipboard!\n\nMở Swagger và paste vào form "Try it out" → Request body.');
+            });
+        }
+
+        function clearBoard() {
+            if (confirm('Bạn có chắc muốn xóa toàn bộ board?')) {
+                boardData = {};
+                benchData = [];
+                selectedUnit = null;
+                updateBoard();
+            }
+        }
+
+        function loadExample() {
+            document.getElementById('compId').value = 'comp-example-1';
+            document.getElementById('name').value = 'Example Composition';
+            document.getElementById('plan').value = 'Lvl 7/8 Roll';
+            document.getElementById('difficulty').value = 'Trung bình';
+            document.getElementById('metaDescription').value = 'Example meta description';
+            document.getElementById('isLateGame').checked = false;
+            updateJSON();
+        }
+
+        // Initialize
+        loadUnits();
+        updateBoard();
+    </script>
+</body>
+</html>
+

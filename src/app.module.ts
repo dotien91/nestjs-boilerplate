@@ -18,7 +18,6 @@ import { MailerModule } from './mailer/mailer.module';
 import { MongooseModule } from '@nestjs/mongoose';
 import { MongooseConfigService } from './database/mongoose-config.service';
 import { OriginsModule } from './origin/origins.module';
-import { ItemsModule } from './items/items.module';
 import { CompositionsModule } from './compositions/compositions.module';
 import { TftItemsModule } from './tft-items/tft-items.module';
 import { TftAugmentsModule } from './tft-augments/tft-augments.module';
@@ -72,7 +71,6 @@ const infrastructureDatabaseModule = MongooseModule.forRootAsync({
     MailerModule,
     HomeModule,
     OriginsModule,
-    ItemsModule,
     CompositionsModule,
     TftItemsModule,
     TftAugmentsModule,
