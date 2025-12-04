@@ -1,6 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
-import { Model, FilterQuery } from 'mongoose';
+import { Model, FilterQuery, Types } from 'mongoose';
 import { NullableType } from '../../../../../utils/types/nullable.type';
 import { IPaginationOptions } from '../../../../../utils/types/pagination-options';
 import { TftItem } from '../../../../domain/tft-item';
@@ -74,6 +74,34 @@ export class TftItemsDocumentRepository implements TftItemRepository {
   async findById(id: TftItem['id']): Promise<NullableType<TftItem>> {
     const itemObject = await this.tftItemsModel.findById(id);
     return itemObject ? TftItemMapper.toDomain(itemObject) : null;
+  }
+
+  async findByIds(ids: TftItem['id'][]): Promise<TftItem[]> {
+    if (!ids || ids.length === 0) {
+      return [];
+    }
+    // Remove duplicates and convert to ObjectId
+    const uniqueIds = [...new Set(ids)];
+    const objectIds = uniqueIds
+      .map((id) => {
+        try {
+          // Try to convert to ObjectId
+          return Types.ObjectId.isValid(id) ? new Types.ObjectId(id) : null;
+        } catch {
+          return null;
+        }
+      })
+      .filter((id) => id !== null) as Types.ObjectId[];
+
+    if (objectIds.length === 0) {
+      return [];
+    }
+
+    // Query by _id using ObjectId
+    const itemObjects = await this.tftItemsModel.find({
+      _id: { $in: objectIds },
+    });
+    return itemObjects.map((itemObject) => TftItemMapper.toDomain(itemObject));
   }
 
   async findByApiName(apiName: string): Promise<NullableType<TftItem>> {
