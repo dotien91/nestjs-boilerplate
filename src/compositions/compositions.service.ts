@@ -178,7 +178,33 @@ export class CompositionsService {
     return synergies;
   }
 
+  /**
+   * Populate needUnlock cho các units trong composition
+   * Dựa theo TFT Unit (tft-units)
+   */
+  private async populateUnitsNeedUnlock(composition: Composition): Promise<void> {
+    const cache = new Map<string, boolean>();
 
+    const fillForUnits = async (units?: Composition['units']) => {
+      if (!units || units.length === 0) return;
+
+      for (const unit of units) {
+        if (!unit.championId) continue;
+
+        const key = String(unit.championId);
+
+        if (!cache.has(key)) {
+          const unitDetail = await this.tftUnitsService.findById(key);
+          cache.set(key, unitDetail?.needUnlock === true);
+        }
+
+        (unit as any).needUnlock = cache.get(key) ?? false;
+      }
+    };
+
+    await fillForUnits(composition.units);
+    await fillForUnits(composition.bench);
+  }
 
   async findManyWithPagination({
     filterOptions,
@@ -189,13 +215,17 @@ export class CompositionsService {
     sortOptions?: SortCompositionDto[] | null;
     paginationOptions: IPaginationOptions;
   }): Promise<Composition[]> {
-    const compositions = await this.compositionsRepository.findManyWithPagination({
-      filterOptions,
-      sortOptions,
-      paginationOptions,
-    });
+    const compositions =
+      await this.compositionsRepository.findManyWithPagination({
+        filterOptions,
+        sortOptions,
+        paginationOptions,
+      });
 
-    // Items population removed (items module deleted)
+    // Populate needUnlock cho units
+    for (const composition of compositions) {
+      await this.populateUnitsNeedUnlock(composition);
+    }
 
     return compositions;
   }
@@ -209,7 +239,8 @@ export class CompositionsService {
       return null;
     }
 
-    // Items population removed (items module deleted)
+    // Populate needUnlock cho units
+    await this.populateUnitsNeedUnlock(composition);
 
     return composition;
   }
@@ -226,7 +257,8 @@ export class CompositionsService {
       return null;
     }
 
-    // Items population removed (items module deleted)
+    // Populate needUnlock cho units
+    await this.populateUnitsNeedUnlock(composition);
 
     return composition;
   }
@@ -284,7 +316,8 @@ export class CompositionsService {
       return null;
     }
 
-    // Items population removed (items module deleted)
+    // Populate needUnlock cho units
+    await this.populateUnitsNeedUnlock(composition);
 
     return composition;
   }

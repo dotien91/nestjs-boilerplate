@@ -125,6 +125,13 @@ export class Unit {
   @ApiPropertyOptional({
     type: Boolean,
     example: false,
+    description: 'Unit này có cần unlock không (map từ TFT Unit.needUnlock)',
+  })
+  needUnlock?: boolean;
+
+  @ApiPropertyOptional({
+    type: Boolean,
+    example: false,
     description: 'Có cần lên 3 sao không',
   })
   need3Star?: boolean;
