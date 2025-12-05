@@ -17,86 +17,87 @@ export class CompositionMapper {
     domainEntity.plan = raw.plan ?? undefined;
     domainEntity.difficulty = raw.difficulty ?? undefined;
     domainEntity.metaDescription = raw.metaDescription ?? undefined;
-    domainEntity.isLateGame = raw.isLateGame;
+    domainEntity.isLateGame = raw.isLateGame ?? false;
     domainEntity.tier = raw.tier ?? undefined;
 
-    // Map boardSize
-    if (raw.boardSize) {
-      domainEntity.boardSize = {
-        rows: raw.boardSize.rows,
-        cols: raw.boardSize.cols,
-      };
-    }
+    // Map boardSize - always include
+    domainEntity.boardSize = raw.boardSize
+      ? {
+          rows: raw.boardSize.rows,
+          cols: raw.boardSize.cols,
+        }
+      : { rows: 4, cols: 7 }; // Default fallback
 
-    // Map synergies
-    if (raw.synergies && raw.synergies.length > 0) {
-      domainEntity.synergies = raw.synergies.map((synergy) => ({
-        id: synergy.id,
-        name: synergy.name,
-        abbreviation: synergy.abbreviation,
-        count: synergy.count,
-        max: synergy.max,
-        color: synergy.color,
-      }));
-    } else {
-      domainEntity.synergies = [];
-    }
+    // Map synergies - always include as array
+    domainEntity.synergies =
+      raw.synergies && raw.synergies.length > 0
+        ? raw.synergies.map((synergy) => ({
+            id: synergy.id,
+            name: synergy.name,
+            abbreviation: synergy.abbreviation,
+            count: synergy.count,
+            max: synergy.max,
+            color: synergy.color,
+          }))
+        : [];
 
-    // Map units
-    if (raw.units && raw.units.length > 0) {
-      domainEntity.units = raw.units.map((unit) => ({
-        championId: unit.championId,
-        championKey: unit.championKey,
-        name: unit.name,
-        cost: unit.cost,
-        star: unit.star,
-        carry: unit.carry,
-        need3Star: unit.need3Star,
-        position: {
-          row: unit.position.row,
-          col: unit.position.col,
-        },
-        image: unit.image ?? undefined,
-        items: unit.items || [],
-      }));
-    } else {
-      domainEntity.units = [];
-    }
+    // Map units - always include as array
+    domainEntity.units =
+      raw.units && raw.units.length > 0
+        ? raw.units.map((unit) => ({
+            championId: unit.championId,
+            championKey: unit.championKey,
+            name: unit.name,
+            cost: unit.cost,
+            star: unit.star,
+            carry: unit.carry ?? false,
+            need3Star: unit.need3Star ?? false,
+            position: {
+              row: unit.position.row,
+              col: unit.position.col,
+            },
+            image: unit.image ?? undefined,
+            items: unit.items || [],
+          }))
+        : [];
 
-    // Map bench
-    if (raw.bench && raw.bench.length > 0) {
-      domainEntity.bench = raw.bench.map((unit) => ({
-        championId: unit.championId,
-        championKey: unit.championKey,
-        name: unit.name,
-        cost: unit.cost,
-        star: unit.star,
-        carry: unit.carry,
-        need3Star: unit.need3Star,
-        position: {
-          row: unit.position.row,
-          col: unit.position.col,
-        },
-        image: unit.image ?? undefined,
-        items: unit.items || [],
-      }));
-    }
+    // Map bench - always include as array (even if empty)
+    domainEntity.bench =
+      raw.bench && raw.bench.length > 0
+        ? raw.bench.map((unit) => ({
+            championId: unit.championId,
+            championKey: unit.championKey,
+            name: unit.name,
+            cost: unit.cost,
+            star: unit.star,
+            carry: unit.carry ?? false,
+            need3Star: unit.need3Star ?? false,
+            position: {
+              row: unit.position.row,
+              col: unit.position.col,
+            },
+            image: unit.image ?? undefined,
+            items: unit.items || [],
+          }))
+        : [];
 
-    // Map carryItems
-    if (raw.carryItems && raw.carryItems.length > 0) {
-      domainEntity.carryItems = raw.carryItems.map((carryItem) => ({
-        championId: carryItem.championId,
-        championKey: carryItem.championKey,
-        championName: carryItem.championName,
-        role: carryItem.role,
-        image: carryItem.image ?? undefined,
-        items: carryItem.items || [],
-      }));
-    }
+    // Map carryItems - always include as array (even if empty)
+    domainEntity.carryItems =
+      raw.carryItems && raw.carryItems.length > 0
+        ? raw.carryItems.map((carryItem) => ({
+            championId: carryItem.championId,
+            championKey: carryItem.championKey,
+            championName: carryItem.championName,
+            role: carryItem.role,
+            image: carryItem.image ?? undefined,
+            items: carryItem.items || [],
+          }))
+        : [];
 
-    // Map notes
+    // Map notes - always include as array
     domainEntity.notes = raw.notes || [];
 
+    // Always include timestamps
     domainEntity.createdAt = raw.createdAt;
     domainEntity.updatedAt = raw.updatedAt;
     domainEntity.deletedAt = raw.deletedAt;
