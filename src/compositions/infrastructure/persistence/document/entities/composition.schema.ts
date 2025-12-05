@@ -188,6 +188,18 @@ export class CompositionSchemaClass extends EntityDocumentHelper {
     type: [UnitSchemaClass],
     default: [],
   })
+  earlyGame?: UnitSchemaClass[];
+
+  @Prop({
+    type: [UnitSchemaClass],
+    default: [],
+  })
+  midGame?: UnitSchemaClass[];
+
+  @Prop({
+    type: [UnitSchemaClass],
+    default: [],
+  })
   bench?: UnitSchemaClass[];
 
   @Prop({

@@ -78,6 +78,8 @@ export class CompositionsService {
       boardSize: createCompositionDto.boardSize || { rows: 4, cols: 7 }, // Mặc định 4x7
       synergies: synergies,
       units: createCompositionDto.units,
+      earlyGame: createCompositionDto.earlyGame,
+      midGame: createCompositionDto.midGame,
       bench: createCompositionDto.bench,
       carryItems: createCompositionDto.carryItems,
       notes: createCompositionDto.notes ?? [],
@@ -200,6 +202,8 @@ export class CompositionsService {
     };
 
     await fillForUnits(composition.units);
+    await fillForUnits(composition.earlyGame);
+    await fillForUnits(composition.midGame);
     await fillForUnits(composition.bench);
   }
 

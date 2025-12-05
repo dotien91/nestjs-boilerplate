@@ -296,9 +296,21 @@ export class Composition {
 
   @ApiProperty({
     type: [Unit],
-    description: 'Danh sách units trên bàn cờ',
+    description: 'Danh sách units trên bàn cờ (end game)',
   })
   units: Unit[];
+
+  @ApiPropertyOptional({
+    type: [Unit],
+    description: 'Danh sách units đầu game',
+  })
+  earlyGame?: Unit[];
+
+  @ApiPropertyOptional({
+    type: [Unit],
+    description: 'Danh sách units giữa game',
+  })
+  midGame?: Unit[];
 
   @ApiPropertyOptional({
     type: [Unit],

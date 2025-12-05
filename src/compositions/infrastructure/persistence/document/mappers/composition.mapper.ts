@@ -61,6 +61,46 @@ export class CompositionMapper {
           }))
         : [];
 
+    // Map earlyGame - always include as array (even if empty)
+    domainEntity.earlyGame =
+      raw.earlyGame && raw.earlyGame.length > 0
+        ? raw.earlyGame.map((unit) => ({
+            championId: unit.championId,
+            championKey: unit.championKey,
+            name: unit.name,
+            cost: unit.cost,
+            star: unit.star,
+            carry: unit.carry ?? false,
+            need3Star: unit.need3Star ?? false,
+            position: {
+              row: unit.position.row,
+              col: unit.position.col,
+            },
+            image: unit.image ?? undefined,
+            items: unit.items || [],
+          }))
+        : [];
+
+    // Map midGame - always include as array (even if empty)
+    domainEntity.midGame =
+      raw.midGame && raw.midGame.length > 0
+        ? raw.midGame.map((unit) => ({
+            championId: unit.championId,
+            championKey: unit.championKey,
+            name: unit.name,
+            cost: unit.cost,
+            star: unit.star,
+            carry: unit.carry ?? false,
+            need3Star: unit.need3Star ?? false,
+            position: {
+              row: unit.position.row,
+              col: unit.position.col,
+            },
+            image: unit.image ?? undefined,
+            items: unit.items || [],
+          }))
+        : [];
+
     // Map bench - always include as array (even if empty)
     domainEntity.bench =
       raw.bench && raw.bench.length > 0
@@ -147,6 +187,48 @@ export class CompositionMapper {
     // Map units
     if (domainEntity.units && domainEntity.units.length > 0) {
       persistenceSchema.units = domainEntity.units.map((unit) => {
+        const unitSchema = new UnitSchemaClass();
+        unitSchema.championId = unit.championId;
+        unitSchema.championKey = unit.championKey;
+        unitSchema.name = unit.name;
+        unitSchema.cost = unit.cost;
+        unitSchema.star = unit.star;
+        unitSchema.carry = unit.carry;
+        unitSchema.need3Star = unit.need3Star;
+        const positionSchema = new PositionSchemaClass();
+        positionSchema.row = unit.position.row;
+        positionSchema.col = unit.position.col;
+        unitSchema.position = positionSchema;
+        unitSchema.image = unit.image;
+        unitSchema.items = unit.items || [];
+        return unitSchema;
+      });
+    }
+
+    // Map earlyGame
+    if (domainEntity.earlyGame && domainEntity.earlyGame.length > 0) {
+      persistenceSchema.earlyGame = domainEntity.earlyGame.map((unit) => {
+        const unitSchema = new UnitSchemaClass();
+        unitSchema.championId = unit.championId;
+        unitSchema.championKey = unit.championKey;
+        unitSchema.name = unit.name;
+        unitSchema.cost = unit.cost;
+        unitSchema.star = unit.star;
+        unitSchema.carry = unit.carry;
+        unitSchema.need3Star = unit.need3Star;
+        const positionSchema = new PositionSchemaClass();
+        positionSchema.row = unit.position.row;
+        positionSchema.col = unit.position.col;
+        unitSchema.position = positionSchema;
+        unitSchema.image = unit.image;
+        unitSchema.items = unit.items || [];
+        return unitSchema;
+      });
+    }
+
+    // Map midGame
+    if (domainEntity.midGame && domainEntity.midGame.length > 0) {
+      persistenceSchema.midGame = domainEntity.midGame.map((unit) => {
         const unitSchema = new UnitSchemaClass();
         unitSchema.championId = unit.championId;
         unitSchema.championKey = unit.championKey;

@@ -342,13 +342,33 @@ export class CreateCompositionDto {
 
   @ApiProperty({
     type: [UnitDto],
-    description: 'Danh sách units trên bàn cờ',
+    description: 'Danh sách units trên bàn cờ (end game)',
   })
   @IsNotEmpty()
   @IsArray()
   @ValidateNested({ each: true })
   @Type(() => UnitDto)
   units: UnitDto[];
+
+  @ApiPropertyOptional({
+    type: [UnitDto],
+    description: 'Danh sách units đầu game',
+  })
+  @IsOptional()
+  @IsArray()
+  @ValidateNested({ each: true })
+  @Type(() => UnitDto)
+  earlyGame?: UnitDto[];
+
+  @ApiPropertyOptional({
+    type: [UnitDto],
+    description: 'Danh sách units giữa game',
+  })
+  @IsOptional()
+  @IsArray()
+  @ValidateNested({ each: true })
+  @Type(() => UnitDto)
+  midGame?: UnitDto[];
 
   @ApiPropertyOptional({
     type: [UnitDto],
