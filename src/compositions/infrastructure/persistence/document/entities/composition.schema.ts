@@ -16,29 +16,6 @@ export class BoardSizeSchemaClass {
 
 export const BoardSizeSchema = SchemaFactory.createForClass(BoardSizeSchemaClass);
 
-// Schema cho Synergy
-@Schema({ _id: false })
-export class SynergySchemaClass {
-  @Prop({ required: true, type: String })
-  id: string;
-
-  @Prop({ required: true, type: String })
-  name: string;
-
-  @Prop({ required: true, type: String })
-  abbreviation: string;
-
-  @Prop({ required: true, type: Number })
-  count: number;
-
-  @Prop({ required: true, type: Number })
-  max: number;
-
-  @Prop({ required: true, type: String })
-  color: string;
-}
-
-export const SynergySchema = SchemaFactory.createForClass(SynergySchemaClass);
 
 // Schema cho Position
 @Schema({ _id: false })
@@ -170,12 +147,6 @@ export class CompositionSchemaClass extends EntityDocumentHelper {
   })
   boardSize: BoardSizeSchemaClass;
 
-  @Prop({
-    required: true,
-    type: [SynergySchemaClass],
-    default: [],
-  })
-  synergies: SynergySchemaClass[];
 
   @Prop({
     required: true,

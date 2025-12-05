@@ -19,49 +19,6 @@ export class BoardSize {
   cols: number;
 }
 
-export class Synergy {
-  @ApiProperty({
-    type: String,
-    example: 'armor',
-    description: 'ID của synergy',
-  })
-  id: string;
-
-  @ApiProperty({
-    type: String,
-    example: 'Đại Cơ Giáp',
-    description: 'Tên của synergy',
-  })
-  name: string;
-
-  @ApiProperty({
-    type: String,
-    example: 'ĐC',
-    description: 'Viết tắt của synergy',
-  })
-  abbreviation: string;
-
-  @ApiProperty({
-    type: Number,
-    example: 7,
-    description: 'Số lượng hiện tại',
-  })
-  count: number;
-
-  @ApiProperty({
-    type: Number,
-    example: 7,
-    description: 'Số lượng tối đa',
-  })
-  max: number;
-
-  @ApiProperty({
-    type: String,
-    example: '#facc15',
-    description: 'Màu sắc của synergy',
-  })
-  color: string;
-}
 
 export class Position {
   @ApiProperty({
@@ -287,12 +244,6 @@ export class Composition {
     description: 'Kích thước bàn cờ',
   })
   boardSize: BoardSize;
-
-  @ApiProperty({
-    type: [Synergy],
-    description: 'Danh sách synergies',
-  })
-  synergies: Synergy[];
 
   @ApiProperty({
     type: [Unit],

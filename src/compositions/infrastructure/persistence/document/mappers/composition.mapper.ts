@@ -2,7 +2,6 @@ import { Composition } from '../../../../domain/composition';
 import {
   CompositionSchemaClass,
   BoardSizeSchemaClass,
-  SynergySchemaClass,
   PositionSchemaClass,
   UnitSchemaClass,
   CarryItemSchemaClass,
@@ -28,18 +27,6 @@ export class CompositionMapper {
         }
       : { rows: 4, cols: 7 }; // Default fallback
 
-    // Map synergies - always include as array
-    domainEntity.synergies =
-      raw.synergies && raw.synergies.length > 0
-        ? raw.synergies.map((synergy) => ({
-            id: synergy.id,
-            name: synergy.name,
-            abbreviation: synergy.abbreviation,
-            count: synergy.count,
-            max: synergy.max,
-            color: synergy.color,
-          }))
-        : [];
 
     // Map units - always include as array
     domainEntity.units =
@@ -170,19 +157,6 @@ export class CompositionMapper {
       persistenceSchema.boardSize = boardSizeSchema;
     }
 
-    // Map synergies
-    if (domainEntity.synergies && domainEntity.synergies.length > 0) {
-      persistenceSchema.synergies = domainEntity.synergies.map((synergy) => {
-        const synergySchema = new SynergySchemaClass();
-        synergySchema.id = synergy.id;
-        synergySchema.name = synergy.name;
-        synergySchema.abbreviation = synergy.abbreviation;
-        synergySchema.count = synergy.count;
-        synergySchema.max = synergy.max;
-        synergySchema.color = synergy.color;
-        return synergySchema;
-      });
-    }
 
     // Map units
     if (domainEntity.units && domainEntity.units.length > 0) {

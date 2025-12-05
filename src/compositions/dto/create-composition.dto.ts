@@ -330,15 +330,6 @@ export class CreateCompositionDto {
   @Type(() => BoardSizeDto)
   boardSize: BoardSizeDto;
 
-  @ApiProperty({
-    type: [SynergyDto],
-    description: 'Danh sách synergies',
-  })
-  @IsNotEmpty()
-  @IsArray()
-  @ValidateNested({ each: true })
-  @Type(() => SynergyDto)
-  synergies: SynergyDto[];
 
   @ApiProperty({
     type: [UnitDto],

@@ -51,6 +51,14 @@ export class CompositionsController {
   create(
     @Body() createCompositionDto: CreateCompositionDto,
   ): Promise<Composition> {
+    console.log('[CompositionsController] POST /compositions - Request body:', JSON.stringify({
+      name: createCompositionDto.name,
+      unitsCount: createCompositionDto.units?.length || 0,
+      earlyGameCount: createCompositionDto.earlyGame?.length || 0,
+      midGameCount: createCompositionDto.midGame?.length || 0,
+      benchCount: createCompositionDto.bench?.length || 0,
+      units: createCompositionDto.units?.map(u => ({ championId: u.championId, name: u.name })),
+    }, null, 2));
     return this.compositionsService.create(createCompositionDto);
   }
 
