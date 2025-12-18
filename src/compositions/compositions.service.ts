@@ -1,7 +1,6 @@
 import {
   HttpStatus,
   Injectable,
-  NotFoundException,
   UnprocessableEntityException,
 } from '@nestjs/common';
 import { CreateCompositionDto } from './dto/create-composition.dto';
@@ -14,14 +13,11 @@ import {
 import { CompositionRepository } from './infrastructure/persistence/composition.repository';
 import { Composition } from './domain/composition';
 import { IPaginationOptions } from '../utils/types/pagination-options';
-import { TftUnitsService } from '../tft-units/tft-units.service';
-// Champions module removed
 
 @Injectable()
 export class CompositionsService {
   constructor(
     private readonly compositionsRepository: CompositionRepository,
-    private readonly tftUnitsService: TftUnitsService,
   ) {}
 
   async create(
@@ -76,37 +72,6 @@ export class CompositionsService {
     return composition;
   }
 
-
-  /**
-   * Populate needUnlock cho các units trong composition
-   * Dựa theo TFT Unit (tft-units)
-   */
-  private async populateUnitsNeedUnlock(composition: Composition): Promise<void> {
-    const cache = new Map<string, boolean>();
-
-    const fillForUnits = async (units?: Composition['units']) => {
-      if (!units || units.length === 0) return;
-
-      for (const unit of units) {
-        if (!unit.championId) continue;
-
-        const key = String(unit.championId);
-
-        if (!cache.has(key)) {
-          const unitDetail = await this.tftUnitsService.findById(key);
-          cache.set(key, unitDetail?.needUnlock === true);
-        }
-
-        (unit as any).needUnlock = cache.get(key) ?? false;
-      }
-    };
-
-    await fillForUnits(composition.units);
-    await fillForUnits(composition.earlyGame);
-    await fillForUnits(composition.midGame);
-    await fillForUnits(composition.bench);
-  }
-
   async findManyWithPagination({
     filterOptions,
     sortOptions,
@@ -116,34 +81,17 @@ export class CompositionsService {
     sortOptions?: SortCompositionDto[] | null;
     paginationOptions: IPaginationOptions;
   }): Promise<Composition[]> {
-    const compositions =
-      await this.compositionsRepository.findManyWithPagination({
-        filterOptions,
-        sortOptions,
-        paginationOptions,
-      });
-
-    // Populate needUnlock cho units
-    for (const composition of compositions) {
-      await this.populateUnitsNeedUnlock(composition);
-    }
-
-    return compositions;
+    return this.compositionsRepository.findManyWithPagination({
+      filterOptions,
+      sortOptions,
+      paginationOptions,
+    });
   }
 
   async findById(
     id: Composition['id'],
   ): Promise<NullableType<Composition>> {
-    const composition = await this.compositionsRepository.findById(id);
-
-    if (!composition) {
-      return null;
-    }
-
-    // Populate needUnlock cho units
-    await this.populateUnitsNeedUnlock(composition);
-
-    return composition;
+    return this.compositionsRepository.findById(id);
   }
 
   async findByCompId(
@@ -152,16 +100,7 @@ export class CompositionsService {
     if (!compId) {
       return null;
     }
-    const composition = await this.compositionsRepository.findByCompId(compId);
-
-    if (!composition) {
-      return null;
-    }
-
-    // Populate needUnlock cho units
-    await this.populateUnitsNeedUnlock(composition);
-
-    return composition;
+    return this.compositionsRepository.findByCompId(compId);
   }
 
   async update(
@@ -187,19 +126,7 @@ export class CompositionsService {
 
     // Champion validation removed
 
-    const composition = await this.compositionsRepository.update(
-      id,
-      updateCompositionDto,
-    );
-
-    if (!composition) {
-      return null;
-    }
-
-    // Populate needUnlock cho units
-    await this.populateUnitsNeedUnlock(composition);
-
-    return composition;
+    return this.compositionsRepository.update(id, updateCompositionDto);
   }
 
   async remove(id: Composition['id']): Promise<void> {
