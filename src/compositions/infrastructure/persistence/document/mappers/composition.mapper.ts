@@ -38,6 +38,7 @@ export class CompositionMapper {
             cost: unit.cost,
             star: unit.star,
             carry: unit.carry ?? false,
+            needUnlock: unit.needUnlock ?? false,
             need3Star: unit.need3Star ?? false,
             position: {
               row: unit.position.row,
@@ -45,6 +46,7 @@ export class CompositionMapper {
             },
             image: unit.image ?? undefined,
             items: unit.items || [],
+            traits: unit.traits || [],
           }))
         : [];
 
@@ -58,6 +60,7 @@ export class CompositionMapper {
             cost: unit.cost,
             star: unit.star,
             carry: unit.carry ?? false,
+            needUnlock: unit.needUnlock ?? false,
             need3Star: unit.need3Star ?? false,
             position: {
               row: unit.position.row,
@@ -65,6 +68,7 @@ export class CompositionMapper {
             },
             image: unit.image ?? undefined,
             items: unit.items || [],
+            traits: unit.traits || [],
           }))
         : [];
 
@@ -78,6 +82,7 @@ export class CompositionMapper {
             cost: unit.cost,
             star: unit.star,
             carry: unit.carry ?? false,
+            needUnlock: unit.needUnlock ?? false,
             need3Star: unit.need3Star ?? false,
             position: {
               row: unit.position.row,
@@ -85,6 +90,7 @@ export class CompositionMapper {
             },
             image: unit.image ?? undefined,
             items: unit.items || [],
+            traits: unit.traits || [],
           }))
         : [];
 
@@ -98,6 +104,7 @@ export class CompositionMapper {
             cost: unit.cost,
             star: unit.star,
             carry: unit.carry ?? false,
+            needUnlock: unit.needUnlock ?? false,
             need3Star: unit.need3Star ?? false,
             position: {
               row: unit.position.row,
@@ -105,6 +112,7 @@ export class CompositionMapper {
             },
             image: unit.image ?? undefined,
             items: unit.items || [],
+            traits: unit.traits || [],
           }))
         : [];
 
@@ -168,6 +176,7 @@ export class CompositionMapper {
         unitSchema.cost = unit.cost;
         unitSchema.star = unit.star;
         unitSchema.carry = unit.carry;
+        unitSchema.needUnlock = unit.needUnlock ?? false;
         unitSchema.need3Star = unit.need3Star;
         const positionSchema = new PositionSchemaClass();
         positionSchema.row = unit.position.row;
@@ -175,6 +184,7 @@ export class CompositionMapper {
         unitSchema.position = positionSchema;
         unitSchema.image = unit.image;
         unitSchema.items = unit.items || [];
+        unitSchema.traits = unit.traits || [];
         return unitSchema;
       });
     }
@@ -189,6 +199,7 @@ export class CompositionMapper {
         unitSchema.cost = unit.cost;
         unitSchema.star = unit.star;
         unitSchema.carry = unit.carry;
+        unitSchema.needUnlock = unit.needUnlock ?? false;
         unitSchema.need3Star = unit.need3Star;
         const positionSchema = new PositionSchemaClass();
         positionSchema.row = unit.position.row;
@@ -196,6 +207,7 @@ export class CompositionMapper {
         unitSchema.position = positionSchema;
         unitSchema.image = unit.image;
         unitSchema.items = unit.items || [];
+        unitSchema.traits = unit.traits || [];
         return unitSchema;
       });
     }
@@ -210,6 +222,7 @@ export class CompositionMapper {
         unitSchema.cost = unit.cost;
         unitSchema.star = unit.star;
         unitSchema.carry = unit.carry;
+        unitSchema.needUnlock = unit.needUnlock ?? false;
         unitSchema.need3Star = unit.need3Star;
         const positionSchema = new PositionSchemaClass();
         positionSchema.row = unit.position.row;
@@ -217,6 +230,7 @@ export class CompositionMapper {
         unitSchema.position = positionSchema;
         unitSchema.image = unit.image;
         unitSchema.items = unit.items || [];
+        unitSchema.traits = unit.traits || [];
         return unitSchema;
       });
     }
@@ -231,6 +245,7 @@ export class CompositionMapper {
         unitSchema.cost = unit.cost;
         unitSchema.star = unit.star;
         unitSchema.carry = unit.carry;
+        unitSchema.needUnlock = unit.needUnlock ?? false;
         unitSchema.need3Star = unit.need3Star;
         const positionSchema = new PositionSchemaClass();
         positionSchema.row = unit.position.row;
@@ -238,6 +253,7 @@ export class CompositionMapper {
         unitSchema.position = positionSchema;
         unitSchema.image = unit.image;
         unitSchema.items = unit.items || [];
+        unitSchema.traits = unit.traits || [];
         return unitSchema;
       });
     }

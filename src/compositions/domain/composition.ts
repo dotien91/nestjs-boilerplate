@@ -114,6 +114,13 @@ export class Unit {
   items?: string[];
 
   @ApiPropertyOptional({
+    type: [String],
+    example: ['Demacia', 'Warden'],
+    description: 'Danh sách traits của unit (lấy từ TFT Unit)',
+  })
+  traits?: string[];
+
+  @ApiPropertyOptional({
     type: [Object],
     description: 'Thông tin đầy đủ của items (populated)',
   })

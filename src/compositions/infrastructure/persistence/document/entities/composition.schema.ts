@@ -53,6 +53,9 @@ export class UnitSchemaClass {
   @Prop({ type: Boolean, default: false })
   need3Star?: boolean;
 
+  @Prop({ type: Boolean, default: false })
+  needUnlock?: boolean;
+
   @Prop({ required: true, type: PositionSchemaClass })
   position: PositionSchemaClass;
 
@@ -61,6 +64,9 @@ export class UnitSchemaClass {
 
   @Prop({ type: [String], default: [] })
   items?: string[];
+
+  @Prop({ type: [String], default: [] })
+  traits?: string[];
 }
 
 export const UnitSchema = SchemaFactory.createForClass(UnitSchemaClass);

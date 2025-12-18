@@ -153,6 +153,7 @@ async function importCompositions() {
         image?: string; // Only string | undefined, not null
         needUnlock: boolean;
         need3Star: boolean;
+        traits: string[];
       }> = [];
       const unitMappingErrors: string[] = [];
 
@@ -170,11 +171,19 @@ async function importCompositions() {
           continue;
         }
 
+        // Get full unit details to get traits and needUnlock from database
+        const fullUnit = await tftUnitsService.findById(unitInfo.id);
         // Ensure championKey has TFT16_ prefix
         let championKey = unitInfo.apiName;
         if (!championKey.startsWith('TFT16_')) {
           championKey = `TFT16_${championKey}`;
         }
+
+        // Get traits from TFT Unit database
+        const traits = fullUnit?.traits || [];
+        
+        // Get needUnlock from TFT Unit database (priority), fallback to crawled data
+        const needUnlock = fullUnit?.needUnlock === true ? true : (unit.needUnlock || false);
 
         // Convert null to undefined for image field
         const imageValue = unit.image?.trim();
@@ -190,8 +199,9 @@ async function importCompositions() {
           position: unit.position,
           items: unit.items || [],
           image: finalImage, // Only string | undefined, never null
-          needUnlock: unit.needUnlock,
+          needUnlock: needUnlock, // From TFT Unit database
           need3Star: unit.need3Star,
+          traits: traits, // From TFT Unit database
         });
       }
 

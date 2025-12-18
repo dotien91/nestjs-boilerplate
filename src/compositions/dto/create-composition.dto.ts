@@ -197,6 +197,16 @@ class UnitDto {
   @IsArray()
   @IsString({ each: true })
   items?: string[];
+
+  @ApiPropertyOptional({
+    type: [String],
+    example: ['Demacia', 'Warden'],
+    description: 'Danh sách traits của unit (lấy từ TFT Unit)',
+  })
+  @IsOptional()
+  @IsArray()
+  @IsString({ each: true })
+  traits?: string[];
 }
 
 class CarryItemDto {
