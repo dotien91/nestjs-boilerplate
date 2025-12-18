@@ -169,7 +169,19 @@ async function crawlCompositions() {
         }
         
         // Wait for TabContentFlex to appear
-        await new Promise(resolve => setTimeout(resolve, 2000));
+        await new Promise(resolve => setTimeout(resolve, 3000));
+        
+        // Debug: Check if modal/detail opened
+        const hasModal = await page.evaluate(() => {
+          const modal = document.querySelector('[class*="modal"], [class*="dialog"], [role="dialog"], [class*="TabContentFlex"]');
+          const unitLinks = document.querySelectorAll('a[href*="/units/"]');
+          return {
+            hasModal: !!modal,
+            unitLinksCount: unitLinks.length,
+            modalClasses: modal ? modal.className : null
+          };
+        });
+        console.log(`  Debug: hasModal=${hasModal.hasModal}, unitLinks=${hasModal.unitLinksCount}`);
         
         // Extract composition data from TabContentFlex
         const compData = await page.evaluate(() => {
@@ -179,6 +191,7 @@ async function crawlCompositions() {
             plan: null,
             difficulty: null,
             units: [],
+            earlyGame: [],
             stats: {
               avgPlace: null,
               pickRate: null,
@@ -247,9 +260,33 @@ async function crawlCompositions() {
             }, null);
           }
           
+          // Method 4: If still no boardContainer, try to find units directly from the clicked card
+          if (!boardContainer || boardContainer.querySelectorAll('a[href*="/units/"]').length < 5) {
+            // Try to find the composition card that was clicked
+            const allUnitLinks = Array.from(document.querySelectorAll('a[href*="/units/"]'));
+            if (allUnitLinks.length >= 5) {
+              // Find the container that has the most unit links and is visible
+              const visibleContainers = Array.from(document.querySelectorAll('div, section, article')).filter(container => {
+                const rect = container.getBoundingClientRect();
+                return rect.width > 0 && rect.height > 0 && rect.top >= 0;
+              });
+              
+              boardContainer = visibleContainers.reduce((best, current) => {
+                const currentUnits = current.querySelectorAll('a[href*="/units/"]').length;
+                const bestUnits = best?.querySelectorAll('a[href*="/units/"]').length || 0;
+                return currentUnits > bestUnits ? current : best;
+              }, null);
+            }
+          }
+          
           if (boardContainer) {
             // Get all unit elements in board
-            const unitElements = boardContainer.querySelectorAll('a[href*="/units/"], [class*="unit"], [class*="champion"]');
+            let unitElements = boardContainer.querySelectorAll('a[href*="/units/"]');
+            
+            // If not enough units, try broader search
+            if (unitElements.length < 5) {
+              unitElements = document.querySelectorAll('a[href*="/units/"]');
+            }
             
             // Try to determine grid structure
             const unitData = [];
@@ -373,8 +410,164 @@ async function crawlCompositions() {
             comp.units = unitData;
           }
           
+          // Extract early game options from CompEarlyOptionSelection
+          const earlyGameOptions = [];
+          const earlyOptionSelectors = [
+            '[class*="CompEarlyOptionSelection"]',
+            '[class*="early-option"]',
+            '[class*="earlyOption"]',
+            '[data-early-game]',
+            '[data-early-option]'
+          ];
+          
+          let earlyOptionContainer = null;
+          for (const selector of earlyOptionSelectors) {
+            earlyOptionContainer = document.querySelector(selector);
+            if (earlyOptionContainer) break;
+          }
+          
+          if (earlyOptionContainer) {
+            // Find all early game unit options
+            const earlyUnitElements = earlyOptionContainer.querySelectorAll('a[href*="/units/"], [class*="unit"], [class*="champion"]');
+            
+            earlyUnitElements.forEach((unitEl) => {
+              const unitLink = unitEl.closest('a[href*="/units/"]') || unitEl;
+              const href = unitLink.getAttribute('href');
+              if (!href || !href.includes('/units/')) return;
+              
+              const unitKeyMatch = href.match(/\/units\/([^\/\?]+)/);
+              if (!unitKeyMatch) return;
+              
+              const championKey = unitKeyMatch[1];
+              
+              // Get position if available
+              let position = { row: 0, col: 0 };
+              const parent = unitEl.closest('[data-row], [data-col]');
+              if (parent) {
+                const row = parent.getAttribute('data-row') || parent.getAttribute('row');
+                const col = parent.getAttribute('data-col') || parent.getAttribute('col');
+                if (row !== null && col !== null) {
+                  position = {
+                    row: parseInt(row) || 0,
+                    col: parseInt(col) || 0
+                  };
+                }
+              }
+              
+              // Extract unit info
+              const img = unitEl.querySelector('img[src*="champion"], img[src*="unit"]');
+              const linkText = unitLink.textContent?.trim();
+              const imgAlt = img?.getAttribute('alt') || '';
+              
+              let name = linkText || imgAlt || championKey;
+              name = name.replace(/^(Unlockable\s+Unit|Three\s+Star\s+Unit)\s*/i, '').trim();
+              if (!name || name === championKey) {
+                name = championKey.replace(/([a-z])([A-Z])/g, '$1 $2');
+              }
+              
+              // Extract items
+              const items = [];
+              const itemLinks = unitEl.closest('div, section')?.querySelectorAll('a[href*="/items/"]') || [];
+              itemLinks.forEach(itemLink => {
+                const itemHref = itemLink.getAttribute('href');
+                const itemKeyMatch = itemHref.match(/\/items\/([^\/\?]+)/);
+                if (itemKeyMatch) items.push(itemKeyMatch[1]);
+              });
+              
+              // Check for unlockable/3-star
+              const unlockImg = unitEl.querySelector('img[alt*="Unlockable"], img[src*="unlock"]');
+              const star3Img = unitEl.querySelector('img[alt*="Three Star"], img[alt*="3 Star"]');
+              
+              earlyGameOptions.push({
+                name: name,
+                championKey: championKey,
+                position: position,
+                items: items,
+                image: img?.src || null,
+                needUnlock: !!unlockImg,
+                need3Star: !!star3Img,
+                star: star3Img ? 3 : 1
+              });
+            });
+            
+            comp.earlyGame = earlyGameOptions;
+          }
+          
           return comp;
         });
+        console.log('compData=====', JSON.stringify(compData, null, 2));
+        
+        // If no units found, try to extract from the card itself (before clicking)
+        if (compData.units.length === 0) {
+          console.log(`  ⚠ No units found in detail view, trying to extract from card...`);
+          const cardData = await page.evaluate((index) => {
+            const allElements = Array.from(document.querySelectorAll('*'));
+            const tierElements = allElements.filter(el => {
+              const text = el.textContent?.trim();
+              return text && /^[SABCD]$/.test(text) && el.children.length === 0;
+            });
+            
+            if (index < tierElements.length) {
+              const tierEl = tierElements[index];
+              let container = tierEl.parentElement;
+              for (let i = 0; i < 8 && container; i++) {
+                const unitLinks = container.querySelectorAll('a[href*="/units/"]');
+                if (unitLinks.length >= 5) {
+                  const units = [];
+                  unitLinks.forEach((unitLink) => {
+                    const href = unitLink.getAttribute('href');
+                    const unitKeyMatch = href.match(/\/units\/([^\/\?]+)/);
+                    if (unitKeyMatch) {
+                      const championKey = unitKeyMatch[1];
+                      const img = unitLink.querySelector('img');
+                      const linkText = unitLink.textContent?.trim();
+                      const imgAlt = img?.getAttribute('alt') || '';
+                      
+                      let name = linkText || imgAlt || championKey;
+                      name = name.replace(/^(Unlockable\s+Unit|Three\s+Star\s+Unit)\s*/i, '').trim();
+                      if (!name || name === championKey) {
+                        name = championKey.replace(/([a-z])([A-Z])/g, '$1 $2');
+                      }
+                      
+                      // Get position from DOM order
+                      const unitIndex = Array.from(unitLinks).indexOf(unitLink);
+                      const position = {
+                        row: Math.floor(unitIndex / 7),
+                        col: unitIndex % 7
+                      };
+                      
+                      units.push({
+                        name: name,
+                        championKey: championKey,
+                        position: position,
+                        items: [],
+                        image: img?.src || null,
+                        needUnlock: false,
+                        need3Star: false,
+                        star: 1
+                      });
+                    }
+                  });
+                  
+                  // Get name from container
+                  const nameMatch = container.textContent?.match(/([A-Z][a-z]+(?:\s+[A-Z][a-z]+){2,})/);
+                  const name = nameMatch ? nameMatch[1] : null;
+                  
+                  return { name, units, tier: tierEl.textContent?.trim() };
+                }
+                container = container.parentElement;
+              }
+            }
+            return null;
+          }, i);
+          
+          if (cardData && cardData.units.length > 0) {
+            compData.name = cardData.name || compData.name;
+            compData.units = cardData.units;
+            compData.tier = cardData.tier || compData.tier;
+            console.log(`  ✓ Extracted from card: ${compData.name} (${compData.units.length} units)`);
+          }
+        }
         
         if (compData.name && compData.units.length > 0) {
           compositions.push(compData);
@@ -421,222 +614,223 @@ async function crawlCompositions() {
       await new Promise(resolve => setTimeout(resolve, 3000));
       
       const compositionsFromDOM = await page.evaluate(() => {
-      const comps = [];
-      
-      // Find all composition cards by looking for tier badges (S, A, B, C, D)
-      // These are typically in their own container near the composition name
-      const allElements = Array.from(document.querySelectorAll('*'));
-      const tierElements = allElements.filter(el => {
-        const text = el.textContent?.trim();
-        return text && /^[SABCD]$/.test(text) && el.children.length === 0;
-      });
-      
-      // Get parent containers of tier elements - these should be composition cards
-      const compContainers = [];
-      tierElements.forEach(tierEl => {
-        let container = tierEl.parentElement;
-        // Go up to find the main composition container
-        for (let i = 0; i < 8 && container; i++) {
-          // Check if this container has multiple units (composition board)
-          const unitLinks = container.querySelectorAll('a[href*="/units/"]');
-          if (unitLinks.length >= 5) { // At least 5 units = likely a composition
-            if (!compContainers.includes(container)) {
-              compContainers.push(container);
-            }
-            break;
-          }
-          container = container.parentElement;
-        }
-      });
-      
-      compContainers.forEach((container, index) => {
-        try {
-          const comp = {
-            id: index + 1,
-            name: null,
-            tier: null,
-            plan: null,
-            difficulty: null,
-            units: [],
-            stats: {
-              avgPlace: null,
-              pickRate: null,
-              winRate: null
-            }
-          };
-          
-          // Extract tier (S, A, B, C, D) - should be a direct child or nearby
-          const tierText = Array.from(container.querySelectorAll('*')).find(el => {
-            const text = el.textContent?.trim();
-            return text && /^[SABCD]$/.test(text) && el.children.length === 0;
-          });
-          if (tierText) {
-            comp.tier = tierText.textContent.trim();
-          }
-          
-          // Extract name - look for the composition title
-          // Usually appears after the tier badge
-          const allText = container.textContent;
-          const namePatterns = [
-            // Pattern: "Shurima Azir Renekton", "Bilgewater Miss Fortune Tahm Kench"
-            /([A-Z][a-z]+(?:\s+[A-Z][a-z]+){2,})/,
-            // Pattern with numbers: "Demacia Vayne Garen"
-            /([A-Z][a-z]+(?:\s+[A-Z][a-z]+)+)/
-          ];
-          
-          for (const pattern of namePatterns) {
-            const match = allText.match(pattern);
-            if (match && match[1]) {
-              const candidate = match[1].trim();
-              // Filter out common false positives
-              if (candidate.length > 5 && 
-                  !candidate.match(/^(Avg Place|Pick Rate|Win Rate|Last Updated|Comps Analyzed|Ranked|Situational|Sort|Filter|Open In|Copy Team|Download|Support|Join|Follow)/i) &&
-                  candidate.split(' ').length >= 2) {
-                comp.name = candidate;
-                break;
+        const comps = [];
+        
+        // Find all composition cards by looking for tier badges (S, A, B, C, D)
+        // These are typically in their own container near the composition name
+        const allElements = Array.from(document.querySelectorAll('*'));
+        const tierElements = allElements.filter(el => {
+          const text = el.textContent?.trim();
+          return text && /^[SABCD]$/.test(text) && el.children.length === 0;
+        });
+        
+        // Get parent containers of tier elements - these should be composition cards
+        const compContainers = [];
+        tierElements.forEach(tierEl => {
+          let container = tierEl.parentElement;
+          // Go up to find the main composition container
+          for (let i = 0; i < 8 && container; i++) {
+            // Check if this container has multiple units (composition board)
+            const unitLinks = container.querySelectorAll('a[href*="/units/"]');
+            if (unitLinks.length >= 5) { // At least 5 units = likely a composition
+              if (!compContainers.includes(container)) {
+                compContainers.push(container);
               }
+              break;
             }
+            container = container.parentElement;
           }
-          
-          // Extract plan (Fast 9, lvl 7, lvl 6, etc.)
-          const planMatch = allText.match(/(?:Fast\s*9|lvl\s*[0-9]|Level\s*[0-9])/i);
-          if (planMatch) {
-            comp.plan = planMatch[0];
-          }
-          
-          // Extract difficulty (Hard, Easy, Medium)
-          const difficultyMatch = allText.match(/\b(Hard|Easy|Medium)\b/i);
-          if (difficultyMatch) {
-            comp.difficulty = difficultyMatch[0];
-          }
-          
-          // Extract units - find all unit links
-          const unitLinks = container.querySelectorAll('a[href*="/units/"]');
-          const unitMap = new Map(); // Use Map to avoid duplicates
-          
-          unitLinks.forEach((unitLink, linkIndex) => {
-            const href = unitLink.getAttribute('href');
-            const unitKeyMatch = href.match(/\/units\/([^\/\?]+)/);
-            if (!unitKeyMatch) return;
-            
-            const championKey = unitKeyMatch[1];
-            
-            // Skip if we already have this unit
-            if (unitMap.has(championKey)) return;
-            
-            // Get the unit container (parent of the link)
-            let unitContainer = unitLink.parentElement;
-            for (let i = 0; i < 3 && unitContainer; i++) {
-              if (unitContainer.querySelector('img[src*="champion"], img[src*="unit"]')) {
-                break;
-              }
-              unitContainer = unitContainer.parentElement;
-            }
-            
-            const unit = {
+        });
+        
+        compContainers.forEach((container, index) => {
+          try {
+            const comp = {
+              id: index + 1,
               name: null,
-              championKey: championKey,
-              championId: null, // Will be mapped later
-              cost: null,
-              star: 1,
-              position: { row: 0, col: 0 }, // Will be calculated from board position
-              items: [],
-              image: null,
-              needUnlock: false,
-              need3Star: false
+              tier: null,
+              plan: null,
+              difficulty: null,
+              units: [],
+              stats: {
+                avgPlace: null,
+                pickRate: null,
+                winRate: null
+              }
             };
             
-            // Extract unit name from link text, image alt, or championKey
-            const linkText = unitLink.textContent?.trim();
-            const img = unitLink.querySelector('img');
-            const imgAlt = img?.getAttribute('alt') || img?.getAttribute('title') || '';
-            
-            // Clean up name - remove "Unlockable Unit", "Three Star Unit" prefixes
-            let rawName = linkText || imgAlt || championKey;
-            rawName = rawName.replace(/^(Unlockable\s+Unit|Three\s+Star\s+Unit)\s*/i, '').trim();
-            
-            // Convert championKey to readable name if needed
-            if (!rawName || rawName === championKey) {
-              // Convert "MissFortune" -> "Miss Fortune", "TahmKench" -> "Tahm Kench"
-              unit.name = championKey.replace(/([a-z])([A-Z])/g, '$1 $2');
-            } else {
-              unit.name = rawName;
+            // Extract tier (S, A, B, C, D) - should be a direct child or nearby
+            const tierText = Array.from(container.querySelectorAll('*')).find(el => {
+              const text = el.textContent?.trim();
+              return text && /^[SABCD]$/.test(text) && el.children.length === 0;
+            });
+            if (tierText) {
+              comp.tier = tierText.textContent.trim();
             }
             
-            // Extract image
-            if (img) {
-              unit.image = img.src || img.getAttribute('data-src') || null;
-            }
+            // Extract name - look for the composition title
+            // Usually appears after the tier badge
+            const allText = container.textContent;
+            const namePatterns = [
+              // Pattern: "Shurima Azir Renekton", "Bilgewater Miss Fortune Tahm Kench"
+              /([A-Z][a-z]+(?:\s+[A-Z][a-z]+){2,})/,
+              // Pattern with numbers: "Demacia Vayne Garen"
+              /([A-Z][a-z]+(?:\s+[A-Z][a-z]+)+)/
+            ];
             
-            // Check for unlockable unit
-            const unlockImg = unitContainer.querySelector('img[alt*="Unlockable"], img[src*="unlock"]');
-            if (unlockImg) {
-              unit.needUnlock = true;
-            }
-            
-            // Check for 3-star unit
-            const star3Img = unitContainer.querySelector('img[alt*="Three Star"], img[alt*="3 Star"]');
-            if (star3Img) {
-              unit.need3Star = true;
-              unit.star = 3;
-            }
-            
-            // Extract items - find item links near this unit
-            const itemLinks = unitContainer.querySelectorAll('a[href*="/items/"]');
-            itemLinks.forEach(itemLink => {
-              const itemHref = itemLink.getAttribute('href');
-              const itemKeyMatch = itemHref.match(/\/items\/([^\/\?]+)/);
-              if (itemKeyMatch) {
-                unit.items.push(itemKeyMatch[1]);
+            for (const pattern of namePatterns) {
+              const match = allText.match(pattern);
+              if (match && match[1]) {
+                const candidate = match[1].trim();
+                // Filter out common false positives
+                if (candidate.length > 5 && 
+                    !candidate.match(/^(Avg Place|Pick Rate|Win Rate|Last Updated|Comps Analyzed|Ranked|Situational|Sort|Filter|Open In|Copy Team|Download|Support|Join|Follow)/i) &&
+                    candidate.split(' ').length >= 2) {
+                  comp.name = candidate;
+                  break;
+                }
               }
+            }
+            
+            // Extract plan (Fast 9, lvl 7, lvl 6, etc.)
+            const planMatch = allText.match(/(?:Fast\s*9|lvl\s*[0-9]|Level\s*[0-9])/i);
+            if (planMatch) {
+              comp.plan = planMatch[0];
+            }
+            
+            // Extract difficulty (Hard, Easy, Medium)
+            const difficultyMatch = allText.match(/\b(Hard|Easy|Medium)\b/i);
+            if (difficultyMatch) {
+              comp.difficulty = difficultyMatch[0];
+            }
+            
+            // Extract units - find all unit links
+            const unitLinks = container.querySelectorAll('a[href*="/units/"]');
+            const unitMap = new Map(); // Use Map to avoid duplicates
+            
+            unitLinks.forEach((unitLink, linkIndex) => {
+              const href = unitLink.getAttribute('href');
+              const unitKeyMatch = href.match(/\/units\/([^\/\?]+)/);
+              if (!unitKeyMatch) return;
+              
+              const championKey = unitKeyMatch[1];
+              
+              // Skip if we already have this unit
+              if (unitMap.has(championKey)) return;
+              
+              // Get the unit container (parent of the link)
+              let unitContainer = unitLink.parentElement;
+              for (let i = 0; i < 3 && unitContainer; i++) {
+                if (unitContainer.querySelector('img[src*="champion"], img[src*="unit"]')) {
+                  break;
+                }
+                unitContainer = unitContainer.parentElement;
+              }
+              
+              const unit = {
+                name: null,
+                championKey: championKey,
+                championId: null, // Will be mapped later
+                cost: null,
+                star: 1,
+                position: { row: 0, col: 0 }, // Will be calculated from board position
+                items: [],
+                image: null,
+                needUnlock: false,
+                need3Star: false
+              };
+              
+              // Extract unit name from link text, image alt, or championKey
+              const linkText = unitLink.textContent?.trim();
+              const img = unitLink.querySelector('img');
+              const imgAlt = img?.getAttribute('alt') || img?.getAttribute('title') || '';
+              
+              // Clean up name - remove "Unlockable Unit", "Three Star Unit" prefixes
+              let rawName = linkText || imgAlt || championKey;
+              rawName = rawName.replace(/^(Unlockable\s+Unit|Three\s+Star\s+Unit)\s*/i, '').trim();
+              
+              // Convert championKey to readable name if needed
+              if (!rawName || rawName === championKey) {
+                // Convert "MissFortune" -> "Miss Fortune", "TahmKench" -> "Tahm Kench"
+                unit.name = championKey.replace(/([a-z])([A-Z])/g, '$1 $2');
+              } else {
+                unit.name = rawName;
+              }
+              
+              // Extract image
+              if (img) {
+                unit.image = img.src || img.getAttribute('data-src') || null;
+              }
+              
+              // Check for unlockable unit
+              const unlockImg = unitContainer.querySelector('img[alt*="Unlockable"], img[src*="unlock"]');
+              if (unlockImg) {
+                unit.needUnlock = true;
+              }
+              
+              // Check for 3-star unit
+              const star3Img = unitContainer.querySelector('img[alt*="Three Star"], img[alt*="3 Star"]');
+              if (star3Img) {
+                unit.need3Star = true;
+                unit.star = 3;
+              }
+              
+              // Extract items - find item links near this unit
+              const itemLinks = unitContainer.querySelectorAll('a[href*="/items/"]');
+              itemLinks.forEach(itemLink => {
+                const itemHref = itemLink.getAttribute('href');
+                const itemKeyMatch = itemHref.match(/\/items\/([^\/\?]+)/);
+                if (itemKeyMatch) {
+                  unit.items.push(itemKeyMatch[1]);
+                }
+              });
+              
+              // Calculate approximate position based on order in DOM
+              // This is a rough estimate - actual positions would need board layout analysis
+              const unitIndex = Array.from(container.querySelectorAll('a[href*="/units/"]')).indexOf(unitLink);
+              // Assume 4 rows x 7 cols board
+              unit.position = {
+                row: Math.floor(unitIndex / 7),
+                col: unitIndex % 7
+              };
+              
+              unitMap.set(championKey, unit);
             });
             
-            // Calculate approximate position based on order in DOM
-            // This is a rough estimate - actual positions would need board layout analysis
-            const unitIndex = Array.from(container.querySelectorAll('a[href*="/units/"]')).indexOf(unitLink);
-            // Assume 4 rows x 7 cols board
-            unit.position = {
-              row: Math.floor(unitIndex / 7),
-              col: unitIndex % 7
-            };
+            comp.units = Array.from(unitMap.values());
             
-            unitMap.set(championKey, unit);
-          });
-          
-          comp.units = Array.from(unitMap.values());
-          
-          // Extract stats (Avg Place, Pick Rate, Win Rate)
-          const statsText = container.textContent;
-          const avgPlaceMatch = statsText.match(/Avg\s+Place[:\s]*([\d.]+)/i);
-          if (avgPlaceMatch) {
-            comp.stats.avgPlace = parseFloat(avgPlaceMatch[1]);
+            // Extract stats (Avg Place, Pick Rate, Win Rate)
+            const statsText = container.textContent;
+            const avgPlaceMatch = statsText.match(/Avg\s+Place[:\s]*([\d.]+)/i);
+            if (avgPlaceMatch) {
+              comp.stats.avgPlace = parseFloat(avgPlaceMatch[1]);
+            }
+            
+            const pickRateMatch = statsText.match(/Pick\s+Rate[:\s]*([\d.]+)/i);
+            if (pickRateMatch) {
+              comp.stats.pickRate = parseFloat(pickRateMatch[1]);
+            }
+            
+            const winRateMatch = statsText.match(/Win\s+Rate[:\s]*([\d.]+)%?/i);
+            if (winRateMatch) {
+              comp.stats.winRate = parseFloat(winRateMatch[1]);
+            }
+            
+            // Only add composition if it has at least a name and some units
+            if (comp.name && comp.units.length >= 5) {
+              comps.push(comp);
+            }
+          } catch (error) {
+            console.error('Error extracting composition:', error);
           }
-          
-          const pickRateMatch = statsText.match(/Pick\s+Rate[:\s]*([\d.]+)/i);
-          if (pickRateMatch) {
-            comp.stats.pickRate = parseFloat(pickRateMatch[1]);
-          }
-          
-          const winRateMatch = statsText.match(/Win\s+Rate[:\s]*([\d.]+)%?/i);
-          if (winRateMatch) {
-            comp.stats.winRate = parseFloat(winRateMatch[1]);
-          }
-          
-          // Only add composition if it has at least a name and some units
-          if (comp.name && comp.units.length >= 5) {
-            comps.push(comp);
-          }
-        } catch (error) {
-          console.error('Error extracting composition:', error);
-        }
+        });
+        
+        return comps;
       });
       
-      return comps;
-    });
-      
-    if (compositionsFromDOM && compositionsFromDOM.length > 0) {
-      compositions.push(...compositionsFromDOM);
-      console.log(`  ✓ Extracted ${compositionsFromDOM.length} compositions from DOM fallback`);
+      if (compositionsFromDOM && compositionsFromDOM.length > 0) {
+        compositions.push(...compositionsFromDOM);
+        console.log(`  ✓ Extracted ${compositionsFromDOM.length} compositions from DOM fallback`);
+      }
     }
 
     // If we found data in JavaScript, try to process it
@@ -677,7 +871,7 @@ async function crawlCompositions() {
 
     console.log(`\n✓ Successfully saved ${uniqueComps.length} compositions to ${outputPath}`);
     console.log('\nSample composition:', uniqueComps[0] ? JSON.stringify(uniqueComps[0], null, 2) : 'No compositions found');
-
+    }
   } catch (error) {
     console.error('Error during crawling:', error);
     throw error;
