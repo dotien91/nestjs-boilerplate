@@ -16,6 +16,15 @@ export class FilterTftTraitDto {
   @IsOptional()
   @IsString()
   apiName?: string | null;
+
+  @ApiPropertyOptional({
+    type: String,
+    enum: ['origin', 'class'],
+    description: 'Loại trait: origin (Tộc) hoặc class (Hệ)',
+  })
+  @IsOptional()
+  @IsString()
+  type?: 'origin' | 'class' | null;
 }
 
 export class SortTftTraitDto {
@@ -51,6 +60,15 @@ export class QueryTftTraitDto {
   @IsOptional()
   @IsString()
   apiName?: string | null;
+
+  @ApiPropertyOptional({
+    type: String,
+    enum: ['origin', 'class'],
+    description: 'Loại trait: origin (Tộc) hoặc class (Hệ)',
+  })
+  @IsOptional()
+  @IsString()
+  type?: string | null;
 
   // Flat format: orderBy=name&order=asc
   @ApiPropertyOptional({ type: String })

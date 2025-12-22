@@ -68,6 +68,7 @@ export class TftTraitsController {
     
     if (query?.name) filterObj.name = query.name;
     if (query?.apiName) filterObj.apiName = query.apiName;
+    if (query?.type) filterObj.type = query.type as 'origin' | 'class';
     
     if (Object.keys(filterObj).length > 0) {
       filters = filterObj as FilterTftTraitDto;
