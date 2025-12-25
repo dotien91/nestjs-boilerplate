@@ -38,7 +38,9 @@ export class CompositionsDocumentRepository
     paginationOptions: IPaginationOptions;
   }): Promise<Composition[]> {
     const where: FilterQuery<CompositionSchemaClass> = {};
+    const andConditions: any[] = [];
 
+    // Build base filters
     if (filterOptions?.name) {
       where.name = { $regex: filterOptions.name, $options: 'i' };
     }
@@ -57,6 +59,58 @@ export class CompositionsDocumentRepository
 
     if (filterOptions?.isLateGame !== undefined && filterOptions?.isLateGame !== null) {
       where.isLateGame = filterOptions.isLateGame;
+    }
+
+    // Filter by units
+    if (filterOptions?.units && filterOptions.units.length > 0) {
+      const searchInAllArrays = filterOptions.searchInAllArrays ?? true;
+      const unitFilters = filterOptions.units.map(identifier => {
+        // Escape special regex characters
+        const escapedIdentifier = identifier.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+        const regexMatch = { $regex: escapedIdentifier, $options: 'i' };
+
+        if (searchInAllArrays) {
+          // Search in units, earlyGame, midGame, and bench
+          return {
+            $or: [
+              { 'units.championId': regexMatch },
+              { 'units.championKey': regexMatch },
+              { 'earlyGame.championId': regexMatch },
+              { 'earlyGame.championKey': regexMatch },
+              { 'midGame.championId': regexMatch },
+              { 'midGame.championKey': regexMatch },
+              { 'bench.championId': regexMatch },
+              { 'bench.championKey': regexMatch },
+            ],
+          };
+        } else {
+          // Search only in units array
+          return {
+            $or: [
+              { 'units.championId': regexMatch },
+              { 'units.championKey': regexMatch },
+            ],
+          };
+        }
+      });
+
+      // Add unit filters to $and conditions
+      andConditions.push(...unitFilters);
+    }
+
+    // Combine base filters and unit filters
+    if (andConditions.length > 0) {
+      // If we have base filters, add them to $and as well
+      const baseFilterKeys = Object.keys(where);
+      if (baseFilterKeys.length > 0) {
+        const baseFilters: any = {};
+        baseFilterKeys.forEach(key => {
+          baseFilters[key] = where[key];
+          delete where[key];
+        });
+        andConditions.unshift(baseFilters);
+      }
+      where.$and = andConditions;
     }
 
     const compositionObjects = await this.compositionsModel
@@ -127,6 +181,51 @@ export class CompositionsDocumentRepository
     await this.compositionsModel.deleteOne({
       _id: id.toString(),
     });
+  }
+
+  async findCompositionsByUnits(
+    unitIdentifiers: string[],
+    searchInAllArrays: boolean = true,
+  ): Promise<Composition[]> {
+    // Build MongoDB query to find compositions containing ALL specified units
+    // Use case-insensitive regex for flexible matching
+    const where: FilterQuery<CompositionSchemaClass> = {
+      $and: unitIdentifiers.map(identifier => {
+        // Escape special regex characters
+        const escapedIdentifier = identifier.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+        const regexMatch = { $regex: escapedIdentifier, $options: 'i' };
+
+        if (searchInAllArrays) {
+          // Search in units, earlyGame, midGame, and bench
+          return {
+            $or: [
+              { 'units.championId': regexMatch },
+              { 'units.championKey': regexMatch },
+              { 'earlyGame.championId': regexMatch },
+              { 'earlyGame.championKey': regexMatch },
+              { 'midGame.championId': regexMatch },
+              { 'midGame.championKey': regexMatch },
+              { 'bench.championId': regexMatch },
+              { 'bench.championKey': regexMatch },
+            ],
+          };
+        } else {
+          // Search only in units array
+          return {
+            $or: [
+              { 'units.championId': regexMatch },
+              { 'units.championKey': regexMatch },
+            ],
+          };
+        }
+      }),
+    };
+
+    const compositionObjects = await this.compositionsModel.find(where);
+
+    return compositionObjects.map((compositionObject) =>
+      CompositionMapper.toDomain(compositionObject),
+    );
   }
 }
 

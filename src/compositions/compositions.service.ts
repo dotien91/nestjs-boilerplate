@@ -132,5 +132,15 @@ export class CompositionsService {
   async remove(id: Composition['id']): Promise<void> {
     await this.compositionsRepository.remove(id);
   }
+
+  async findCompositionsByUnits(
+    unitIdentifiers: string[],
+    searchInAllArrays: boolean = true,
+  ): Promise<Composition[]> {
+    return this.compositionsRepository.findCompositionsByUnits(
+      unitIdentifiers,
+      searchInAllArrays,
+    );
+  }
 }
 

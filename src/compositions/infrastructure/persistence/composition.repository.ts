@@ -29,5 +29,10 @@ export abstract class CompositionRepository {
   ): Promise<Composition | null>;
 
   abstract remove(id: Composition['id']): Promise<void>;
+
+  abstract findCompositionsByUnits(
+    unitIdentifiers: string[],
+    searchInAllArrays?: boolean,
+  ): Promise<Composition[]>;
 }
 

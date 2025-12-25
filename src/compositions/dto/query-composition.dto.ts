@@ -39,6 +39,30 @@ export class FilterCompositionDto {
     return value;
   })
   isLateGame?: boolean | null;
+
+  @ApiPropertyOptional({
+    type: [String],
+    description: 'Filter by units (championId or championKey). Compositions must contain ALL specified units.',
+    example: ['garen', 'jarvaniv'],
+  })
+  @IsOptional()
+  @IsArray()
+  @IsString({ each: true })
+  units?: string[] | null;
+
+  @ApiPropertyOptional({
+    type: Boolean,
+    description: 'Search in all arrays (units, earlyGame, midGame, bench) or only in units array',
+    default: true,
+  })
+  @IsOptional()
+  @IsBoolean()
+  @Transform(({ value }) => {
+    if (value === 'true') return true;
+    if (value === 'false') return false;
+    return value;
+  })
+  searchInAllArrays?: boolean | null;
 }
 
 export class SortCompositionDto {

@@ -26,6 +26,7 @@ import {
   QueryCompositionDto,
   FilterCompositionDto,
 } from './dto/query-composition.dto';
+import { SearchByUnitsDto } from './dto/search-by-units.dto';
 import {
   InfinityPaginationResponse,
   InfinityPaginationResponseDto,
@@ -90,7 +91,9 @@ export class CompositionsController {
         queryParams['filters[compId]'] ||
         queryParams['filters[difficulty]'] ||
         queryParams['filters[tier]'] ||
-        queryParams['filters[isLateGame]']
+        queryParams['filters[isLateGame]'] ||
+        queryParams['filters[units]'] ||
+        queryParams['filters[searchInAllArrays]']
       ) {
         filters = {};
         if (queryParams['filters[name]']) {
@@ -110,14 +113,30 @@ export class CompositionsController {
             queryParams['filters[isLateGame]'] === 'true' ||
             queryParams['filters[isLateGame]'] === true;
         }
+        if (queryParams['filters[units]']) {
+          // Handle array: can be comma-separated string or array
+          const unitsParam = queryParams['filters[units]'];
+          if (Array.isArray(unitsParam)) {
+            filters.units = unitsParam;
+          } else if (typeof unitsParam === 'string') {
+            filters.units = unitsParam.split(',').map(u => u.trim()).filter(u => u);
+          }
+        }
+        if (queryParams['filters[searchInAllArrays]']) {
+          filters.searchInAllArrays =
+            queryParams['filters[searchInAllArrays]'] === 'true' ||
+            queryParams['filters[searchInAllArrays]'] === true;
+        }
       }
-      // Check for flat format: name, compId, difficulty, tier, isLateGame
+      // Check for flat format: name, compId, difficulty, tier, isLateGame, units
       else if (
         queryParams['name'] ||
         queryParams['compId'] ||
         queryParams['difficulty'] ||
         queryParams['tier'] ||
-        queryParams['isLateGame']
+        queryParams['isLateGame'] ||
+        queryParams['units'] ||
+        queryParams['searchInAllArrays']
       ) {
         filters = {};
         if (queryParams['name']) {
@@ -136,6 +155,20 @@ export class CompositionsController {
           filters.isLateGame =
             queryParams['isLateGame'] === 'true' ||
             queryParams['isLateGame'] === true;
+        }
+        if (queryParams['units']) {
+          // Handle array: can be comma-separated string or array
+          const unitsParam = queryParams['units'];
+          if (Array.isArray(unitsParam)) {
+            filters.units = unitsParam;
+          } else if (typeof unitsParam === 'string') {
+            filters.units = unitsParam.split(',').map(u => u.trim()).filter(u => u);
+          }
+        }
+        if (queryParams['searchInAllArrays']) {
+          filters.searchInAllArrays =
+            queryParams['searchInAllArrays'] === 'true' ||
+            queryParams['searchInAllArrays'] === true;
         }
       }
       // Check if filters is sent as JSON string or object
@@ -229,6 +262,25 @@ export class CompositionsController {
   @HttpCode(HttpStatus.NO_CONTENT)
   remove(@Param('id') id: Composition['id']): Promise<void> {
     return this.compositionsService.remove(id);
+  }
+
+  @ApiOperation({
+    summary: 'Tìm compositions chứa các units được chỉ định',
+    description: 'Tìm tất cả compositions có chứa TẤT CẢ các units trong danh sách. Units có thể là championId hoặc championKey.',
+  })
+  @ApiOkResponse({
+    type: [Composition],
+    description: 'Danh sách compositions chứa các units',
+  })
+  @Post('search-by-units')
+  @HttpCode(HttpStatus.OK)
+  async searchByUnits(
+    @Body() searchByUnitsDto: SearchByUnitsDto,
+  ): Promise<Composition[]> {
+    return this.compositionsService.findCompositionsByUnits(
+      searchByUnitsDto.units,
+      searchByUnitsDto.searchInAllArrays ?? true,
+    );
   }
 }
 
