@@ -102,6 +102,13 @@ export class TftTraitSchemaClass extends EntityDocumentHelper {
   })
   unitProperties?: Record<string, any>;
 
+  @Prop({
+    type: String,
+    enum: ['origin', 'class'],
+    default: null,
+  })
+  type?: 'origin' | 'class' | null;
+
   @Prop({ default: now })
   createdAt: Date;
 
@@ -117,4 +124,5 @@ export const TftTraitSchema = SchemaFactory.createForClass(TftTraitSchemaClass);
 // Indexes để tối ưu query
 TftTraitSchema.index({ apiName: 1 });
 TftTraitSchema.index({ name: 1 });
+TftTraitSchema.index({ type: 1 });
 

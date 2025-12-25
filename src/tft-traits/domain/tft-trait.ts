@@ -79,6 +79,14 @@ export class TftTrait {
   })
   unitProperties?: Record<string, any>;
 
+  @ApiPropertyOptional({
+    type: String,
+    enum: ['origin', 'class'],
+    example: 'origin',
+    description: 'Loại trait: origin (Tộc) hoặc class (Hệ)',
+  })
+  type?: 'origin' | 'class' | null;
+
   @ApiProperty()
   createdAt: Date;
 

@@ -94,5 +94,15 @@ export class CreateTftTraitDto {
   @IsOptional()
   @IsObject()
   unitProperties?: Record<string, any>;
+
+  @ApiPropertyOptional({
+    type: String,
+    enum: ['origin', 'class'],
+    example: 'origin',
+    description: 'Loại trait: origin (Tộc) hoặc class (Hệ)',
+  })
+  @IsOptional()
+  @IsString()
+  type?: 'origin' | 'class' | null;
 }
 

@@ -128,13 +128,46 @@ async function importCompositions() {
 
   for (const compData of compositionsData) {
     try {
-      // Check if composition already exists
-      const existing = await compositionsService.findByCompId(
-        `comp-${compData.name.toLowerCase().replace(/\s+/g, '-')}`,
+      // Check if composition already exists by name (case-insensitive)
+      const existingByName = await compositionsService.findManyWithPagination({
+        filterOptions: {
+          name: compData.name.trim(),
+        },
+        sortOptions: null,
+        paginationOptions: {
+          page: 1,
+          limit: 1,
+        },
+      });
+
+      if (existingByName && existingByName.length > 0) {
+        const existing = existingByName[0];
+        // Check if name matches exactly (case-insensitive)
+        if (existing.name.toLowerCase().trim() === compData.name.toLowerCase().trim()) {
+          console.log(
+            `⏭️  Skipping ${compData.name} (already exists with name: "${existing.name}", compId: ${existing.compId})`,
+          );
+          skipCount++;
+          continue;
+        }
+      }
+
+      // Also check by compId (backup check)
+      const compIdSlug = compData.name
+        .toLowerCase()
+        .normalize('NFD')
+        .replace(/[\u0300-\u036f]/g, '')
+        .replace(/[^a-z0-9\s-]/g, '')
+        .replace(/\s+/g, '-')
+        .replace(/-+/g, '-')
+        .trim();
+      
+      const existingByCompId = await compositionsService.findByCompId(
+        `comp-${compIdSlug}`,
       );
-      if (existing) {
+      if (existingByCompId) {
         console.log(
-          `⏭️  Skipping ${compData.name} (already exists with compId: ${existing.compId})`,
+          `⏭️  Skipping ${compData.name} (already exists with compId: ${existingByCompId.compId})`,
         );
         skipCount++;
         continue;
@@ -158,6 +191,18 @@ async function importCompositions() {
       const unitMappingErrors: string[] = [];
 
       for (const unit of compData.units) {
+        // Validate position (board is 4 rows x 7 cols max)
+        if (unit.position) {
+          if (unit.position.row < 0 || unit.position.row >= 4 || 
+              unit.position.col < 0 || unit.position.col >= 7) {
+            unitMappingErrors.push(
+              `Unit ${unit.name} has invalid position: row=${unit.position.row}, col=${unit.position.col}`,
+            );
+            // Skip this unit but continue with others
+            continue;
+          }
+        }
+
         const unitInfo = await findUnitByChampionKey(
           tftUnitsService,
           unit.championKey,

@@ -49,6 +49,7 @@ export class TftTraitsDocumentRepository implements TftTraitRepository {
     domainEntity.effects = traitObject.effects ? JSON.parse(JSON.stringify(traitObject.effects)) : [];
     domainEntity.units = traitObject.units ? JSON.parse(JSON.stringify(traitObject.units)) : [];
     domainEntity.unitProperties = traitObject.unitProperties ? JSON.parse(JSON.stringify(traitObject.unitProperties)) : {};
+    domainEntity.type = traitObject.type || null;
     domainEntity.createdAt = traitObject.createdAt;
     domainEntity.updatedAt = traitObject.updatedAt;
     domainEntity.deletedAt = traitObject.deletedAt;
@@ -79,6 +80,10 @@ export class TftTraitsDocumentRepository implements TftTraitRepository {
 
     if (filterOptions?.apiName) {
       where.apiName = filterOptions.apiName;
+    }
+
+    if (filterOptions?.type) {
+      where.type = filterOptions.type;
     }
 
     const traitObjects = await this.tftTraitsModel

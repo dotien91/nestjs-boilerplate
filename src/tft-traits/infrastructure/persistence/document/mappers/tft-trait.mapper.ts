@@ -27,6 +27,7 @@ export class TftTraitMapper {
     domainEntity.effects = raw.effects || [];
     domainEntity.units = raw.units || [];
     domainEntity.unitProperties = raw.unitProperties || {};
+    domainEntity.type = raw.type || null;
     domainEntity.createdAt = raw.createdAt;
     domainEntity.updatedAt = raw.updatedAt;
     domainEntity.deletedAt = raw.deletedAt;
@@ -49,6 +50,7 @@ export class TftTraitMapper {
     persistenceSchema.effects = domainEntity.effects || [];
     persistenceSchema.units = domainEntity.units || [];
     persistenceSchema.unitProperties = domainEntity.unitProperties || {};
+    persistenceSchema.type = domainEntity.type || null;
     persistenceSchema.createdAt = domainEntity.createdAt;
     persistenceSchema.updatedAt = domainEntity.updatedAt;
     persistenceSchema.deletedAt = domainEntity.deletedAt;
