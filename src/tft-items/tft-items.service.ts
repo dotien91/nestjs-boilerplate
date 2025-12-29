@@ -51,6 +51,7 @@ export class TftItemsService {
     item.disabled = createTftItemDto.disabled ?? false;
     item.type = createTftItemDto.type;
     item.texture = createTftItemDto.texture;
+    item.tier = createTftItemDto.tier;
     item.createdAt = new Date();
     item.updatedAt = new Date();
 

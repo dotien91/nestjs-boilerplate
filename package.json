@@ -21,6 +21,8 @@
     "import:tft-units": "ts-node -r tsconfig-paths/register ./src/asset/import-tft-units.ts",
     "crawl:compositions": "node scripts/crawl-compositions.js",
     "import:compositions": "ts-node -r tsconfig-paths/register ./src/asset/import-compositions.ts",
+    "crawl:items-tier": "node scripts/crawl-items-tier.js",
+    "update:items-tier": "ts-node -r tsconfig-paths/register ./src/asset/update-items-tier.ts",
     "delete:items-by-name-list": "ts-node -r tsconfig-paths/register ./src/asset/delete-items-by-name-list.ts",
     "debug:items": "ts-node -r tsconfig-paths/register ./src/asset/debug-items.ts",
     "prebuild": "rimraf dist",

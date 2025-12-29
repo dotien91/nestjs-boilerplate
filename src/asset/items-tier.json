@@ -1,0 +1,252 @@
+[
+  {
+    "name": "Zhonya's Paradox",
+    "apiName": "TFT4_Item_OrnnZhonyasParadox",
+    "tier": "S"
+  },
+  {
+    "name": "Death's Defiance",
+    "apiName": "TFT4_Item_OrnnDeathsDefiance",
+    "tier": "S"
+  },
+  {
+    "name": "Wit's End",
+    "apiName": "TFT_Item_Artifact_WitsEnd",
+    "tier": "S"
+  },
+  {
+    "name": "Prowler's Claw",
+    "apiName": "TFT_Item_Artifact_ProwlersClaw",
+    "tier": "S"
+  },
+  {
+    "name": "Seeker's Armguard",
+    "apiName": "TFT_Item_Artifact_SeekersArmguard",
+    "tier": "S"
+  },
+  {
+    "name": "Radiant Striker's Flail",
+    "apiName": "TFT5_Item_TrapClawRadiant",
+    "tier": "S"
+  },
+  {
+    "name": "Luden's Tempest",
+    "apiName": "TFT_Item_Artifact_LudensTempest",
+    "tier": "S"
+  },
+  {
+    "name": "Radiant Sterak's Gage",
+    "apiName": "TFT5_Item_SteraksGageRadiant",
+    "tier": "S"
+  },
+  {
+    "name": "Radiant Kraken's Fury",
+    "apiName": "TFT5_Item_RunaansHurricaneRadiant",
+    "tier": "S"
+  },
+  {
+    "name": "Guinsoo's Rageblade",
+    "apiName": "TFT_Item_GuinsoosRageblade",
+    "tier": "S"
+  },
+  {
+    "name": "Sniper's Focus",
+    "apiName": "TFT9_Item_OrnnHorizonFocus",
+    "tier": "S"
+  },
+  {
+    "name": "Radiant Titan's Resolve",
+    "apiName": "TFT5_Item_TitansResolveRadiant",
+    "tier": "S"
+  },
+  {
+    "name": "Tactician's Crown",
+    "apiName": "TFT_Item_ForceOfNature",
+    "tier": "S"
+  },
+  {
+    "name": "Radiant Nashor's Tooth",
+    "apiName": "TFT5_Item_LeviathanRadiant",
+    "tier": "S"
+  },
+  {
+    "name": "Radiant Thief's Gloves",
+    "apiName": "TFT5_Item_ThiefsGlovesRadiant",
+    "tier": "S"
+  },
+  {
+    "name": "Thief's Gloves",
+    "apiName": "TFT_Item_ThiefsGloves",
+    "tier": "S"
+  },
+  {
+    "name": "Radiant Rabadon's Deathcap",
+    "apiName": "TFT5_Item_RabadonsDeathcapRadiant",
+    "tier": "S"
+  },
+  {
+    "name": "Warmog's Armor",
+    "apiName": "TFT_Item_WarmogsArmor",
+    "tier": "S"
+  },
+  {
+    "name": "Radiant Protector's Vow",
+    "apiName": "TFT5_Item_FrozenHeartRadiant",
+    "tier": "S"
+  },
+  {
+    "name": "Kraken's Fury",
+    "apiName": "TFT_Item_RunaansHurricane",
+    "tier": "S"
+  },
+  {
+    "name": "Radiant Archangel's Staff",
+    "apiName": "TFT5_Item_ArchangelsStaffRadiant",
+    "tier": "S"
+  },
+  {
+    "name": "Gambler's Blade",
+    "apiName": "TFT7_Item_ShimmerscaleGamblersBlade",
+    "tier": "S"
+  },
+  {
+    "name": "Protector's Vow",
+    "apiName": "TFT_Item_FrozenHeart",
+    "tier": "S"
+  },
+  {
+    "name": "Radiant Guinsoo's Rageblade",
+    "apiName": "TFT5_Item_GuinsoosRagebladeRadiant",
+    "tier": "S"
+  },
+  {
+    "name": "Striker's Flail",
+    "apiName": "TFT_Item_PowerGauntlet",
+    "tier": "S"
+  },
+  {
+    "name": "Titan's Resolve",
+    "apiName": "TFT_Item_TitansResolve",
+    "tier": "S"
+  },
+  {
+    "name": "Sterak's Gage",
+    "apiName": "TFT_Item_SteraksGage",
+    "tier": "S"
+  },
+  {
+    "name": "Dragon's Claw",
+    "apiName": "TFT_Item_DragonsClaw",
+    "tier": "S"
+  },
+  {
+    "name": "Rabadon's Deathcap",
+    "apiName": "TFT_Item_RabadonsDeathcap",
+    "tier": "S"
+  },
+  {
+    "name": "Archangel's Staff",
+    "apiName": "TFT_Item_ArchangelsStaff",
+    "tier": "S"
+  },
+  {
+    "name": "Mogul's Mail",
+    "apiName": "TFT7_Item_ShimmerscaleMogulsMail",
+    "tier": "S"
+  },
+  {
+    "name": "Nashor's Tooth",
+    "apiName": "TFT_Item_Leviathan",
+    "tier": "S"
+  },
+  {
+    "name": "Captain's Brew",
+    "apiName": "TFT16_Item_Bilgewater_CaptainsBrew",
+    "tier": "S"
+  },
+  {
+    "name": "First Mate's Flintlock",
+    "apiName": "TFT16_Item_Bilgewater_FirstMatesFlintlock",
+    "tier": "S"
+  },
+  {
+    "name": "Dead Man's Dagger",
+    "apiName": "TFT16_Item_Bilgewater_DeadmansDagger",
+    "tier": "S"
+  },
+  {
+    "name": "Giant's Belt",
+    "apiName": "TFT_Item_GiantsBelt",
+    "tier": "S"
+  },
+  {
+    "name": "Cutthroat's Cutlass",
+    "apiName": "TFT16_Item_Bilgewater_BilgeratCutlass",
+    "tier": "S"
+  },
+  {
+    "name": "Tactician's Cape",
+    "apiName": "TFT_Item_TacticiansRing",
+    "tier": "S"
+  },
+  {
+    "name": "Tactician's Shield",
+    "apiName": "TFT_Item_TacticiansScepter",
+    "tier": "S"
+  },
+  {
+    "name": "B.F. Sword",
+    "apiName": "TFT_Item_BFSword",
+    "tier": "B"
+  },
+  {
+    "name": "Radiant Dragon's Claw",
+    "apiName": "TFT5_Item_DragonsClawRadiant",
+    "tier": "S"
+  },
+  {
+    "name": "Frying Pan",
+    "apiName": "TFT_Item_FryingPan",
+    "tier": "D"
+  },
+  {
+    "name": "Spatula",
+    "apiName": "TFT_Item_Spatula",
+    "tier": "D"
+  },
+  {
+    "name": "Arcanist Emblem",
+    "apiName": "TFT16_Item_SorcererEmblemItem",
+    "tier": "D"
+  },
+  {
+    "name": "Void Emblem",
+    "apiName": "TFT16_Item_VoidEmblemItem",
+    "tier": "D"
+  },
+  {
+    "name": "Noxus Emblem",
+    "apiName": "TFT16_Item_NoxusEmblemItem",
+    "tier": "D"
+  },
+  {
+    "name": "Radiant Gargoyle Stoneplate",
+    "apiName": "TFT5_Item_GargoyleStoneplateRadiant",
+    "tier": "D"
+  },
+  {
+    "name": "Zaun Emblem",
+    "apiName": "TFT16_Item_ZaunEmblemItem",
+    "tier": "D"
+  },
+  {
+    "name": "Radiant Warmog's Armor",
+    "apiName": "TFT5_Item_WarmogsArmorRadiant",
+    "tier": "D"
+  },
+  {
+    "name": "Ixtal Emblem",
+    "apiName": "TFT16_Item_IxtalEmblemItem",
+    "tier": "D"
+  }
+]
