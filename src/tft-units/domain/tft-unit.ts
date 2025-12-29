@@ -95,6 +95,13 @@ export class TftUnit {
   role?: string | null;
 
   @ApiPropertyOptional({
+    type: String,
+    description: 'Tier của unit (S, A, B, C, D)',
+    example: 'A',
+  })
+  tier?: string | null;
+
+  @ApiPropertyOptional({
     type: Boolean,
     description: 'Có cần unlock hay không',
     example: false,

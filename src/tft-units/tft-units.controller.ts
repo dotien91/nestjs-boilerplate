@@ -143,6 +143,7 @@ export class TftUnitsController {
   async findByCost(
     @Param('cost') cost: number,
   ): Promise<TftUnit[]> {
+    // Không truyền sortOptions để sử dụng default sort theo tier (S > A > B > C > D)
     return this.tftUnitsService.findManyWithPagination({
       filterOptions: { cost },
       sortOptions: null,

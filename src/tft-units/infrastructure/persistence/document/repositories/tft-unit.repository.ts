@@ -20,6 +20,38 @@ export class TftUnitsDocumentRepository implements TftUnitRepository {
   ) {}
 
   /**
+   * Build filter query from FilterTftUnitDto
+   */
+  private buildFilterQuery(filterOptions?: FilterTftUnitDto | null): FilterQuery<TftUnitSchemaClass> {
+    const where: FilterQuery<TftUnitSchemaClass> = {};
+
+    if (filterOptions?.name) {
+      // Escape special regex characters và tìm partial match
+      const escapedName = filterOptions.name.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+      where.name = { $regex: escapedName, $options: 'i' };
+    }
+
+    if (filterOptions?.apiName) {
+      where.apiName = filterOptions.apiName;
+    }
+
+    // traits là array, dùng $in để filter
+    if (filterOptions?.trait) {
+      where.traits = { $in: [filterOptions.trait] };
+    }
+
+    if (filterOptions?.cost !== undefined && filterOptions?.cost !== null) {
+      where.cost = filterOptions.cost;
+    }
+
+    if (filterOptions?.role) {
+      where.role = filterOptions.role;
+    }
+
+    return where;
+  }
+
+  /**
    * Convert lean MongoDB object to TftUnit domain entity
    * This avoids circular reference issues when serializing
    */
@@ -35,6 +67,7 @@ export class TftUnitsDocumentRepository implements TftUnitRepository {
     domainEntity.squareIcon = unitObject.squareIcon;
     domainEntity.tileIcon = unitObject.tileIcon;
     domainEntity.role = unitObject.role;
+    domainEntity.tier = unitObject.tier;
     domainEntity.needUnlock = unitObject.needUnlock;
     // Deep clone nested objects to avoid circular references
     domainEntity.ability = unitObject.ability ? JSON.parse(JSON.stringify(unitObject.ability)) : null;
@@ -62,35 +95,47 @@ export class TftUnitsDocumentRepository implements TftUnitRepository {
     sortOptions?: SortTftUnitDto[] | null;
     paginationOptions: IPaginationOptions;
   }): Promise<TftUnit[]> {
-    const where: FilterQuery<TftUnitSchemaClass> = {};
+    const where = this.buildFilterQuery(filterOptions);
 
-    if (filterOptions?.name) {
-      // Escape special regex characters và tìm partial match
-      const escapedName = filterOptions.name.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-      where.name = { $regex: escapedName, $options: 'i' };
+    // Nếu không có sort options, mặc định sort theo tier (S > A > B > C > D) trong MongoDB
+    if (!sortOptions || sortOptions.length === 0) {
+      const pipeline: any[] = [
+        { $match: where },
+        // Thêm field tierOrder để sort: S=0, A=1, B=2, C=3, D=4, null/khác=5
+        {
+          $addFields: {
+            tierOrder: {
+              $switch: {
+                branches: [
+                  { case: { $eq: [{ $toUpper: '$tier' }, 'S'] }, then: 0 },
+                  { case: { $eq: [{ $toUpper: '$tier' }, 'A'] }, then: 1 },
+                  { case: { $eq: [{ $toUpper: '$tier' }, 'B'] }, then: 2 },
+                  { case: { $eq: [{ $toUpper: '$tier' }, 'C'] }, then: 3 },
+                  { case: { $eq: [{ $toUpper: '$tier' }, 'D'] }, then: 4 },
+                ],
+                default: 5,
+              },
+            },
+          },
+        },
+        // Sort theo tierOrder, sau đó theo name
+        { $sort: { tierOrder: 1, name: 1 } },
+        // Pagination
+        { $skip: (paginationOptions.page - 1) * paginationOptions.limit },
+        { $limit: paginationOptions.limit },
+        // Remove tierOrder field trước khi return
+        { $unset: 'tierOrder' },
+      ];
+
+      const unitObjects = await this.tftUnitsModel.aggregate(pipeline);
+      return unitObjects.map((unitObject: any) => this.leanToDomain(unitObject));
     }
 
-    if (filterOptions?.apiName) {
-      where.apiName = filterOptions.apiName;
-    }
-
-    // traits là array, dùng $in để filter
-    if (filterOptions?.trait) {
-      where.traits = { $in: [filterOptions.trait] };
-    }
-
-    if (filterOptions?.cost !== undefined && filterOptions?.cost !== null) {
-      where.cost = filterOptions.cost;
-    }
-
-    if (filterOptions?.role) {
-      where.role = filterOptions.role;
-    }
-
+    // Nếu có sort options, dùng sort bình thường
     const unitObjects = await this.tftUnitsModel
       .find(where)
       .sort(
-        sortOptions?.reduce(
+        sortOptions.reduce(
           (accumulator, sort) => ({
             ...accumulator,
             [sort.orderBy === 'id' ? '_id' : sort.orderBy]:
@@ -106,8 +151,45 @@ export class TftUnitsDocumentRepository implements TftUnitRepository {
     return unitObjects.map((unitObject: any) => this.leanToDomain(unitObject));
   }
 
+  /**
+   * Find all units with filter (no pagination)
+   * Used for sorting all units before pagination
+   */
+  async findManyWithFilter(
+    filterOptions?: FilterTftUnitDto | null,
+  ): Promise<TftUnit[]> {
+    const where = this.buildFilterQuery(filterOptions);
+    const unitObjects = await this.tftUnitsModel.find(where).lean();
+    return unitObjects.map((unitObject: any) => this.leanToDomain(unitObject));
+  }
+
   async findAll(): Promise<TftUnit[]> {
-    const unitObjects = await this.tftUnitsModel.find().sort({ name: 1 }).lean();
+    // Sort theo tier (S > A > B > C > D) trong MongoDB
+    const pipeline: any[] = [
+      // Thêm field tierOrder để sort: S=0, A=1, B=2, C=3, D=4, null/khác=5
+      {
+        $addFields: {
+          tierOrder: {
+            $switch: {
+              branches: [
+                { case: { $eq: [{ $toUpper: '$tier' }, 'S'] }, then: 0 },
+                { case: { $eq: [{ $toUpper: '$tier' }, 'A'] }, then: 1 },
+                { case: { $eq: [{ $toUpper: '$tier' }, 'B'] }, then: 2 },
+                { case: { $eq: [{ $toUpper: '$tier' }, 'C'] }, then: 3 },
+                { case: { $eq: [{ $toUpper: '$tier' }, 'D'] }, then: 4 },
+              ],
+              default: 5,
+            },
+          },
+        },
+      },
+      // Sort theo tierOrder, sau đó theo name
+      { $sort: { tierOrder: 1, name: 1 } },
+      // Remove tierOrder field trước khi return
+      { $unset: 'tierOrder' },
+    ];
+
+    const unitObjects = await this.tftUnitsModel.aggregate(pipeline);
     return unitObjects.map((unitObject: any) => this.leanToDomain(unitObject));
   }
 

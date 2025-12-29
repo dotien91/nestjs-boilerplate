@@ -68,6 +68,12 @@ export class TftUnitSchemaClass extends EntityDocumentHelper {
   role?: string | null;
 
   @Prop({
+    type: String,
+    default: null,
+  })
+  tier?: string | null;
+
+  @Prop({
     type: Boolean,
     default: false,
   })
@@ -156,4 +162,5 @@ TftUnitSchema.index({ name: 1 });
 TftUnitSchema.index({ cost: 1 });
 TftUnitSchema.index({ 'traits': 1 });
 TftUnitSchema.index({ role: 1 });
+TftUnitSchema.index({ tier: 1 });
 

@@ -20,6 +20,7 @@ export class TftUnitsService {
     private readonly tftUnitsRepository: TftUnitRepository,
   ) {}
 
+
   async create(createTftUnitDto: CreateTftUnitDto): Promise<TftUnit> {
     // Kiểm tra apiName đã tồn tại chưa
     const unitObject = await this.tftUnitsRepository.findByApiName(
@@ -44,6 +45,7 @@ export class TftUnitsService {
     unit.squareIcon = createTftUnitDto.squareIcon;
     unit.tileIcon = createTftUnitDto.tileIcon;
     unit.role = createTftUnitDto.role;
+    unit.tier = createTftUnitDto.tier;
     unit.ability = createTftUnitDto.ability;
     unit.stats = createTftUnitDto.stats;
     unit.traits = createTftUnitDto.traits || [];
@@ -64,6 +66,7 @@ export class TftUnitsService {
     sortOptions?: SortTftUnitDto[] | null;
     paginationOptions: IPaginationOptions;
   }): Promise<TftUnit[]> {
+    // Sort được thực hiện trong MongoDB (repository layer)
     return this.tftUnitsRepository.findManyWithPagination({
       filterOptions,
       sortOptions,
@@ -72,6 +75,7 @@ export class TftUnitsService {
   }
 
   async findAll(): Promise<TftUnit[]> {
+    // Sort được thực hiện trong MongoDB (repository layer)
     return this.tftUnitsRepository.findAll();
   }
 
