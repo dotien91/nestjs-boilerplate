@@ -143,5 +143,15 @@ export class CreateTftItemDto {
   @IsOptional()
   @IsString()
   texture?: string | null;
+
+  @ApiPropertyOptional({
+    type: String,
+    example: 'S',
+    description: 'Tier của item (S, A, B, C, D)',
+    enum: ['S', 'A', 'B', 'C', 'D'],
+  })
+  @IsOptional()
+  @IsString()
+  tier?: string | null;
 }
 

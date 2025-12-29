@@ -27,6 +27,8 @@ export class FilterTftItemDto {
   @IsOptional()
   @Transform(({ value }) => value === 'true' || value === true)
   unique?: boolean | null;
+
+  tier?: string | null;
 }
 
 export class SortTftItemDto {
@@ -72,6 +74,11 @@ export class QueryTftItemDto {
   @IsOptional()
   @Transform(({ value }) => value === 'true' || value === true)
   unique?: boolean | null;
+
+  @ApiPropertyOptional({ type: String })
+  @IsOptional()
+  @IsString()
+  tier?: string | null;
 
   // Flat format: orderBy=name&order=asc
   @ApiPropertyOptional({ type: String })
