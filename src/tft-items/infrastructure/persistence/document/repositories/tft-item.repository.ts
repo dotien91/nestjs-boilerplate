@@ -53,10 +53,50 @@ export class TftItemsDocumentRepository implements TftItemRepository {
       where.unique = filterOptions.unique;
     }
 
+    if (filterOptions?.tier) {
+      where.tier = filterOptions.tier;
+    }
+
+    // Nếu không có sort options, mặc định sort theo tier (S > A > B > C > D > E) trong MongoDB
+    if (!sortOptions || sortOptions.length === 0) {
+      const pipeline: any[] = [
+        { $match: where },
+        // Thêm field tierOrder để sort: S=0, A=1, B=2, C=3, D=4, E=5, null/khác=6
+        {
+          $addFields: {
+            tierOrder: {
+              $switch: {
+                branches: [
+                  { case: { $eq: [{ $toUpper: '$tier' }, 'S'] }, then: 0 },
+                  { case: { $eq: [{ $toUpper: '$tier' }, 'A'] }, then: 1 },
+                  { case: { $eq: [{ $toUpper: '$tier' }, 'B'] }, then: 2 },
+                  { case: { $eq: [{ $toUpper: '$tier' }, 'C'] }, then: 3 },
+                  { case: { $eq: [{ $toUpper: '$tier' }, 'D'] }, then: 4 },
+                  { case: { $eq: [{ $toUpper: '$tier' }, 'E'] }, then: 5 },
+                ],
+                default: 6,
+              },
+            },
+          },
+        },
+        // Sort theo tierOrder, sau đó theo name
+        { $sort: { tierOrder: 1, name: 1 } },
+        // Pagination
+        { $skip: (paginationOptions.page - 1) * paginationOptions.limit },
+        { $limit: paginationOptions.limit },
+        // Remove tierOrder field trước khi return
+        { $unset: 'tierOrder' },
+      ];
+
+      const itemObjects = await this.tftItemsModel.aggregate(pipeline);
+      return itemObjects.map((itemObject: any) => TftItemMapper.toDomain(itemObject));
+    }
+
+    // Nếu có sort options, dùng sort bình thường
     const itemObjects = await this.tftItemsModel
       .find(where)
       .sort(
-        sortOptions?.reduce(
+        sortOptions.reduce(
           (accumulator, sort) => ({
             ...accumulator,
             [sort.orderBy === 'id' ? '_id' : sort.orderBy]:

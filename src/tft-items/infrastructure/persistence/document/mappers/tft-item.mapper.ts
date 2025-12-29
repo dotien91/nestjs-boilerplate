@@ -2,9 +2,11 @@ import { TftItem } from '../../../../domain/tft-item';
 import { TftItemSchemaClass } from '../entities/tft-item.schema';
 
 export class TftItemMapper {
-  static toDomain(raw: TftItemSchemaClass): TftItem {
+  static toDomain(raw: TftItemSchemaClass | any): TftItem {
     const domainEntity = new TftItem();
-    domainEntity.id = raw._id.toString();
+    // Handle both Mongoose document and plain object from aggregation
+    const id = raw._id ? (raw._id.toString ? raw._id.toString() : raw._id) : raw.id;
+    domainEntity.id = id;
     domainEntity.apiName = raw.apiName;
     domainEntity.name = raw.name;
     domainEntity.enName = raw.enName;
