@@ -47,6 +47,7 @@ export class CompositionMapper {
             image: unit.image ?? undefined,
             items: unit.items || [],
             traits: unit.traits || [],
+            tier: unit.tier ?? undefined,
           }))
         : [];
 
@@ -69,6 +70,7 @@ export class CompositionMapper {
             image: unit.image ?? undefined,
             items: unit.items || [],
             traits: unit.traits || [],
+            tier: unit.tier ?? undefined,
           }))
         : [];
 
@@ -91,6 +93,7 @@ export class CompositionMapper {
             image: unit.image ?? undefined,
             items: unit.items || [],
             traits: unit.traits || [],
+            tier: unit.tier ?? undefined,
           }))
         : [];
 
@@ -113,6 +116,7 @@ export class CompositionMapper {
             image: unit.image ?? undefined,
             items: unit.items || [],
             traits: unit.traits || [],
+            tier: unit.tier ?? undefined,
           }))
         : [];
 
@@ -185,6 +189,7 @@ export class CompositionMapper {
         unitSchema.image = unit.image;
         unitSchema.items = unit.items || [];
         unitSchema.traits = unit.traits || [];
+        unitSchema.tier = unit.tier;
         return unitSchema;
       });
     }
@@ -208,6 +213,7 @@ export class CompositionMapper {
         unitSchema.image = unit.image;
         unitSchema.items = unit.items || [];
         unitSchema.traits = unit.traits || [];
+        unitSchema.tier = unit.tier;
         return unitSchema;
       });
     }
@@ -231,6 +237,7 @@ export class CompositionMapper {
         unitSchema.image = unit.image;
         unitSchema.items = unit.items || [];
         unitSchema.traits = unit.traits || [];
+        unitSchema.tier = unit.tier;
         return unitSchema;
       });
     }
@@ -254,6 +261,7 @@ export class CompositionMapper {
         unitSchema.image = unit.image;
         unitSchema.items = unit.items || [];
         unitSchema.traits = unit.traits || [];
+        unitSchema.tier = unit.tier;
         return unitSchema;
       });
     }

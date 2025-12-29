@@ -121,6 +121,13 @@ export class Unit {
   traits?: string[];
 
   @ApiPropertyOptional({
+    type: Number,
+    example: 1,
+    description: 'Tier của unit (1, 2, 3, 4, 5)',
+  })
+  tier?: number;
+
+  @ApiPropertyOptional({
     type: [Object],
     description: 'Thông tin đầy đủ của items (populated)',
   })

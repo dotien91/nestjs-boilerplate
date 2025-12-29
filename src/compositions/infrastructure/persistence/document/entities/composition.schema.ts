@@ -67,6 +67,9 @@ export class UnitSchemaClass {
 
   @Prop({ type: [String], default: [] })
   traits?: string[];
+
+  @Prop({ type: Number, default: null })
+  tier?: number | null;
 }
 
 export const UnitSchema = SchemaFactory.createForClass(UnitSchemaClass);

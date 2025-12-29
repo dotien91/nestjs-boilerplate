@@ -207,6 +207,15 @@ class UnitDto {
   @IsArray()
   @IsString({ each: true })
   traits?: string[];
+
+  @ApiPropertyOptional({
+    type: Number,
+    example: 1,
+    description: 'Tier của unit (1, 2, 3, 4, 5)',
+  })
+  @IsOptional()
+  @IsNumber()
+  tier?: number;
 }
 
 class CarryItemDto {
