@@ -2,6 +2,9 @@ const puppeteer = require('puppeteer');
 const fs = require('fs');
 const path = require('path');
 
+// Constant: Giới hạn số lượng đội hình crawl (0 = không giới hạn)
+const MAX_COMPOSITIONS_TO_CRAWL = 10; // Set 0 để crawl tất cả, hoặc số cụ thể để giới hạn
+
 async function crawlCompositions() {
   console.log('Starting browser...');
   const browser = await puppeteer.launch({
@@ -183,7 +186,7 @@ async function crawlCompositions() {
     console.log(`\n✓ Extracted ${results.length} compositions from list page`);
 
     // Filter out invalid compositions
-    const validCompositions = results.filter(comp => 
+    let validCompositions = results.filter(comp => 
       comp.name && 
       comp.name !== 'Unknown' && 
       comp.units && 
@@ -215,6 +218,13 @@ async function crawlCompositions() {
 
     console.log(`✓ Found ${uniqueComps.length} unique compositions after deduplication`);
 
+    // Giới hạn số lượng compositions nếu có MAX_COMPOSITIONS_TO_CRAWL > 0
+    let finalComps = uniqueComps;
+    if (MAX_COMPOSITIONS_TO_CRAWL > 0 && uniqueComps.length > MAX_COMPOSITIONS_TO_CRAWL) {
+      console.log(`⚠️  Limiting to ${MAX_COMPOSITIONS_TO_CRAWL} compositions (from ${uniqueComps.length})`);
+      finalComps = uniqueComps.slice(0, MAX_COMPOSITIONS_TO_CRAWL);
+    }
+
     // Save to JSON file
     const outputPath = path.join(__dirname, '../src/asset/compositions.json');
     const outputDir = path.dirname(outputPath);
@@ -225,13 +235,13 @@ async function crawlCompositions() {
 
     fs.writeFileSync(
       outputPath,
-      JSON.stringify(uniqueComps, null, 2),
+      JSON.stringify(finalComps, null, 2),
       'utf8'
     );
 
-    console.log(`\n✓ Successfully saved ${uniqueComps.length} compositions to ${outputPath}`);
+    console.log(`\n✓ Successfully saved ${finalComps.length} compositions to ${outputPath}`);
     
-    return uniqueComps;
+    return finalComps;
   } catch (error) {
     console.error('Crawl failed:', error);
     throw error;

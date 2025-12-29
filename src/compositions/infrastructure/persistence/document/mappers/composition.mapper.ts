@@ -18,6 +18,7 @@ export class CompositionMapper {
     domainEntity.metaDescription = raw.metaDescription ?? undefined;
     domainEntity.isLateGame = raw.isLateGame ?? false;
     domainEntity.tier = raw.tier ?? undefined;
+    domainEntity.active = raw.active ?? false;
 
     // Map boardSize - always include
     domainEntity.boardSize = raw.boardSize
@@ -160,6 +161,7 @@ export class CompositionMapper {
     persistenceSchema.metaDescription = domainEntity.metaDescription;
     persistenceSchema.isLateGame = domainEntity.isLateGame;
     persistenceSchema.tier = domainEntity.tier;
+    persistenceSchema.active = domainEntity.active;
 
     // Map boardSize
     if (domainEntity.boardSize) {

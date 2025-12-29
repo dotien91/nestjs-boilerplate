@@ -253,6 +253,14 @@ export class Composition {
   })
   tier?: string;
 
+  @ApiPropertyOptional({
+    type: Boolean,
+    example: true,
+    description: 'Composition có đang active không (true cho compositions mới crawl)',
+    default: false,
+  })
+  active?: boolean;
+
   @ApiProperty({
     type: BoardSize,
     description: 'Kích thước bàn cờ',

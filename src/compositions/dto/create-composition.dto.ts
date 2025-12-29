@@ -340,6 +340,16 @@ export class CreateCompositionDto {
   @IsString()
   tier?: string;
 
+  @ApiPropertyOptional({
+    type: Boolean,
+    example: true,
+    description: 'Composition có đang active không (true cho compositions mới crawl)',
+    default: false,
+  })
+  @IsOptional()
+  @IsBoolean()
+  active?: boolean;
+
   @ApiProperty({
     type: BoardSizeDto,
     description: 'Kích thước bàn cờ',
