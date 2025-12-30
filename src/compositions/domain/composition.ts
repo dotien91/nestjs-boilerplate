@@ -147,6 +147,22 @@ export class Unit {
   championDetails?: any;
 }
 
+export class Augment {
+  @ApiProperty({
+    type: String,
+    example: 'levelup',
+    description: 'Tên của augment',
+  })
+  name: string;
+
+  @ApiProperty({
+    type: Number,
+    example: 3,
+    description: 'Tier của augment (1, 2, hoặc 3)',
+  })
+  tier: number;
+}
+
 export class CarryItem {
   @ApiProperty({
     type: String,
@@ -303,6 +319,26 @@ export class Composition {
     description: 'Ghi chú',
   })
   notes?: string[];
+
+  @ApiPropertyOptional({
+    type: Number,
+    example: 1,
+    description: 'Độ ưu tiên trong carousel (số càng nhỏ càng ưu tiên)',
+  })
+  carouselPriority?: number;
+
+  @ApiPropertyOptional({
+    type: [Augment],
+    example: [{ name: 'levelup', tier: 3 }, { name: 'slammin', tier: 2 }],
+    description: 'Danh sách augments được đề xuất (kèm tier)',
+  })
+  augments?: Augment[];
+
+  @ApiPropertyOptional({
+    type: Unit,
+    description: 'Core champion của composition (dạng unit object)',
+  })
+  coreChampion?: Unit;
 
   @ApiProperty()
   createdAt: Date;

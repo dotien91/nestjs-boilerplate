@@ -5,6 +5,7 @@ import {
   PositionSchemaClass,
   UnitSchemaClass,
   CarryItemSchemaClass,
+  AugmentSchemaClass,
 } from '../entities/composition.schema';
 
 export class CompositionMapper {
@@ -136,6 +137,42 @@ export class CompositionMapper {
 
     // Map notes - always include as array
     domainEntity.notes = raw.notes || [];
+
+    // Map carouselPriority
+    domainEntity.carouselPriority = raw.carouselPriority ?? undefined;
+
+    // Map augments - always include as array
+    domainEntity.augments =
+      raw.augments && raw.augments.length > 0
+        ? raw.augments.map((augment) => ({
+            name: augment.name,
+            tier: augment.tier,
+          }))
+        : [];
+
+    // Map coreChampion - map từ UnitSchemaClass sang Unit
+    if (raw.coreChampion) {
+      domainEntity.coreChampion = {
+        championId: raw.coreChampion.championId,
+        championKey: raw.coreChampion.championKey,
+        name: raw.coreChampion.name,
+        cost: raw.coreChampion.cost,
+        star: raw.coreChampion.star,
+        carry: raw.coreChampion.carry ?? false,
+        needUnlock: raw.coreChampion.needUnlock ?? false,
+        need3Star: raw.coreChampion.need3Star ?? false,
+        position: {
+          row: raw.coreChampion.position.row,
+          col: raw.coreChampion.position.col,
+        },
+        image: raw.coreChampion.image ?? undefined,
+        items: raw.coreChampion.items || [],
+        traits: raw.coreChampion.traits || [],
+        tier: raw.coreChampion.tier ?? undefined,
+      };
+    } else {
+      domainEntity.coreChampion = undefined;
+    }
 
     // Always include timestamps
     domainEntity.createdAt = raw.createdAt;
@@ -284,6 +321,45 @@ export class CompositionMapper {
 
     // Map notes
     persistenceSchema.notes = domainEntity.notes || [];
+
+    // Map carouselPriority
+    persistenceSchema.carouselPriority = domainEntity.carouselPriority;
+
+    // Map augments
+    if (domainEntity.augments && domainEntity.augments.length > 0) {
+      persistenceSchema.augments = domainEntity.augments.map((augment) => {
+        const augmentSchema = new AugmentSchemaClass();
+        augmentSchema.name = augment.name;
+        augmentSchema.tier = augment.tier;
+        return augmentSchema;
+      });
+    } else {
+      persistenceSchema.augments = [];
+    }
+
+    // Map coreChampion - map từ Unit sang UnitSchemaClass
+    if (domainEntity.coreChampion) {
+      const coreChampionSchema = new UnitSchemaClass();
+      coreChampionSchema.championId = domainEntity.coreChampion.championId;
+      coreChampionSchema.championKey = domainEntity.coreChampion.championKey;
+      coreChampionSchema.name = domainEntity.coreChampion.name;
+      coreChampionSchema.cost = domainEntity.coreChampion.cost;
+      coreChampionSchema.star = domainEntity.coreChampion.star;
+      coreChampionSchema.carry = domainEntity.coreChampion.carry;
+      coreChampionSchema.needUnlock = domainEntity.coreChampion.needUnlock ?? false;
+      coreChampionSchema.need3Star = domainEntity.coreChampion.need3Star;
+      const positionSchema = new PositionSchemaClass();
+      positionSchema.row = domainEntity.coreChampion.position.row;
+      positionSchema.col = domainEntity.coreChampion.position.col;
+      coreChampionSchema.position = positionSchema;
+      coreChampionSchema.image = domainEntity.coreChampion.image;
+      coreChampionSchema.items = domainEntity.coreChampion.items || [];
+      coreChampionSchema.traits = domainEntity.coreChampion.traits || [];
+      coreChampionSchema.tier = domainEntity.coreChampion.tier;
+      persistenceSchema.coreChampion = coreChampionSchema;
+    } else {
+      persistenceSchema.coreChampion = null;
+    }
 
     persistenceSchema.createdAt = domainEntity.createdAt;
     persistenceSchema.updatedAt = domainEntity.updatedAt;

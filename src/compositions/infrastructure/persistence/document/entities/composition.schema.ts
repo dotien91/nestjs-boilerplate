@@ -98,6 +98,18 @@ export class CarryItemSchemaClass {
 
 export const CarryItemSchema = SchemaFactory.createForClass(CarryItemSchemaClass);
 
+// Schema cho Augment
+@Schema({ _id: false })
+export class AugmentSchemaClass {
+  @Prop({ required: true, type: String })
+  name: string;
+
+  @Prop({ required: true, type: Number })
+  tier: number; // 1, 2, hoặc 3
+}
+
+export const AugmentSchema = SchemaFactory.createForClass(AugmentSchemaClass);
+
 // Schema cho Composition
 @Schema({
   timestamps: true,
@@ -199,6 +211,24 @@ export class CompositionSchemaClass extends EntityDocumentHelper {
     default: [],
   })
   notes?: string[];
+
+  @Prop({
+    type: Number,
+    default: null,
+  })
+  carouselPriority?: number | null;
+
+  @Prop({
+    type: [AugmentSchemaClass],
+    default: [],
+  })
+  augments?: AugmentSchemaClass[];
+
+  @Prop({
+    type: UnitSchemaClass,
+    default: null,
+  })
+  coreChampion?: UnitSchemaClass | null;
 
   @Prop({ default: now })
   createdAt: Date;

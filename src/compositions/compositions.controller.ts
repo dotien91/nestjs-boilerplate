@@ -27,6 +27,7 @@ import {
   FilterCompositionDto,
 } from './dto/query-composition.dto';
 import { SearchByUnitsDto } from './dto/search-by-units.dto';
+import { ParseMobalyticsHtmlDto } from './dto/parse-mobalytics-html.dto';
 import {
   InfinityPaginationResponse,
   InfinityPaginationResponseDto,
@@ -280,6 +281,24 @@ export class CompositionsController {
     return this.compositionsService.findCompositionsByUnits(
       searchByUnitsDto.units,
       searchByUnitsDto.searchInAllArrays ?? true,
+    );
+  }
+
+  @ApiOperation({
+    summary: 'Parse HTML từ Mobalytics thành composition',
+    description: 'Nhận HTML string từ trang Mobalytics và parse thành composition object. Trả về CreateCompositionDto có thể dùng để tạo composition.',
+  })
+  @ApiOkResponse({
+    type: CreateCompositionDto,
+    description: 'Composition object được parse từ HTML',
+  })
+  @Post('parse-mobalytics-html')
+  @HttpCode(HttpStatus.OK)
+  parseMobalyticsHTML(
+    @Body() parseMobalyticsHtmlDto: ParseMobalyticsHtmlDto,
+  ): CreateCompositionDto {
+    return this.compositionsService.parseMobalyticsHTML(
+      parseMobalyticsHtmlDto.html,
     );
   }
 }

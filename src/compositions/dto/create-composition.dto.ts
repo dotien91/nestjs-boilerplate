@@ -106,7 +106,7 @@ class PositionDto {
   col: number;
 }
 
-class UnitDto {
+export class UnitDto {
   @ApiProperty({
     type: String,
     example: 'champ-uuid-123',
@@ -170,6 +170,15 @@ class UnitDto {
   @IsBoolean()
   need3Star?: boolean;
 
+  @ApiPropertyOptional({
+    type: Boolean,
+    example: false,
+    description: 'Có cần unlock không',
+  })
+  @IsOptional()
+  @IsBoolean()
+  needUnlock?: boolean;
+
   @ApiProperty({
     type: PositionDto,
     description: 'Vị trí trên bàn cờ',
@@ -218,7 +227,27 @@ class UnitDto {
   tier?: number;
 }
 
-class CarryItemDto {
+export class AugmentDto {
+  @ApiProperty({
+    type: String,
+    example: 'levelup',
+    description: 'Tên của augment',
+  })
+  @IsNotEmpty()
+  @IsString()
+  name: string;
+
+  @ApiProperty({
+    type: Number,
+    example: 3,
+    description: 'Tier của augment (1, 2, hoặc 3)',
+  })
+  @IsNotEmpty()
+  @IsNumber()
+  tier: number;
+}
+
+export class CarryItemDto {
   @ApiProperty({
     type: String,
     example: 'champ-uuid-789',
@@ -419,5 +448,34 @@ export class CreateCompositionDto {
   @IsArray()
   @IsString({ each: true })
   notes?: string[];
+
+  @ApiPropertyOptional({
+    type: Number,
+    example: 1,
+    description: 'Độ ưu tiên trong carousel (số càng nhỏ càng ưu tiên)',
+  })
+  @IsOptional()
+  @IsNumber()
+  carouselPriority?: number;
+
+  @ApiPropertyOptional({
+    type: [AugmentDto],
+    example: [{ name: 'levelup', tier: 3 }, { name: 'slammin', tier: 2 }],
+    description: 'Danh sách augments được đề xuất (kèm tier)',
+  })
+  @IsOptional()
+  @IsArray()
+  @ValidateNested({ each: true })
+  @Type(() => AugmentDto)
+  augments?: AugmentDto[];
+
+  @ApiPropertyOptional({
+    type: UnitDto,
+    description: 'Core champion của composition (dạng unit object)',
+  })
+  @IsOptional()
+  @ValidateNested()
+  @Type(() => UnitDto)
+  coreChampion?: UnitDto;
 }
 
