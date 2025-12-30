@@ -241,6 +241,113 @@ export class CompositionsService {
   }
 
   /**
+   * Load augments từ file TFTSet16_latest_en_us.json
+   */
+  private loadAugmentsFromJsonFile(): Array<{ name: string; en_name?: string; apiName: string; icon?: string }> {
+    try {
+      const jsonPath = path.join(process.cwd(), 'src', 'asset', 'TFTSet16_latest_en_us.json');
+      if (!fs.existsSync(jsonPath)) {
+        console.log(`[loadAugmentsFromJsonFile] File not found: ${jsonPath}`);
+        return [];
+      }
+
+      const jsonData = JSON.parse(fs.readFileSync(jsonPath, 'utf-8'));
+      const augments = jsonData.augments || [];
+      
+      console.log(`[loadAugmentsFromJsonFile] Loaded ${augments.length} augments from JSON file`);
+      return augments.map((augment: any) => ({
+        name: augment.name || '',
+        en_name: augment.en_name || null,
+        apiName: augment.apiName || '',
+        icon: augment.icon || null,
+      }));
+    } catch (error: any) {
+      console.error(`[loadAugmentsFromJsonFile] Error loading JSON file:`, error.message);
+      return [];
+    }
+  }
+
+  /**
+   * Convert augment name sang apiName bằng cách tìm trong JSON file
+   * Ví dụ: "upward-mobility" -> "TFT_Augment_UpwardMobility"
+   */
+  private convertAugmentNameToApiName(
+    augmentName: string,
+    jsonAugments?: Array<{ name: string; en_name?: string; apiName: string; icon?: string }>,
+  ): string {
+    if (!augmentName) return augmentName;
+
+    // 1. Normalize input: xóa gạch dưới, gạch nối, khoảng trắng và chuyển về chữ thường
+    // "eyeforaneye_i" -> "eyeforaneyei"
+    // "levelup" -> "levelup"
+    const normalizedInput = augmentName.toLowerCase().replace(/[_-]/g, '').trim();
+
+    console.log(`[convertAugmentNameToApiName] Input: "${augmentName}" -> Normalized: "${normalizedInput}"`);
+
+    if (jsonAugments && jsonAugments.length > 0) {
+      // --- VÒNG LẶP 1: TÌM KIẾM CHÍNH XÁC (EXACT MATCH) ---
+      for (const augment of jsonAugments) {
+        const apiNameLow = augment.apiName.toLowerCase().replace(/[_-]/g, '');
+        const enNameLow = (augment.en_name || '').toLowerCase().replace(/[_-]/g, '');
+        const nameLow = augment.name.toLowerCase().replace(/[_-]/g, '');
+        const iconLow = (augment.icon || '').toLowerCase(); // Lấy đường dẫn icon
+
+        if (
+          apiNameLow.includes(normalizedInput) || 
+          enNameLow === normalizedInput || 
+          nameLow === normalizedInput ||
+          // Kiểm tra xem tên có nằm trong đường dẫn icon không (Case: LevelUp)
+          iconLow.includes(normalizedInput)
+        ) {
+          console.log(`====== data find dc`);
+          console.log(`[convertAugmentNameToApiName] Found exact match: "${augmentName}" -> "${augment.apiName}"`);
+          return augment.apiName;
+        }
+      }
+
+      // --- VÒNG LẶP 2: FUZZY MATCHING (Nếu vòng 1 không ra) ---
+      let bestMatch: { apiName: string; similarity: number } | null = null;
+      const threshold = 0.6; // Giảm threshold một chút để linh hoạt hơn
+
+      for (const augment of jsonAugments) {
+        // Tính độ tương đồng với cả tên tiếng Anh và đường dẫn icon
+        const enNameClean = (augment.en_name || '').toLowerCase().replace(/[!?.@#$%^&*]/g, '');
+        const iconFileName = (augment.icon || '').toLowerCase().split('/').pop() || '';
+
+        const simEnName = this.calculateSimilarity(normalizedInput, enNameClean);
+        const simIcon = this.calculateSimilarity(normalizedInput, iconFileName);
+        
+        const highestSim = Math.max(simEnName, simIcon);
+
+        if (highestSim >= threshold) {
+          if (!bestMatch || highestSim > bestMatch.similarity) {
+            bestMatch = { apiName: augment.apiName, similarity: highestSim };
+          }
+        }
+      }
+
+      if (bestMatch) {
+        console.log(`====== data find dc`);
+        console.log(`[convertAugmentNameToApiName] Found fuzzy match: "${augmentName}" -> "${bestMatch.apiName}" (similarity: ${(bestMatch.similarity * 100).toFixed(2)}%)`);
+        return bestMatch.apiName;
+      }
+    }
+
+    // 3. Fallback: Nếu không tìm thấy, tự tạo theo pattern chuẩn Riot
+    const parts = augmentName.toLowerCase().split(/[_-]+/);
+    const camelCase = parts
+      .map((part) => {
+        if (/^(i|ii|iii|iv|v)$/.test(part)) return part.toUpperCase();
+        return part.charAt(0).toUpperCase() + part.slice(1);
+      })
+      .join('');
+
+    const resultApiName = `TFT_Augment_${camelCase}`;
+    console.log(`[convertAugmentNameToApiName] Fallback pattern: "${augmentName}" -> "${resultApiName}"`);
+    return resultApiName;
+  }
+
+  /**
    * Convert item name sang apiName bằng cách tìm trong tft-items
    */
   private async convertItemNameToApiName(
@@ -447,6 +554,9 @@ export class CompositionsService {
 
     // Load items từ file JSON như fallback
     const jsonItems = this.loadItemsFromJsonFile();
+
+    // Load augments từ file JSON để convert augment names
+    const jsonAugments = this.loadAugmentsFromJsonFile();
 
     // Tạo map để lookup nhanh: key = normalized name (xóa ký tự đặc biệt), value = apiName
     const itemsMap = new Map<string, string>();
@@ -670,8 +780,10 @@ export class CompositionsService {
       $row.find('img.m-13ul2l1').each((_, img) => {
         const augmentName = $(img).attr('alt');
         if (augmentName) {
+          // Convert augment name sang apiName từ JSON file
+          const apiName = this.convertAugmentNameToApiName(augmentName, jsonAugments);
           augments.push({
-            name: augmentName,
+            name: apiName, // Lưu apiName thay vì original name
             tier: tierNumber,
           });
         }
