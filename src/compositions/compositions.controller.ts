@@ -294,9 +294,9 @@ export class CompositionsController {
   })
   @Post('parse-mobalytics-html')
   @HttpCode(HttpStatus.OK)
-  parseMobalyticsHTML(
+  async parseMobalyticsHTML(
     @Body() parseMobalyticsHtmlDto: ParseMobalyticsHtmlDto,
-  ): CreateCompositionDto {
+  ): Promise<CreateCompositionDto> {
     return this.compositionsService.parseMobalyticsHTML(
       parseMobalyticsHtmlDto.html,
     );
