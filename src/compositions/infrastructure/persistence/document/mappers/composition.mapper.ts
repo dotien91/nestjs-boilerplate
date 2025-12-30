@@ -174,6 +174,9 @@ export class CompositionMapper {
       domainEntity.coreChampion = undefined;
     }
 
+    // Map teamcode
+    domainEntity.teamcode = raw.teamcode ?? undefined;
+
     // Always include timestamps
     domainEntity.createdAt = raw.createdAt;
     domainEntity.updatedAt = raw.updatedAt;
@@ -360,6 +363,9 @@ export class CompositionMapper {
     } else {
       persistenceSchema.coreChampion = null;
     }
+
+    // Map teamcode
+    persistenceSchema.teamcode = domainEntity.teamcode ?? null;
 
     persistenceSchema.createdAt = domainEntity.createdAt;
     persistenceSchema.updatedAt = domainEntity.updatedAt;

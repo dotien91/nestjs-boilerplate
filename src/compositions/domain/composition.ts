@@ -340,6 +340,13 @@ export class Composition {
   })
   coreChampion?: Unit;
 
+  @ApiPropertyOptional({
+    type: String,
+    example: 'TFT_TeamCode_Example',
+    description: 'Teamcode để import composition vào game TFT',
+  })
+  teamcode?: string;
+
   @ApiProperty()
   createdAt: Date;
 

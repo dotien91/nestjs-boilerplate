@@ -230,6 +230,12 @@ export class CompositionSchemaClass extends EntityDocumentHelper {
   })
   coreChampion?: UnitSchemaClass | null;
 
+  @Prop({
+    type: String,
+    default: null,
+  })
+  teamcode?: string | null;
+
   @Prop({ default: now })
   createdAt: Date;
 

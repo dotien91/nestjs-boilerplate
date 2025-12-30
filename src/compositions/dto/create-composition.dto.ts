@@ -477,5 +477,14 @@ export class CreateCompositionDto {
   @ValidateNested()
   @Type(() => UnitDto)
   coreChampion?: UnitDto;
+
+  @ApiPropertyOptional({
+    type: String,
+    example: 'TFT_TeamCode_Example',
+    description: 'Teamcode để import composition vào game TFT',
+  })
+  @IsOptional()
+  @IsString()
+  teamcode?: string;
 }
 

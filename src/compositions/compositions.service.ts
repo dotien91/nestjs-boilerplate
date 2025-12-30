@@ -613,6 +613,51 @@ export class CompositionsService {
     const description =
       $('.m-yg89s3 p').first().text().trim() || '';
 
+    // 1.5. Lấy Teamcode (nếu có) - thường nằm trong button copy hoặc input/textarea
+    let teamcode: string | undefined = undefined;
+    
+    // Tìm trong các selector có thể chứa teamcode
+    // Thử tìm trong button có text "Copy" hoặc "Copy Code"
+    const copyButton = $('button:contains("Copy"), button:contains("Copy Code"), [data-clipboard-text]').first();
+    if (copyButton.length > 0) {
+      const clipboardText = copyButton.attr('data-clipboard-text');
+      if (clipboardText) {
+        teamcode = clipboardText.trim();
+      } else {
+        // Thử lấy từ data attribute khác
+        const dataCode = copyButton.attr('data-code') || copyButton.attr('data-teamcode');
+        if (dataCode) {
+          teamcode = dataCode.trim();
+        }
+      }
+    }
+    
+    // Nếu không tìm thấy, thử tìm trong input hoặc textarea
+    if (!teamcode) {
+      const codeInput = $('input[type="text"][value*="TFT"], textarea[value*="TFT"], input[placeholder*="code" i], textarea[placeholder*="code" i]').first();
+      if (codeInput.length > 0) {
+        teamcode = codeInput.attr('value') || codeInput.val()?.toString().trim() || undefined;
+      }
+    }
+    
+    // Nếu vẫn không tìm thấy, thử tìm trong các element có class liên quan đến code
+    if (!teamcode) {
+      const codeElement = $('[class*="code" i], [class*="teamcode" i], [id*="code" i], [id*="teamcode" i]').first();
+      if (codeElement.length > 0) {
+        const codeText = codeElement.text().trim() || codeElement.attr('value') || codeElement.val()?.toString().trim();
+        // Kiểm tra xem có phải là teamcode không (thường bắt đầu bằng "TFT" hoặc có format đặc biệt)
+        if (codeText && (codeText.startsWith('TFT') || codeText.length > 10)) {
+          teamcode = codeText;
+        }
+      }
+    }
+    
+    if (teamcode) {
+      console.log(`[parseMobalyticsHTML] Found teamcode: "${teamcode}"`);
+    } else {
+      console.log(`[parseMobalyticsHTML] No teamcode found in HTML`);
+    }
+
     // 2. Lấy danh sách tướng (Units) và trang bị (Items)
     const unitElements = $('.m-1pjvpo5');
     const unitsMap = new Map<string, UnitDto>();
@@ -949,6 +994,7 @@ export class CompositionsService {
       carouselPriority: carouselPriority,
       augments: augments.length > 0 ? augments : undefined,
       coreChampion: finalCoreChampionWithApiNames || undefined,
+      teamcode: teamcode || undefined,
     };
   }
 }
