@@ -10,6 +10,7 @@ import {
   HttpStatus,
   HttpCode,
   Req,
+  UseGuards,
 } from '@nestjs/common';
 import {
   ApiCreatedResponse,
@@ -17,7 +18,9 @@ import {
   ApiParam,
   ApiTags,
   ApiOperation,
+  ApiBearerAuth,
 } from '@nestjs/swagger';
+import { AuthGuard } from '@nestjs/passport';
 import { OriginsService } from './origins.service';
 import { CreateOriginDto } from './dto/create-origin.dto';
 import { UpdateOriginDto } from './dto/update-origin.dto';
@@ -37,6 +40,8 @@ import { infinityPagination } from '../utils/infinity-pagination';
 export class OriginsController {
   constructor(private readonly originsService: OriginsService) {}
 
+  @ApiBearerAuth()
+  @UseGuards(AuthGuard('jwt'))
   @ApiOperation({ summary: 'Tạo origin mới (tộc/hệ)' })
   @ApiCreatedResponse({
     type: Origin,
@@ -197,6 +202,8 @@ export class OriginsController {
     return this.originsService.getOriginWithChampions(id);
   }
 
+  @ApiBearerAuth()
+  @UseGuards(AuthGuard('jwt'))
   @ApiOperation({ summary: 'Cập nhật origin' })
   @ApiOkResponse({
     type: Origin,
@@ -215,6 +222,8 @@ export class OriginsController {
     return this.originsService.update(id, updateOriginDto);
   }
 
+  @ApiBearerAuth()
+  @UseGuards(AuthGuard('jwt'))
   @ApiOperation({ summary: 'Xóa origin' })
   @Delete(':id')
   @ApiParam({

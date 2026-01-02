@@ -9,6 +9,7 @@ import {
   Query,
   HttpStatus,
   HttpCode,
+  UseGuards,
 } from '@nestjs/common';
 import {
   ApiCreatedResponse,
@@ -16,7 +17,9 @@ import {
   ApiParam,
   ApiTags,
   ApiOperation,
+  ApiBearerAuth,
 } from '@nestjs/swagger';
+import { AuthGuard } from '@nestjs/passport';
 import { TftAugmentsService } from './tft-augments.service';
 import { CreateTftAugmentDto } from './dto/create-tft-augment.dto';
 import { UpdateTftAugmentDto } from './dto/update-tft-augment.dto';
@@ -37,6 +40,8 @@ import { NullableType } from '../utils/types/nullable.type';
 export class TftAugmentsController {
   constructor(private readonly tftAugmentsService: TftAugmentsService) {}
 
+  @ApiBearerAuth()
+  @UseGuards(AuthGuard('jwt'))
   @ApiOperation({ summary: 'Tạo TFT augment mới' })
   @ApiCreatedResponse({
     type: TftAugment,
@@ -155,6 +160,8 @@ export class TftAugmentsController {
     });
   }
 
+  @ApiBearerAuth()
+  @UseGuards(AuthGuard('jwt'))
   @ApiOperation({ summary: 'Cập nhật TFT augment' })
   @ApiOkResponse({
     type: TftAugment,
@@ -173,6 +180,8 @@ export class TftAugmentsController {
     return this.tftAugmentsService.update(id, updateTftAugmentDto);
   }
 
+  @ApiBearerAuth()
+  @UseGuards(AuthGuard('jwt'))
   @ApiOperation({ summary: 'Xóa TFT augment' })
   @Delete(':id')
   @HttpCode(HttpStatus.NO_CONTENT)

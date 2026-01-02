@@ -9,6 +9,7 @@ import {
   Query,
   HttpStatus,
   HttpCode,
+  UseGuards,
 } from '@nestjs/common';
 import {
   ApiCreatedResponse,
@@ -16,7 +17,9 @@ import {
   ApiParam,
   ApiTags,
   ApiOperation,
+  ApiBearerAuth,
 } from '@nestjs/swagger';
+import { AuthGuard } from '@nestjs/passport';
 import { TftTraitsService } from './tft-traits.service';
 import { CreateTftTraitDto } from './dto/create-tft-trait.dto';
 import { UpdateTftTraitDto } from './dto/update-tft-trait.dto';
@@ -37,6 +40,8 @@ import { NullableType } from '../utils/types/nullable.type';
 export class TftTraitsController {
   constructor(private readonly tftTraitsService: TftTraitsService) {}
 
+  @ApiBearerAuth()
+  @UseGuards(AuthGuard('jwt'))
   @ApiOperation({ summary: 'Tạo TFT trait mới' })
   @ApiCreatedResponse({
     type: TftTrait,
@@ -131,6 +136,8 @@ export class TftTraitsController {
     return this.tftTraitsService.findByApiName(apiName);
   }
 
+  @ApiBearerAuth()
+  @UseGuards(AuthGuard('jwt'))
   @ApiOperation({ summary: 'Cập nhật TFT trait' })
   @ApiOkResponse({
     type: TftTrait,
@@ -149,6 +156,8 @@ export class TftTraitsController {
     return this.tftTraitsService.update(id, updateTftTraitDto);
   }
 
+  @ApiBearerAuth()
+  @UseGuards(AuthGuard('jwt'))
   @ApiOperation({ summary: 'Xóa TFT trait' })
   @Delete(':id')
   @HttpCode(HttpStatus.NO_CONTENT)

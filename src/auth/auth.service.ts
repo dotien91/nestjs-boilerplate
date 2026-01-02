@@ -219,12 +219,13 @@ export class AuthService {
       },
     );
 
-    await this.mailService.userSignUp({
-      to: dto.email,
-      data: {
-        hash,
-      },
-    });
+    // Email sending disabled - no mail server required
+    // await this.mailService.userSignUp({
+    //   to: dto.email,
+    //   data: {
+    //     hash,
+    //   },
+    // });
   }
 
   async confirmEmail(hash: string): Promise<void> {
@@ -340,13 +341,14 @@ export class AuthService {
       },
     );
 
-    await this.mailService.forgotPassword({
-      to: email,
-      data: {
-        hash,
-        tokenExpires,
-      },
-    });
+    // Email sending disabled - no mail server required
+    // await this.mailService.forgotPassword({
+    //   to: email,
+    //   data: {
+    //     hash,
+    //     tokenExpires,
+    //   },
+    // });
   }
 
   async resetPassword(hash: string, password: string): Promise<void> {
@@ -476,12 +478,13 @@ export class AuthService {
         },
       );
 
-      await this.mailService.confirmNewEmail({
-        to: userDto.email,
-        data: {
-          hash,
-        },
-      });
+      // Email sending disabled - no mail server required
+      // await this.mailService.confirmNewEmail({
+      //   to: userDto.email,
+      //   data: {
+      //     hash,
+      //   },
+      // });
     }
 
     delete userDto.email;

@@ -10,6 +10,7 @@ import {
   HttpStatus,
   HttpCode,
   Req,
+  UseGuards,
 } from '@nestjs/common';
 import {
   ApiCreatedResponse,
@@ -17,7 +18,9 @@ import {
   ApiParam,
   ApiTags,
   ApiOperation,
+  ApiBearerAuth,
 } from '@nestjs/swagger';
+import { AuthGuard } from '@nestjs/passport';
 import { CompositionsService } from './compositions.service';
 import { CreateCompositionDto } from './dto/create-composition.dto';
 import { UpdateCompositionDto } from './dto/update-composition.dto';
@@ -44,6 +47,8 @@ export class CompositionsController {
     private readonly compositionsService: CompositionsService,
   ) {}
 
+  @ApiBearerAuth()
+  @UseGuards(AuthGuard('jwt'))
   @ApiOperation({ summary: 'Tạo composition mới' })
   @ApiCreatedResponse({
     type: Composition,
@@ -235,6 +240,8 @@ export class CompositionsController {
     return this.compositionsService.findByCompId(compId);
   }
 
+  @ApiBearerAuth()
+  @UseGuards(AuthGuard('jwt'))
   @ApiOperation({ summary: 'Cập nhật composition' })
   @ApiOkResponse({
     type: Composition,
@@ -253,6 +260,8 @@ export class CompositionsController {
     return this.compositionsService.update(id, updateCompositionDto);
   }
 
+  @ApiBearerAuth()
+  @UseGuards(AuthGuard('jwt'))
   @ApiOperation({ summary: 'Xóa composition' })
   @Delete(':id')
   @ApiParam({
@@ -265,6 +274,8 @@ export class CompositionsController {
     return this.compositionsService.remove(id);
   }
 
+  @ApiBearerAuth()
+  @UseGuards(AuthGuard('jwt'))
   @ApiOperation({
     summary: 'Tìm compositions chứa các units được chỉ định',
     description: 'Tìm tất cả compositions có chứa TẤT CẢ các units trong danh sách. Units có thể là championId hoặc championKey.',
@@ -284,6 +295,8 @@ export class CompositionsController {
     );
   }
 
+  @ApiBearerAuth()
+  @UseGuards(AuthGuard('jwt'))
   @ApiOperation({
     summary: 'Parse HTML từ Mobalytics thành composition',
     description: 'Nhận HTML string từ trang Mobalytics và parse thành composition object. Trả về CreateCompositionDto có thể dùng để tạo composition.',

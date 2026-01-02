@@ -9,6 +9,7 @@ import {
   Query,
   HttpStatus,
   HttpCode,
+  UseGuards,
 } from '@nestjs/common';
 import {
   ApiCreatedResponse,
@@ -16,7 +17,9 @@ import {
   ApiParam,
   ApiTags,
   ApiOperation,
+  ApiBearerAuth,
 } from '@nestjs/swagger';
+import { AuthGuard } from '@nestjs/passport';
 import { TftItemsService } from './tft-items.service';
 import { CreateTftItemDto } from './dto/create-tft-item.dto';
 import { UpdateTftItemDto } from './dto/update-tft-item.dto';
@@ -37,6 +40,8 @@ import { NullableType } from '../utils/types/nullable.type';
 export class TftItemsController {
   constructor(private readonly tftItemsService: TftItemsService) {}
 
+  @ApiBearerAuth()
+  @UseGuards(AuthGuard('jwt'))
   @ApiOperation({ summary: 'Tạo TFT item mới' })
   @ApiCreatedResponse({
     type: TftItem,
@@ -132,6 +137,8 @@ export class TftItemsController {
     return this.tftItemsService.findByApiName(apiName);
   }
 
+  @ApiBearerAuth()
+  @UseGuards(AuthGuard('jwt'))
   @ApiOperation({ summary: 'Cập nhật TFT item' })
   @ApiOkResponse({
     type: TftItem,
@@ -150,6 +157,8 @@ export class TftItemsController {
     return this.tftItemsService.update(id, updateTftItemDto);
   }
 
+  @ApiBearerAuth()
+  @UseGuards(AuthGuard('jwt'))
   @ApiOperation({ summary: 'Xóa TFT item' })
   @Delete(':id')
   @HttpCode(HttpStatus.NO_CONTENT)

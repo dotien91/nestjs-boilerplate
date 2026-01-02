@@ -8,6 +8,7 @@ import {
   Delete,
   HttpStatus,
   HttpCode,
+  UseGuards,
 } from '@nestjs/common';
 import {
   ApiCreatedResponse,
@@ -15,7 +16,9 @@ import {
   ApiParam,
   ApiTags,
   ApiOperation,
+  ApiBearerAuth,
 } from '@nestjs/swagger';
+import { AuthGuard } from '@nestjs/passport';
 import { TftRolesService } from './tft-roles.service';
 import { CreateTftRoleDto } from './dto/create-tft-role.dto';
 import { UpdateTftRoleDto } from './dto/update-tft-role.dto';
@@ -30,6 +33,8 @@ import { NullableType } from '../utils/types/nullable.type';
 export class TftRolesController {
   constructor(private readonly tftRolesService: TftRolesService) {}
 
+  @ApiBearerAuth()
+  @UseGuards(AuthGuard('jwt'))
   @ApiOperation({ summary: 'Tạo TFT role mới' })
   @ApiCreatedResponse({
     type: TftRole,
@@ -83,6 +88,8 @@ export class TftRolesController {
     return this.tftRolesService.findByApiName(apiName);
   }
 
+  @ApiBearerAuth()
+  @UseGuards(AuthGuard('jwt'))
   @ApiOperation({ summary: 'Cập nhật TFT role' })
   @ApiOkResponse({
     type: TftRole,
@@ -101,6 +108,8 @@ export class TftRolesController {
     return this.tftRolesService.update(id, updateTftRoleDto);
   }
 
+  @ApiBearerAuth()
+  @UseGuards(AuthGuard('jwt'))
   @ApiOperation({ summary: 'Xóa TFT role' })
   @Delete(':id')
   @HttpCode(HttpStatus.NO_CONTENT)

@@ -9,6 +9,7 @@ import {
   Query,
   HttpStatus,
   HttpCode,
+  UseGuards,
 } from '@nestjs/common';
 import {
   ApiCreatedResponse,
@@ -16,7 +17,9 @@ import {
   ApiParam,
   ApiTags,
   ApiOperation,
+  ApiBearerAuth,
 } from '@nestjs/swagger';
+import { AuthGuard } from '@nestjs/passport';
 import { TftArmoryItemsService } from './tft-armory-items.service';
 import { CreateTftArmoryItemDto } from './dto/create-tft-armory-item.dto';
 import { UpdateTftArmoryItemDto } from './dto/update-tft-armory-item.dto';
@@ -39,6 +42,8 @@ export class TftArmoryItemsController {
     private readonly tftArmoryItemsService: TftArmoryItemsService,
   ) {}
 
+  @ApiBearerAuth()
+  @UseGuards(AuthGuard('jwt'))
   @ApiOperation({ summary: 'Tạo TFT armory item mới' })
   @ApiCreatedResponse({
     type: TftArmoryItem,
@@ -136,6 +141,8 @@ export class TftArmoryItemsController {
     return this.tftArmoryItemsService.findByApiName(apiName);
   }
 
+  @ApiBearerAuth()
+  @UseGuards(AuthGuard('jwt'))
   @ApiOperation({ summary: 'Cập nhật TFT armory item' })
   @ApiOkResponse({
     type: TftArmoryItem,
@@ -154,6 +161,8 @@ export class TftArmoryItemsController {
     return this.tftArmoryItemsService.update(id, updateTftArmoryItemDto);
   }
 
+  @ApiBearerAuth()
+  @UseGuards(AuthGuard('jwt'))
   @ApiOperation({ summary: 'Xóa TFT armory item' })
   @Delete(':id')
   @HttpCode(HttpStatus.NO_CONTENT)

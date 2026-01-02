@@ -8,6 +8,7 @@ import {
   Delete,
   HttpStatus,
   HttpCode,
+  UseGuards,
 } from '@nestjs/common';
 import {
   ApiCreatedResponse,
@@ -15,7 +16,9 @@ import {
   ApiParam,
   ApiTags,
   ApiOperation,
+  ApiBearerAuth,
 } from '@nestjs/swagger';
+import { AuthGuard } from '@nestjs/passport';
 import { TftAugmentOddsService } from './tft-augment-odds.service';
 import { CreateTftAugmentOddDto } from './dto/create-tft-augment-odd.dto';
 import { UpdateTftAugmentOddDto } from './dto/update-tft-augment-odd.dto';
@@ -32,6 +35,8 @@ export class TftAugmentOddsController {
     private readonly tftAugmentOddsService: TftAugmentOddsService,
   ) {}
 
+  @ApiBearerAuth()
+  @UseGuards(AuthGuard('jwt'))
   @ApiOperation({ summary: 'Tạo TFT augment odd mới' })
   @ApiCreatedResponse({
     type: TftAugmentOdd,
@@ -71,6 +76,8 @@ export class TftAugmentOddsController {
     return this.tftAugmentOddsService.findById(id);
   }
 
+  @ApiBearerAuth()
+  @UseGuards(AuthGuard('jwt'))
   @ApiOperation({ summary: 'Cập nhật TFT augment odd' })
   @ApiOkResponse({
     type: TftAugmentOdd,
@@ -89,6 +96,8 @@ export class TftAugmentOddsController {
     return this.tftAugmentOddsService.update(id, updateTftAugmentOddDto);
   }
 
+  @ApiBearerAuth()
+  @UseGuards(AuthGuard('jwt'))
   @ApiOperation({ summary: 'Xóa TFT augment odd' })
   @Delete(':id')
   @HttpCode(HttpStatus.NO_CONTENT)
