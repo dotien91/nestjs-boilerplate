@@ -686,16 +686,37 @@ export class CompositionsService {
 
       const championId = name.toLowerCase().replace(/\s/g, '-');
       
-      // Hardcode mapping cho các trường hợp đặc biệt
-      const specialChampionKeyMapping: Record<string, string> = {
-        'Lucian & Senna': 'TFT16_Lucian',
-        'Lucian&Senna': 'TFT16_Lucian',
-      };
+      // Xử lý tên có dạng "a&b" hoặc "a-&-b" -> lấy phần đầu tiên và tạo "TFT16_A"
+      // Ví dụ: "kobuko-&-yuumi" -> "TFT16_Kobuko", "Lucian&Senna" -> "TFT16_Lucian"
+      // Loại bỏ tất cả ký tự đặc biệt (dấu chấm, nháy đơn, khoảng trắng, v.v.): 
+      // "Dr.Mundo" -> "TFT16_DrMundo", "Kog'Maw" -> "TFT16_KogMaw"
+      let championKey: string;
       
-      // Kiểm tra mapping trước
-      let championKey = specialChampionKeyMapping[name];
-      if (!championKey) {
-        championKey = `TFT16_${name.replace(/\s/g, '')}`;
+      // Kiểm tra nếu tên có chứa "&" hoặc "-&-"
+      const hasAmpersand = name.includes('&') || name.includes('-&-');
+      
+      if (hasAmpersand) {
+        // Tách lấy phần đầu tiên (trước dấu & hoặc -&-)
+        let firstPart: string;
+        if (name.includes('-&-')) {
+          firstPart = name.split('-&-')[0].trim();
+        } else if (name.includes('&')) {
+          firstPart = name.split('&')[0].trim();
+        } else {
+          firstPart = name;
+        }
+        
+        // Xóa tất cả ký tự đặc biệt, chỉ giữ lại chữ cái và số
+        // Loại bỏ: dấu chấm (.), nháy đơn ('), khoảng trắng, gạch nối, v.v.
+        const cleanedFirstPart = firstPart.replace(/[^a-zA-Z0-9]/g, '');
+        championKey = `TFT16_${cleanedFirstPart}`;
+        
+        console.log(`[parseMobalyticsHTML] Unit name with "&" detected: "${name}" -> championKey: "${championKey}"`);
+      } else {
+        // Xử lý bình thường: xóa tất cả ký tự đặc biệt, chỉ giữ lại chữ cái và số
+        // Ví dụ: "Dr.Mundo" -> "TFT16_DrMundo", "Kog'Maw" -> "TFT16_KogMaw"
+        const cleanedName = name.replace(/[^a-zA-Z0-9]/g, '');
+        championKey = `TFT16_${cleanedName}`;
       }
 
       unitsMap.set(name, {
@@ -836,31 +857,14 @@ export class CompositionsService {
     });
 
     // 8. Tìm cost từ database TFT Units cho tất cả units
-    // Hardcode mapping cho các trường hợp đặc biệt
-    const specialUnitMapping: Record<string, string> = {
-      'Lucian&Senna': 'TFT16_Lucian',
-    };
-    
     const unitsWithCost = await Promise.all(
       Array.from(unitsMap.values()).map(async (unit) => {
         let cost = 0; // Default cost
         
         // Tìm unit trong database bằng championKey hoặc name
         try {
-          // Kiểm tra hardcode mapping trước
-          let apiNameToSearch = specialUnitMapping[unit.name];
-          if (apiNameToSearch) {
-            const tftUnit = await this.tftUnitsService.findByApiName(apiNameToSearch);
-            if (tftUnit && tftUnit.cost !== null && tftUnit.cost !== undefined) {
-              cost = tftUnit.cost;
-              return {
-                ...unit,
-                cost: cost,
-              };
-            }
-          }
-          
-          // Thử tìm bằng championKey
+          // championKey đã được xử lý ở bước trước (đã xử lý trường hợp "a&b" -> "TFT16_A")
+          // Nên chỉ cần tìm bằng championKey là đủ
           let tftUnit = await this.tftUnitsService.findByApiName(unit.championKey);
           
           // Nếu không tìm thấy, thử tìm bằng name
