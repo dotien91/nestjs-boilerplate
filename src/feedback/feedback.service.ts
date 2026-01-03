@@ -15,8 +15,8 @@ export class FeedbackService {
     const feedback = new Feedback();
     feedback.userId = createFeedbackDto.userId || null;
     feedback.content = createFeedbackDto.content;
-    feedback.rating = createFeedbackDto.rating || null;
-    feedback.category = createFeedbackDto.category || null;
+    feedback.rating = null;
+    feedback.category = null;
     feedback.email = createFeedbackDto.email || null;
     feedback.createdAt = new Date();
     feedback.updatedAt = new Date();
