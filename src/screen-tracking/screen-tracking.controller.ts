@@ -1,0 +1,54 @@
+import {
+  Controller,
+  Post,
+  Body,
+  HttpStatus,
+  HttpCode,
+  Request,
+} from '@nestjs/common';
+import {
+  ApiCreatedResponse,
+  ApiTags,
+  ApiOperation,
+  ApiBearerAuth,
+} from '@nestjs/swagger';
+import { ScreenTrackingService } from './screen-tracking.service';
+import { CreateScreenTrackingDto } from './dto/create-screen-tracking.dto';
+import { ScreenTracking } from './domain/screen-tracking';
+
+@ApiTags('Screen Tracking')
+@Controller({
+  path: 'screen-trackings',
+  version: '1',
+})
+export class ScreenTrackingController {
+  constructor(
+    private readonly screenTrackingService: ScreenTrackingService,
+  ) {}
+
+  @ApiOperation({
+    summary: 'Track khi user vào một màn hình',
+    description:
+      'API để track khi user vào một màn hình. Nếu có JWT token, userId sẽ được lấy tự động. Nếu không có token, userId có thể là null.',
+  })
+  @ApiBearerAuth()
+  @ApiCreatedResponse({
+    type: ScreenTracking,
+  })
+  @Post()
+  @HttpCode(HttpStatus.CREATED)
+  async trackScreen(
+    @Body() createScreenTrackingDto: CreateScreenTrackingDto,
+    @Request() request: any,
+  ): Promise<ScreenTracking> {
+    // Lấy userId từ JWT token nếu có (user đã đăng nhập)
+    // Nếu không có token, userId sẽ là null
+    const userId = request.user?.id || null;
+
+    return this.screenTrackingService.create({
+      ...createScreenTrackingDto,
+      userId,
+    });
+  }
+}
+
