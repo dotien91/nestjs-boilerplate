@@ -126,6 +126,13 @@ export class TftUnit {
   })
   traits?: string[];
 
+  @ApiPropertyOptional({
+    type: [String],
+    example: ['item-uuid-101', 'item-uuid-202'],
+    description: 'Danh sách popular items của unit',
+  })
+  popularItems?: string[];
+
   @ApiProperty()
   createdAt: Date;
 

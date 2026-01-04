@@ -144,6 +144,12 @@ export class TftUnitSchemaClass extends EntityDocumentHelper {
   })
   traits?: string[];
 
+  @Prop({
+    type: [String],
+    default: [],
+  })
+  popularItems?: string[];
+
   @Prop({ default: now })
   createdAt: Date;
 

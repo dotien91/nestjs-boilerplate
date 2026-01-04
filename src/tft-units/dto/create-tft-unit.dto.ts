@@ -154,5 +154,15 @@ export class CreateTftUnitDto {
   @IsArray()
   @IsString({ each: true })
   traits?: string[];
+
+  @ApiPropertyOptional({
+    type: [String],
+    example: ['item-uuid-101', 'item-uuid-202'],
+    description: 'Danh sách popular items của unit',
+  })
+  @IsOptional()
+  @IsArray()
+  @IsString({ each: true })
+  popularItems?: string[];
 }
 

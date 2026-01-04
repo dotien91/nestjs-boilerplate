@@ -19,6 +19,7 @@ export class TftUnitMapper {
     domainEntity.ability = raw.ability;
     domainEntity.stats = raw.stats;
     domainEntity.traits = raw.traits || [];
+    domainEntity.popularItems = raw.popularItems || [];
     domainEntity.createdAt = raw.createdAt;
     domainEntity.updatedAt = raw.updatedAt;
     domainEntity.deletedAt = raw.deletedAt;
@@ -47,6 +48,7 @@ export class TftUnitMapper {
     persistenceSchema.ability = domainEntity.ability;
     persistenceSchema.stats = domainEntity.stats;
     persistenceSchema.traits = domainEntity.traits || [];
+    persistenceSchema.popularItems = domainEntity.popularItems || [];
     persistenceSchema.createdAt = domainEntity.createdAt;
     persistenceSchema.updatedAt = domainEntity.updatedAt;
     persistenceSchema.deletedAt = domainEntity.deletedAt;
