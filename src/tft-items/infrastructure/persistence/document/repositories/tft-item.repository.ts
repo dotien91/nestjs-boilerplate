@@ -57,58 +57,57 @@ export class TftItemsDocumentRepository implements TftItemRepository {
       where.tier = filterOptions.tier;
     }
 
-    // Nếu không có sort options, mặc định sort theo tier (S > A > B > C > D > E) trong MongoDB
-    if (!sortOptions || sortOptions.length === 0) {
-      const pipeline: any[] = [
-        { $match: where },
-        // Thêm field tierOrder để sort: S=0, A=1, B=2, C=3, D=4, E=5, null/khác=6
-        {
-          $addFields: {
-            tierOrder: {
-              $switch: {
-                branches: [
-                  { case: { $eq: [{ $toUpper: '$tier' }, 'S'] }, then: 0 },
-                  { case: { $eq: [{ $toUpper: '$tier' }, 'A'] }, then: 1 },
-                  { case: { $eq: [{ $toUpper: '$tier' }, 'B'] }, then: 2 },
-                  { case: { $eq: [{ $toUpper: '$tier' }, 'C'] }, then: 3 },
-                  { case: { $eq: [{ $toUpper: '$tier' }, 'D'] }, then: 4 },
-                  { case: { $eq: [{ $toUpper: '$tier' }, 'E'] }, then: 5 },
-                ],
-                default: 6,
-              },
+    // Luôn sort theo tier (S > A > B > C > D > E) trước, sau đó mới sort theo các field khác
+    const pipeline: any[] = [
+      { $match: where },
+      // Thêm field tierOrder để sort: S=0, A=1, B=2, C=3, D=4, E=5, null/khác=6
+      {
+        $addFields: {
+          tierOrder: {
+            $switch: {
+              branches: [
+                { case: { $eq: [{ $toUpper: '$tier' }, 'S'] }, then: 0 },
+                { case: { $eq: [{ $toUpper: '$tier' }, 'A'] }, then: 1 },
+                { case: { $eq: [{ $toUpper: '$tier' }, 'B'] }, then: 2 },
+                { case: { $eq: [{ $toUpper: '$tier' }, 'C'] }, then: 3 },
+                { case: { $eq: [{ $toUpper: '$tier' }, 'D'] }, then: 4 },
+                { case: { $eq: [{ $toUpper: '$tier' }, 'E'] }, then: 5 },
+              ],
+              default: 6,
             },
           },
         },
-        // Sort theo tierOrder, sau đó theo name
-        { $sort: { tierOrder: 1, name: 1 } },
-        // Pagination
-        { $skip: (paginationOptions.page - 1) * paginationOptions.limit },
-        { $limit: paginationOptions.limit },
-        // Remove tierOrder field trước khi return
-        { $unset: 'tierOrder' },
-      ];
+      },
+    ];
 
-      const itemObjects = await this.tftItemsModel.aggregate(pipeline);
-      return itemObjects.map((itemObject: any) => TftItemMapper.toDomain(itemObject));
+    // Build sort object: luôn sort theo tierOrder trước, sau đó mới sort theo các field khác
+    const sortObj: any = { tierOrder: 1 }; // Tier từ S xuống (0 -> 6)
+
+    if (sortOptions && sortOptions.length > 0) {
+      // Thêm các sort options từ user
+      sortOptions.forEach((sort) => {
+        const field = sort.orderBy === 'id' ? '_id' : sort.orderBy;
+        // Bỏ qua nếu đã có tierOrder (không sort tier theo user option)
+        if (field !== 'tierOrder') {
+          sortObj[field] = sort.order.toUpperCase() === 'ASC' ? 1 : -1;
+        }
+      });
+    } else {
+      // Nếu không có sort options, mặc định sort theo name sau tier
+      sortObj.name = 1;
     }
 
-    // Nếu có sort options, dùng sort bình thường
-    const itemObjects = await this.tftItemsModel
-      .find(where)
-      .sort(
-        sortOptions.reduce(
-          (accumulator, sort) => ({
-            ...accumulator,
-            [sort.orderBy === 'id' ? '_id' : sort.orderBy]:
-              sort.order.toUpperCase() === 'ASC' ? 1 : -1,
-          }),
-          {},
-        ),
-      )
-      .skip((paginationOptions.page - 1) * paginationOptions.limit)
-      .limit(paginationOptions.limit);
+    pipeline.push(
+      { $sort: sortObj },
+      // Pagination
+      { $skip: (paginationOptions.page - 1) * paginationOptions.limit },
+      { $limit: paginationOptions.limit },
+      // Remove tierOrder field trước khi return
+      { $unset: 'tierOrder' },
+    );
 
-    return itemObjects.map((itemObject) => TftItemMapper.toDomain(itemObject));
+    const itemObjects = await this.tftItemsModel.aggregate(pipeline);
+    return itemObjects.map((itemObject: any) => TftItemMapper.toDomain(itemObject));
   }
 
   async findById(id: TftItem['id']): Promise<NullableType<TftItem>> {

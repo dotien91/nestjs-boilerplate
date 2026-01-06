@@ -24,6 +24,7 @@ export class TftItemMapper {
     domainEntity.type = raw.type;
     domainEntity.texture = raw.texture;
     domainEntity.tier = raw.tier;
+    domainEntity.units = raw.units || [];
     domainEntity.variableMatches = raw.variableMatches || [];
     domainEntity.createdAt = raw.createdAt;
     domainEntity.updatedAt = raw.updatedAt;
@@ -57,6 +58,7 @@ export class TftItemMapper {
     persistenceSchema.type = domainEntity.type;
     persistenceSchema.texture = domainEntity.texture;
     persistenceSchema.tier = domainEntity.tier;
+    persistenceSchema.units = domainEntity.units || [];
     persistenceSchema.variableMatches = domainEntity.variableMatches || [];
     persistenceSchema.createdAt = domainEntity.createdAt;
     persistenceSchema.updatedAt = domainEntity.updatedAt;

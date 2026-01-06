@@ -7,17 +7,17 @@ export class CreateFeedbackDto {
     example: 'Nội dung feedback của user',
     description: 'Nội dung feedback',
   })
-  @IsNotEmpty()
-  @IsString()
+  @IsNotEmpty({ message: 'Nội dung feedback không được để trống' })
+  @IsString({ message: 'Nội dung feedback phải là chuỗi' })
   content: string;
 
   @ApiPropertyOptional({
     type: String,
     example: 'user@example.com',
-    description: 'Email của user (nếu chưa đăng nhập)',
+    description: 'Email của user (nếu chưa đăng nhập). Nếu có email thì phải là email hợp lệ.',
   })
   @IsOptional()
-  @IsEmail()
+  @IsEmail({}, { message: 'Email không hợp lệ' })
   email?: string | null;
 }
 

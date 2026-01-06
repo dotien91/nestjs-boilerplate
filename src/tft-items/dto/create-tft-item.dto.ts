@@ -153,5 +153,15 @@ export class CreateTftItemDto {
   @IsOptional()
   @IsString()
   tier?: string | null;
+
+  @ApiPropertyOptional({
+    type: [String],
+    example: ['TFT16_Swain', 'TFT16_Taric'],
+    description: 'Danh sách units sử dụng item này',
+  })
+  @IsOptional()
+  @IsArray()
+  @IsString({ each: true })
+  units?: string[];
 }
 

@@ -10,7 +10,9 @@ import {
   HttpStatus,
   HttpCode,
   UseGuards,
+  UseInterceptors,
 } from '@nestjs/common';
+import { CacheInterceptor, CacheTTL } from '@nestjs/cache-manager';
 import {
   ApiCreatedResponse,
   ApiOkResponse,
@@ -56,6 +58,8 @@ export class TftTraitsController {
   @ApiOkResponse({
     type: InfinityPaginationResponse(TftTrait),
   })
+  @UseInterceptors(CacheInterceptor)
+  @CacheTTL(0) // Cache đến khi server restart
   @Get()
   @HttpCode(HttpStatus.OK)
   async findAll(

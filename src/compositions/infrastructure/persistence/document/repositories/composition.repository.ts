@@ -113,22 +113,58 @@ export class CompositionsDocumentRepository
       where.$and = andConditions;
     }
 
-    const compositionObjects = await this.compositionsModel
-      .find(where)
-      .sort(
-        sortOptions?.reduce(
-          (accumulator, sort) => ({
-            ...accumulator,
-            [sort.orderBy === 'id' ? '_id' : sort.orderBy]:
-              sort.order.toUpperCase() === 'ASC' ? 1 : -1,
-          }),
-          {},
-        ),
-      )
-      .skip((paginationOptions.page - 1) * paginationOptions.limit)
-      .limit(paginationOptions.limit);
+    // Luôn sort theo tier (S > A > B > C > D) trước, sau đó mới sort theo các field khác và thời gian
+    const pipeline: any[] = [
+      { $match: where },
+      // Thêm field tierOrder để sort: S=0, A=1, B=2, C=3, D=4, null/khác=5
+      {
+        $addFields: {
+          tierOrder: {
+            $switch: {
+              branches: [
+                { case: { $eq: [{ $toUpper: '$tier' }, 'S'] }, then: 0 },
+                { case: { $eq: [{ $toUpper: '$tier' }, 'A'] }, then: 1 },
+                { case: { $eq: [{ $toUpper: '$tier' }, 'B'] }, then: 2 },
+                { case: { $eq: [{ $toUpper: '$tier' }, 'C'] }, then: 3 },
+                { case: { $eq: [{ $toUpper: '$tier' }, 'D'] }, then: 4 },
+              ],
+              default: 5,
+            },
+          },
+        },
+      },
+    ];
 
-    return compositionObjects.map((compositionObject) =>
+    // Build sort object: luôn sort theo tierOrder trước, sau đó mới sort theo các field khác
+    const sortObj: any = { tierOrder: 1 }; // Tier từ S xuống (0 -> 5)
+
+    if (sortOptions && sortOptions.length > 0) {
+      // Thêm các sort options từ user
+      sortOptions.forEach((sort) => {
+        const field = sort.orderBy === 'id' ? '_id' : sort.orderBy;
+        // Bỏ qua nếu đã có tierOrder (không sort tier theo user option)
+        if (field !== 'tierOrder' && field !== 'tier') {
+          sortObj[field] = sort.order.toUpperCase() === 'ASC' ? 1 : -1;
+        }
+      });
+    }
+
+    // Sau cùng, luôn sort theo updatedAt DESC (gần nhất trước) nếu chưa có sort theo updatedAt
+    if (!sortObj.updatedAt && !sortObj.createdAt) {
+      sortObj.updatedAt = -1; // DESC - gần nhất trước
+    }
+
+    pipeline.push(
+      { $sort: sortObj },
+      // Pagination
+      { $skip: (paginationOptions.page - 1) * paginationOptions.limit },
+      { $limit: paginationOptions.limit },
+      // Remove tierOrder field trước khi return
+      { $unset: 'tierOrder' },
+    );
+
+    const compositionObjects = await this.compositionsModel.aggregate(pipeline);
+    return compositionObjects.map((compositionObject: any) =>
       CompositionMapper.toDomain(compositionObject),
     );
   }

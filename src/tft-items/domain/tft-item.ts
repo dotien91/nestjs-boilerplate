@@ -125,6 +125,13 @@ export class TftItem {
   tier?: string | null;
 
   @ApiPropertyOptional({
+    type: [String],
+    example: ['TFT16_Swain', 'TFT16_Taric'],
+    description: 'Danh sách units sử dụng item này',
+  })
+  units?: string[];
+
+  @ApiPropertyOptional({
     type: [Object],
     description: 'Variable matches trong description',
   })

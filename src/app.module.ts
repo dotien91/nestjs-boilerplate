@@ -1,4 +1,5 @@
 import { Module } from '@nestjs/common';
+import { CacheModule } from '@nestjs/cache-manager';
 import { UsersModule } from './users/users.module';
 import { FilesModule } from './files/files.module';
 import { AuthModule } from './auth/auth.module';
@@ -39,6 +40,11 @@ const infrastructureDatabaseModule = MongooseModule.forRootAsync({
       isGlobal: true,
       load: [databaseConfig, authConfig, appConfig, mailConfig, fileConfig],
       envFilePath: ['.env'],
+    }),
+    CacheModule.register({
+      isGlobal: true,
+      ttl: 0, // Cache đến khi server restart (0 = không expire)
+      max: 1000, // Maximum số items trong cache
     }),
     infrastructureDatabaseModule,
     I18nModule.forRootAsync({

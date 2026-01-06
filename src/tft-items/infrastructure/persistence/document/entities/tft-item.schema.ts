@@ -116,6 +116,12 @@ export class TftItemSchemaClass extends EntityDocumentHelper {
   tier?: string | null;
 
   @Prop({
+    type: [String],
+    default: [],
+  })
+  units?: string[];
+
+  @Prop({
     type: [
       {
         match: { type: String, required: true },
@@ -155,4 +161,5 @@ TftItemSchema.index({ name: 1 });
 TftItemSchema.index({ 'associatedTraits': 1 });
 TftItemSchema.index({ unique: 1 });
 TftItemSchema.index({ tier: 1 });
+TftItemSchema.index({ units: 1 });
 
