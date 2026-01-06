@@ -29,6 +29,7 @@ import { TftUnitsModule } from './tft-units/tft-units.module';
 import { DataModule } from './data/data.module';
 import { ScreenTrackingModule } from './screen-tracking/screen-tracking.module';
 import { FeedbackModule } from './feedback/feedback.module';
+import { ImagesModule } from './images/images.module';
 
 const infrastructureDatabaseModule = MongooseModule.forRootAsync({
   useClass: MongooseConfigService,
@@ -88,6 +89,7 @@ const infrastructureDatabaseModule = MongooseModule.forRootAsync({
     DataModule,
     ScreenTrackingModule,
     FeedbackModule,
+    ImagesModule,
   ],
 })
 export class AppModule {}
