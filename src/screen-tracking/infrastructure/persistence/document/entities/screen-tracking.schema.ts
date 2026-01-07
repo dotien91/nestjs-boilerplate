@@ -32,6 +32,18 @@ export class ScreenTrackingSchemaClass extends EntityDocumentHelper {
   screenPath: string;
 
   @Prop({
+    type: String,
+    default: null,
+  })
+  lang?: string | null;
+
+  @Prop({
+    type: String,
+    default: null,
+  })
+  location?: string | null;
+
+  @Prop({
     type: Object,
     default: null,
   })
@@ -55,7 +67,10 @@ export const ScreenTrackingSchema = SchemaFactory.createForClass(
 ScreenTrackingSchema.index({ userId: 1 });
 ScreenTrackingSchema.index({ screenName: 1 });
 ScreenTrackingSchema.index({ screenPath: 1 });
+ScreenTrackingSchema.index({ lang: 1 });
+ScreenTrackingSchema.index({ location: 1 });
 ScreenTrackingSchema.index({ createdAt: -1 });
 ScreenTrackingSchema.index({ userId: 1, screenName: 1 });
 ScreenTrackingSchema.index({ userId: 1, createdAt: -1 });
+ScreenTrackingSchema.index({ lang: 1, location: 1 });
 

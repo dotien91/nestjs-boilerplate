@@ -8,6 +8,8 @@ export class ScreenTrackingMapper {
     domainEntity.userId = raw.userId || null;
     domainEntity.screenName = raw.screenName;
     domainEntity.screenPath = raw.screenPath;
+    domainEntity.lang = raw.lang || null;
+    domainEntity.location = raw.location || null;
     domainEntity.metadata = raw.metadata || null;
     domainEntity.createdAt = raw.createdAt;
     domainEntity.updatedAt = raw.updatedAt;
@@ -26,6 +28,8 @@ export class ScreenTrackingMapper {
     persistenceSchema.userId = domainEntity.userId || null;
     persistenceSchema.screenName = domainEntity.screenName;
     persistenceSchema.screenPath = domainEntity.screenPath;
+    persistenceSchema.lang = domainEntity.lang || null;
+    persistenceSchema.location = domainEntity.location || null;
     persistenceSchema.metadata = domainEntity.metadata || null;
     persistenceSchema.createdAt = domainEntity.createdAt;
     persistenceSchema.updatedAt = domainEntity.updatedAt;

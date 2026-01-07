@@ -15,6 +15,7 @@ import {
 import { ScreenTrackingService } from './screen-tracking.service';
 import { CreateScreenTrackingDto } from './dto/create-screen-tracking.dto';
 import { ScreenTracking } from './domain/screen-tracking';
+import { UserContext } from '../utils/decorators/user-context.decorator';
 
 @ApiTags('Screen Tracking')
 @Controller({
@@ -40,6 +41,7 @@ export class ScreenTrackingController {
   async trackScreen(
     @Body() createScreenTrackingDto: CreateScreenTrackingDto,
     @Request() request: any,
+    @UserContext() userContext: { lang?: string; location?: string },
   ): Promise<ScreenTracking> {
     // Lấy userId từ JWT token nếu có (user đã đăng nhập)
     // Nếu không có token, userId sẽ là null
@@ -48,6 +50,8 @@ export class ScreenTrackingController {
     return this.screenTrackingService.create({
       ...createScreenTrackingDto,
       userId,
+      lang: userContext?.lang || null,
+      location: userContext?.location || null,
     });
   }
 }

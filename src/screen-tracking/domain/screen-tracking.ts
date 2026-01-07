@@ -29,6 +29,20 @@ export class ScreenTracking {
   screenPath: string;
 
   @ApiPropertyOptional({
+    type: String,
+    example: 'en',
+    description: 'Language code từ header x-lang',
+  })
+  lang?: string | null;
+
+  @ApiPropertyOptional({
+    type: String,
+    example: 'US',
+    description: 'Location/country code từ header x-location',
+  })
+  location?: string | null;
+
+  @ApiPropertyOptional({
     type: Object,
     description: 'Metadata bổ sung (device, browser, etc.)',
   })
