@@ -12,6 +12,7 @@ import { AppModule } from './app.module';
 import validationOptions from './utils/validation-options';
 import { AllConfigType } from './config/config.type';
 import { ResolvePromisesInterceptor } from './utils/serializer.interceptor';
+import { LoggingInterceptor } from './utils/interceptors/logging.interceptor';
 import { NestExpressApplication } from '@nestjs/platform-express';
 import { join } from 'path';
 import * as express from 'express';
@@ -58,6 +59,8 @@ async function bootstrap() {
   });
   app.useGlobalPipes(new ValidationPipe(validationOptions));
   app.useGlobalInterceptors(
+    // LoggingInterceptor để log headers cho tất cả requests
+    new LoggingInterceptor(),
     // ResolvePromisesInterceptor is used to resolve promises in responses because class-transformer can't do it
     // https://github.com/typestack/class-transformer/issues/549
     new ResolvePromisesInterceptor(),
@@ -69,14 +72,26 @@ async function bootstrap() {
     .setDescription('API docs')
     .setVersion('1.0')
     .addBearerAuth()
-    .addGlobalParameters({
-      in: 'header',
-      required: false,
-      name: process.env.APP_HEADER_LANGUAGE || 'x-custom-lang',
-      schema: {
-        example: 'en',
+    .addGlobalParameters(
+      {
+        in: 'header',
+        required: false,
+        name: 'x-lang',
+        schema: {
+          example: 'en',
+        },
+        description: 'Language code (e.g., en, vi, es)',
       },
-    })
+      {
+        in: 'header',
+        required: false,
+        name: process.env.APP_HEADER_LOCATION || 'x-location',
+        schema: {
+          example: 'US',
+        },
+        description: 'User location/country code (e.g., US, VN, ES)',
+      },
+    )
     .build();
 
   const document = SwaggerModule.createDocument(app, options);
