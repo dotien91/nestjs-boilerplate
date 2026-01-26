@@ -30,6 +30,8 @@ export abstract class CompositionRepository {
 
   abstract remove(id: Composition['id']): Promise<void>;
 
+  abstract removeByNameNotIn(names: string[]): Promise<number>;
+
   abstract findCompositionsByUnits(
     unitIdentifiers: string[],
     searchInAllArrays?: boolean,

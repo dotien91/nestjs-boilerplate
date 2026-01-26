@@ -4,6 +4,7 @@ import {
   IsNumber,
   IsOptional,
   IsString,
+  IsBoolean,
 } from 'class-validator';
 
 export class FilterTftUnitDto {
@@ -93,4 +94,10 @@ export class QueryTftUnitDto {
   @IsOptional()
   @IsString()
   order?: string | null;
+
+  @ApiPropertyOptional({ type: Boolean })
+  @IsOptional()
+  @Transform(({ value }) => value === true || value === 'true' || value === '1')
+  @IsBoolean()
+  minimal?: boolean;
 }

@@ -145,6 +145,13 @@ export class CompositionsService {
     await this.compositionsRepository.remove(id);
   }
 
+  async removeByNameNotIn(names: string[]): Promise<number> {
+    if (!names || names.length === 0) {
+      return 0;
+    }
+    return this.compositionsRepository.removeByNameNotIn(names);
+  }
+
   async findCompositionsByUnits(
     unitIdentifiers: string[],
     searchInAllArrays: boolean = true,

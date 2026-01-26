@@ -1,5 +1,6 @@
 import { Module } from '@nestjs/common';
 import { CacheModule } from '@nestjs/cache-manager';
+import { ScheduleModule } from '@nestjs/schedule';
 import { UsersModule } from './users/users.module';
 import { FilesModule } from './files/files.module';
 import { AuthModule } from './auth/auth.module';
@@ -30,6 +31,7 @@ import { DataModule } from './data/data.module';
 import { ScreenTrackingModule } from './screen-tracking/screen-tracking.module';
 import { FeedbackModule } from './feedback/feedback.module';
 import { ImagesModule } from './images/images.module';
+import { CrawlerModule } from './crawler/crawler.module';
 
 const infrastructureDatabaseModule = MongooseModule.forRootAsync({
   useClass: MongooseConfigService,
@@ -47,6 +49,7 @@ const infrastructureDatabaseModule = MongooseModule.forRootAsync({
       ttl: 0, // Cache đến khi server restart (0 = không expire)
       max: 1000, // Maximum số items trong cache
     }),
+    ScheduleModule.forRoot(),
     infrastructureDatabaseModule,
     I18nModule.forRootAsync({
       useFactory: (configService: ConfigService<AllConfigType>) => ({
@@ -90,6 +93,7 @@ const infrastructureDatabaseModule = MongooseModule.forRootAsync({
     ScreenTrackingModule,
     FeedbackModule,
     ImagesModule,
+    CrawlerModule,
   ],
 })
 export class AppModule {}

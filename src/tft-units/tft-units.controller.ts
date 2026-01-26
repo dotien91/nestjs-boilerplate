@@ -34,6 +34,16 @@ import {
 import { infinityPagination } from '../utils/infinity-pagination';
 import { NullableType } from '../utils/types/nullable.type';
 
+type MinimalTftUnitResponse = {
+  apiName: string;
+  characterName: string | null;
+  cost: number | null;
+  endName: string | null;
+  name: string;
+  tier: string | null;
+  traits: string[];
+};
+
 @ApiTags('TFT Units')
 @Controller({
   path: 'tft-units',
@@ -41,6 +51,18 @@ import { NullableType } from '../utils/types/nullable.type';
 })
 export class TftUnitsController {
   constructor(private readonly tftUnitsService: TftUnitsService) {}
+
+  private toMinimalUnit(unit: TftUnit): MinimalTftUnitResponse {
+    return {
+      apiName: unit.apiName,
+      characterName: unit.characterName ?? null,
+      cost: unit.cost ?? null,
+      endName: unit.enName ?? null,
+      name: unit.name,
+      tier: unit.tier ?? null,
+      traits: unit.traits ?? [],
+    };
+  }
 
   @ApiBearerAuth()
   @UseGuards(AuthGuard('jwt'))
@@ -64,12 +86,9 @@ export class TftUnitsController {
   @HttpCode(HttpStatus.OK)
   async findAll(
     @Query() query: QueryTftUnitDto,
-  ): Promise<InfinityPaginationResponseDto<TftUnit>> {
+  ): Promise<InfinityPaginationResponseDto<TftUnit | MinimalTftUnitResponse>> {
     const page = query?.page ?? 1;
     let limit = query?.limit ?? 10;
-    if (limit > 50) {
-      limit = 50;
-    }
     // Build filters từ flat properties - chỉ giữ field có giá trị
     let filters: FilterTftUnitDto | undefined = undefined;
     const filterObj: Partial<FilterTftUnitDto> = {};
@@ -95,17 +114,23 @@ export class TftUnitsController {
       ];
     }
 
-    return infinityPagination(
-      await this.tftUnitsService.findManyWithPagination({
-        filterOptions: filters,
-        sortOptions: sort,
-        paginationOptions: {
-          page,
-          limit,
-        },
-      }),
-      { page, limit },
-    );
+    const data = await this.tftUnitsService.findManyWithPagination({
+      filterOptions: filters,
+      sortOptions: sort,
+      paginationOptions: {
+        page,
+        limit,
+      },
+    });
+
+    const responseData: Array<TftUnit | MinimalTftUnitResponse> = query?.minimal
+      ? data.map((unit) => this.toMinimalUnit(unit))
+      : data;
+
+    return infinityPagination<TftUnit | MinimalTftUnitResponse>(responseData, {
+      page,
+      limit,
+    });
   }
 
   @ApiOperation({ summary: 'Lấy tất cả TFT units (không phân trang)' })
@@ -116,9 +141,13 @@ export class TftUnitsController {
   @CacheTTL(0) // Cache đến khi server restart
   @Get('list-all')
   @HttpCode(HttpStatus.OK)
-  async findAllUnits(): Promise<TftUnit[]> {
+  async findAllUnits(
+    @Query('minimal') minimal?: string,
+  ): Promise<Array<TftUnit | MinimalTftUnitResponse>> {
     console.log('findAllUnits');
-    return this.tftUnitsService.findAll();
+    const data = await this.tftUnitsService.findAll();
+    const isMinimal = minimal === 'true' || minimal === '1';
+    return isMinimal ? data.map((unit) => this.toMinimalUnit(unit)) : data;
   }
 
   @ApiOperation({ summary: 'Lấy TFT unit theo API name' })
@@ -153,13 +182,16 @@ export class TftUnitsController {
   })
   async findByCost(
     @Param('cost') cost: number,
-  ): Promise<TftUnit[]> {
+    @Query('minimal') minimal?: string,
+  ): Promise<Array<TftUnit | MinimalTftUnitResponse>> {
     // Không truyền sortOptions để sử dụng default sort theo tier (S > A > B > C > D)
-    return this.tftUnitsService.findManyWithPagination({
+    const data = await this.tftUnitsService.findManyWithPagination({
       filterOptions: { cost },
       sortOptions: null,
       paginationOptions: { page: 1, limit: 100 },
     });
+    const isMinimal = minimal === 'true' || minimal === '1';
+    return isMinimal ? data.map((unit) => this.toMinimalUnit(unit)) : data;
   }
 
   @ApiOperation({ summary: 'Lấy TFT unit theo ID' })

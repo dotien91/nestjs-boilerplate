@@ -219,6 +219,13 @@ export class CompositionsDocumentRepository
     });
   }
 
+  async removeByNameNotIn(names: string[]): Promise<number> {
+    const result = await this.compositionsModel.deleteMany({
+      name: { $nin: names },
+    });
+    return result.deletedCount || 0;
+  }
+
   async findCompositionsByUnits(
     unitIdentifiers: string[],
     searchInAllArrays: boolean = true,
