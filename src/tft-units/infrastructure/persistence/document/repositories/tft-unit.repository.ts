@@ -1,6 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
-import { Model, FilterQuery } from 'mongoose';
+import { Model, FilterQuery, isValidObjectId } from 'mongoose';
 import { NullableType } from '../../../../../utils/types/nullable.type';
 import { IPaginationOptions } from '../../../../../utils/types/pagination-options';
 import { TftUnit } from '../../../../domain/tft-unit';
@@ -77,6 +77,13 @@ export class TftUnitsDocumentRepository implements TftUnitRepository {
     domainEntity.updatedAt = unitObject.updatedAt;
     domainEntity.deletedAt = unitObject.deletedAt;
     return domainEntity;
+  }
+
+  private isInvalidId(id: TftUnit['id']): boolean {
+    if (!id) return true;
+    const idString = String(id).trim().toLowerCase();
+    if (!idString || idString === 'undefined' || idString === 'null') return true;
+    return !isValidObjectId(idString);
   }
 
   async create(data: TftUnit): Promise<TftUnit> {
@@ -194,6 +201,7 @@ export class TftUnitsDocumentRepository implements TftUnitRepository {
   }
 
   async findById(id: TftUnit['id']): Promise<NullableType<TftUnit>> {
+    if (this.isInvalidId(id)) return null;
     const unitObject = await this.tftUnitsModel.findById(id).lean();
     return unitObject ? this.leanToDomain(unitObject) : null;
   }
@@ -209,6 +217,7 @@ export class TftUnitsDocumentRepository implements TftUnitRepository {
     id: TftUnit['id'],
     payload: Partial<TftUnit>,
   ): Promise<TftUnit | null> {
+    if (this.isInvalidId(id)) return null;
     const clonedPayload = { ...payload };
     delete clonedPayload.id;
 
@@ -233,6 +242,7 @@ export class TftUnitsDocumentRepository implements TftUnitRepository {
   }
 
   async remove(id: TftUnit['id']): Promise<void> {
+    if (this.isInvalidId(id)) return;
     await this.tftUnitsModel.deleteOne({ _id: id.toString() });
   }
 }

@@ -1,6 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
-import { Model, FilterQuery } from 'mongoose';
+import { Model, FilterQuery, isValidObjectId } from 'mongoose';
 import { NullableType } from '../../../../../utils/types/nullable.type';
 import { IPaginationOptions } from '../../../../../utils/types/pagination-options';
 import { TftTrait } from '../../../../domain/tft-trait';
@@ -56,6 +56,13 @@ export class TftTraitsDocumentRepository implements TftTraitRepository {
     return domainEntity;
   }
 
+  private isInvalidId(id: TftTrait['id']): boolean {
+    if (!id) return true;
+    const idString = String(id).trim().toLowerCase();
+    if (!idString || idString === 'undefined' || idString === 'null') return true;
+    return !isValidObjectId(idString);
+  }
+
   async create(data: TftTrait): Promise<TftTrait> {
     const persistenceModel = TftTraitMapper.toPersistence(data);
     const createdTrait = new this.tftTraitsModel(persistenceModel);
@@ -106,6 +113,7 @@ export class TftTraitsDocumentRepository implements TftTraitRepository {
   }
 
   async findById(id: TftTrait['id']): Promise<NullableType<TftTrait>> {
+    if (this.isInvalidId(id)) return null;
     const traitObject = await this.tftTraitsModel.findById(id).lean();
     return traitObject ? this.leanToDomain(traitObject) : null;
   }
@@ -121,6 +129,7 @@ export class TftTraitsDocumentRepository implements TftTraitRepository {
     id: TftTrait['id'],
     payload: Partial<TftTrait>,
   ): Promise<TftTrait | null> {
+    if (this.isInvalidId(id)) return null;
     const clonedPayload = { ...payload };
     delete clonedPayload.id;
 
@@ -145,6 +154,7 @@ export class TftTraitsDocumentRepository implements TftTraitRepository {
   }
 
   async remove(id: TftTrait['id']): Promise<void> {
+    if (this.isInvalidId(id)) return;
     await this.tftTraitsModel.deleteOne({ _id: id.toString() });
   }
 }

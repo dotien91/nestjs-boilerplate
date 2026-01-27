@@ -18,7 +18,8 @@ import { TftUnitsService } from '../tft-units/tft-units.service';
 function extractItemSlugFromUrl(url: string): string {
   if (!url) return '';
 
-  const filename = url.split('/').pop()?.split('?')[0]?.split('.')[0] || '';
+  let filename = url.split('/').pop()?.split('?')[0]?.split('.')[0] || '';
+  filename = filename.replace(/[-_]v?\d+$/, '');
   return filename.replace(/[^a-zA-Z0-9]/g, '');
 }
 
@@ -471,6 +472,7 @@ export class CrawlerService {
 
     const units: CrawlUnit[] = [];
     let coreChampion: CrawlUnit | null = null;
+    const unknownItems = new Set<string>();
 
     const boardRows = $('.m-67sb4n .m-i9rwau');
 
@@ -500,8 +502,19 @@ export class CrawlerService {
 
               const slugFromUrl = extractItemSlugFromUrl(src);
               const rawSlug = slugFromUrl || alt;
-console.log("rawSlug", rawSlug);
               if (rawSlug) {
+                if (rawSlug.toLowerCase() === 'guardbreaker') {
+                  items.push('TFT_Item_PowerGauntlet');
+                  return;
+                }
+                if (rawSlug.toLowerCase() === 'fimbulwinter') {
+                  items.push('TFT_Item_FrozenHeart');
+                  return;
+                }
+                if (rawSlug.toLowerCase() === 'steadfasthammer') {
+                    items.push('TFT_Item_NightHarvester');
+                  return;
+                }
                 const correctApiName =
                   this.itemLookupService.getValidApiName(rawSlug);
 
@@ -510,6 +523,7 @@ console.log("rawSlug", rawSlug);
                 } else {
                   this.logger.warn(`Cannot map item slug: ${rawSlug}`);
                   items.push(`UNKNOWN_${rawSlug}`);
+                  unknownItems.add(rawSlug);
                 }
               }
             });
@@ -621,6 +635,12 @@ console.log("rawSlug", rawSlug);
 
     const finalAugments = Array.from(uniqueAugmentsMap.values());
 
+    if (unknownItems.size > 0) {
+      this.logger.warn(
+        `Unknown items: ${Array.from(unknownItems.values()).join(', ')}`,
+      );
+    }
+
     return {
       compId: `comp-${generateSlug(compName)}-${Date.now()}`,
       name: compName,
@@ -653,38 +673,6 @@ console.log("rawSlug", rawSlug);
     return results.length > 0;
   }
 
-  /**
-   * Hàm hỗ trợ lấy nội dung 1 trang (dùng cho Detail)
-   */
-  private async getPageContent(url: string, waitSelector: string) {
-    const browser = await puppeteer.launch({
-      headless: true,
-      args: ['--no-sandbox', '--disable-setuid-sandbox'],
-      defaultViewport: { width: 1920, height: 1080 },
-    });
-    const page = await browser.newPage();
-
-    // Detail page không cần scroll nhiều, nhưng chặn request không cần thiết
-    await page.setRequestInterception(true);
-    page.on('request', (req) => {
-      const type = req.resourceType();
-      if (['font', 'media'].includes(type)) req.abort();
-      else req.continue();
-    });
-
-    try {
-      this.logger.log(`Navigating to ${url}...`);
-      await page.goto(url, { waitUntil: 'networkidle0', timeout: 60000 });
-      await page.evaluate(async () => {
-        window.scrollBy(0, 500);
-        await new Promise((resolve) => setTimeout(resolve, 1000));
-      });
-      await page.waitForSelector(waitSelector, { timeout: 10000 }).catch(() => null);
-      return await page.content();
-    } finally {
-      await browser.close();
-    }
-  }
 
   private async fetchMetaTftUnitTiers(): Promise<Array<{ name: string; tier: string }>> {
     const url = 'https://www.metatft.com/units';
@@ -816,28 +804,4 @@ console.log("rawSlug", rawSlug);
       .replace(/[^a-z0-9]/g, '');
   }
 
-  // Parse style="left: 14%; top: 25%" ra row/col
-  private parsePositionFromStyle(styleString: string): { row: number; col: number } {
-    const leftMatch = styleString.match(/left:\s*([\d.]+)%/);
-    const topMatch = styleString.match(/top:\s*([\d.]+)%/);
-
-    if (!leftMatch || !topMatch) return { row: 3, col: 0 };
-
-    const left = parseFloat(leftMatch[1]);
-    const top = parseFloat(topMatch[1]);
-
-    // Mobalytics Board Grid: 7 Cột, 4 Hàng
-    // Col width ~ 14.28% (100/7)
-    // Row height ~ 25% (100/4)
-    
-    // Thêm sai số nhỏ (+2) để làm tròn chính xác hơn
-    const col = Math.floor((left + 2) / 14.28);
-    const row = Math.floor((top + 2) / 25);
-
-    // Clamp giá trị để không vượt quá giới hạn
-    return { 
-        row: Math.min(Math.max(row, 0), 3), 
-        col: Math.min(Math.max(col, 0), 6) 
-    };
-  }
 }
