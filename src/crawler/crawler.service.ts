@@ -293,7 +293,6 @@ export class CrawlerService {
 
       const content = await page.content();
       const composition = this.parseDetailHtml(content, url);
-      this.logger.log(`Crawl detail parsed data: ${JSON.stringify(composition)}`);
 
       if (!composition?.name) return composition;
 
@@ -532,7 +531,9 @@ export class CrawlerService {
 
             const unitData: CrawlUnit = {
               championId: generateSlug(rawName),
-              championKey: generateChampionKey(rawName),
+              championKey:
+                this.itemLookupService.getValidChampionKey(rawName) ||
+                generateChampionKey(rawName),
               name: rawName,
               cost: 0,
               star: 2,
@@ -575,7 +576,9 @@ export class CrawlerService {
         if (!existing || items.length > (existing.items?.length || 0)) {
           const unitData: CrawlUnit = {
             championId: champId,
-            championKey: generateChampionKey(rawName),
+            championKey:
+              this.itemLookupService.getValidChampionKey(rawName) ||
+              generateChampionKey(rawName),
             name: rawName,
             cost: 0,
             star: 2,

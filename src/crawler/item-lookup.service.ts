@@ -8,6 +8,7 @@ export class ItemLookupService implements OnModuleInit {
 
   private itemsData: any[] = [];
   private augmentsData: any[] = [];
+  private championsData: any[] = [];
   private readonly FUZZY_THRESHOLD = 0.6;
 
   async onModuleInit() {
@@ -40,6 +41,11 @@ export class ItemLookupService implements OnModuleInit {
           ? rawItems
           : Object.values(rawItems);
 
+        const rawUnits = json.units || [];
+        this.championsData = Array.isArray(rawUnits)
+          ? rawUnits
+          : Object.values(rawUnits);
+
         const rawAugments =
           json.augments ||
           (json.data
@@ -52,7 +58,7 @@ export class ItemLookupService implements OnModuleInit {
           : Object.values(rawAugments);
 
         this.logger.log(
-          `✅ Loaded ${this.itemsData.length} Items & ${this.augmentsData.length} Augments.`,
+          `✅ Loaded ${this.itemsData.length} Items, ${this.championsData.length} Units & ${this.augmentsData.length} Augments.`,
         );
       } else {
         this.logger.error(`❌ JSON file not found at: ${filePath}`);
@@ -93,6 +99,30 @@ export class ItemLookupService implements OnModuleInit {
     if (!rawSlug) return null;
     const cleanInput = this.normalize(rawSlug);
     return this.findInCollection(this.augmentsData, cleanInput);
+  }
+
+  public getValidChampionKey(rawName: string): string | null {
+    if (!rawName) return null;
+    const cleanInput = this.normalize(rawName);
+
+    let match = this.championsData.find((c) => {
+      const nName = this.normalize(c.name || '');
+      const nApi = this.normalize(c.apiName || '');
+      return nName === cleanInput || nApi === cleanInput || nApi.endsWith(cleanInput);
+    });
+    if (match) return match.apiName;
+
+    match = this.championsData.find((c) => {
+      const nName = this.normalize(c.name || '');
+      if (nName.length < 3) return false;
+      if (cleanInput.includes(nName)) return true;
+      if (nName.includes(cleanInput)) return true;
+      return false;
+    });
+
+    if (match) return match.apiName;
+
+    return `TFT16_${rawName.replace(/[^a-zA-Z0-9]/g, '')}`;
   }
 
   private findInCollection(collection: any[], cleanInput: string): string | null {
