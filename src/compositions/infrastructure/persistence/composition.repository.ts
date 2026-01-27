@@ -32,6 +32,8 @@ export abstract class CompositionRepository {
 
   abstract removeByNameNotIn(names: string[]): Promise<number>;
 
+  abstract findOne(name: string): Promise<NullableType<Composition>>;
+
   abstract findCompositionsByUnits(
     unitIdentifiers: string[],
     searchInAllArrays?: boolean,

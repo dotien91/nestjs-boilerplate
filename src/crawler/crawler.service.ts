@@ -92,7 +92,7 @@ export class CrawlerService {
     this.logger.log(`✅ Unit tier crawl finished. Updated: ${updatedCount}`);
   }
 
-  @Cron(CronExpression.EVERY_DAY_AT_3AM)
+  @Cron(CronExpression.EVERY_4_HOURS)
   async handleDailyCrawl() {
     this.logger.log('🕛 Daily crawl job started.');
     const results = await this.crawlAllCompositions();
@@ -296,8 +296,13 @@ export class CrawlerService {
 
       if (!composition?.name) return composition;
 
-      const exists = await this.existsCompositionByName(composition.name);
+      const exists = await this.compositionsService.findByName(composition.name);
+
+      console.log('exists', exists);
       if (exists) {
+        if (exists.tier !== composition.tier) {
+          await this.compositionsService.update(exists.id, { tier: composition.tier });
+        }
         this.logger.log(`⏭️ Skip duplicate name: ${composition.name}`);
         return composition;
       }

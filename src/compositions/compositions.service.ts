@@ -115,6 +115,15 @@ export class CompositionsService {
     return this.compositionsRepository.findByCompId(compId);
   }
 
+  async findByName(
+    name: string,
+  ): Promise<NullableType<Composition>> {
+    if (!name) {
+      return null;
+    }
+    return this.compositionsRepository.findOne(name);
+  }
+
   async update(
     id: Composition['id'],
     updateCompositionDto: UpdateCompositionDto,

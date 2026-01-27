@@ -212,6 +212,14 @@ export class CompositionsDocumentRepository
       ? CompositionMapper.toDomain(compositionObject)
       : null;
   }
+  async findOne(name: string): Promise<NullableType<Composition>> {
+    if (!name) return null;
+
+    const compositionObject = await this.compositionsModel.findOne({ name });
+    return compositionObject
+      ? CompositionMapper.toDomain(compositionObject)
+      : null;
+  }
 
   async remove(id: Composition['id']): Promise<void> {
     await this.compositionsModel.deleteOne({
