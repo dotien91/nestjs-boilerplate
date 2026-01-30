@@ -228,8 +228,8 @@ export class CrawlerService {
     }
   }
 
-  /**
-   * Crawl chi tiết 1 trang (Pure Function - Chỉ trả về Data)
+/**
+   * CRAWL CHI TIẾT 1 TRANG (FIXED TIMEOUT)
    */
   async crawlCompDetail(url: string, existingBrowser?: puppeteer.Browser) {
     const browser = existingBrowser || (await puppeteer.launch({
@@ -240,30 +240,56 @@ export class CrawlerService {
 
     const page = await browser.newPage();
 
-    // Optimization: Block media/font
+    // [QUAN TRỌNG] Set User-Agent để tránh bị chặn hoặc throttle
+    await page.setUserAgent(
+      'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36'
+    );
+
     await page.setRequestInterception(true);
     page.on('request', (req) => {
-      const type = req.resourceType();
-      if (['font', 'media'].includes(type)) req.abort();
-      else req.continue();
+      // Chặn thêm các loại resource không cần thiết khác
+      const resourceType = req.resourceType();
+      if (['font', 'media', 'stylesheet', 'other'].includes(resourceType)) {
+        req.abort();
+      } else if (resourceType === 'image') {
+        // Chỉ load ảnh icon tướng/item (quan trọng để parse), chặn ảnh banner quảng cáo
+        const url = req.url();
+        if (url.includes('champions/icons') || url.includes('items')) {
+            req.continue();
+        } else {
+            req.abort();
+        }
+      } else {
+        req.continue();
+      }
     });
 
     try {
-      await page.goto(url, { waitUntil: 'networkidle0', timeout: 60000 });
+      // [QUAN TRỌNG] Đổi chiến thuật wait:
+      // 1. Dùng 'domcontentloaded' thay vì 'networkidle0' (nhanh hơn, tránh timeout do tracking script)
+      // 2. Tăng timeout lên 120s (2 phút)
+      await page.goto(url, { waitUntil: 'domcontentloaded', timeout: 120000 });
       
-      // Scroll trick để trigger lazy load images
+      // [QUAN TRỌNG] Chờ thủ công element quan trọng xuất hiện thay vì chờ network
+      // Class .m-67sb4n là container chứa board, hoặc chờ h1 (tên bài)
+      await page.waitForSelector('h1', { timeout: 30000 }).catch(() => null);
+
+      // Scroll nhẹ để trigger lazy load (giữ nguyên)
       await page.evaluate(async () => {
         window.scrollBy(0, 500);
         await new Promise((resolve) => setTimeout(resolve, 500));
       });
-      await page.waitForSelector('img[src*="/champions/icons/"]', { timeout: 10000 }).catch(() => null);
+
+      // Chờ ảnh tướng load (giảm timeout xuống để fail-fast nếu không có ảnh)
+      await page.waitForSelector('img[src*="/champions/icons/"]', { timeout: 5000 }).catch(() => null);
 
       const content = await page.content();
       const composition = this.parseDetailHtml(content, url);
 
-      return composition; // Return DTO
+      return composition;
 
     } catch (error) {
+      // Ném lỗi để hàm cha log lại url bị lỗi
       throw error;
     } finally {
       await page.close();
@@ -272,7 +298,6 @@ export class CrawlerService {
       }
     }
   }
-
   // ==========================================
   // PARSING & UTILS
   // ==========================================
