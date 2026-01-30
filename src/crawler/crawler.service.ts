@@ -92,7 +92,7 @@ export class CrawlerService {
     this.logger.log(`✅ Unit tier crawl finished. Updated: ${updatedCount}`);
   }
 
-  @Cron(CronExpression.EVERY_4_HOURS)
+  // @Cron(CronExpression.EVERY_4_HOURS) // Tắt tự động crawl
   async handleDailyCrawl() {
     this.logger.log('🕛 Daily crawl job started.');
     const results = await this.crawlAllCompositions();
