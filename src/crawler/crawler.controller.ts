@@ -13,37 +13,38 @@ export class CrawlerController {
   constructor(private readonly crawlerService: CrawlerService) {}
 
   @ApiOperation({
-    summary: 'Crawl chi tiết comp từ URL',
-    description: 'Crawl trang comp (Mobalytics) và trả về schema composition.',
+    summary: 'Crawl chi tiết 1 comp (Test)',
+    description: 'Crawl dữ liệu từ URL Mobalytics và trả về JSON (Không lưu vào DB). Dùng để test parser.',
   })
   @ApiCreatedResponse({
-    description: 'Dữ liệu composition đã parse từ trang web',
+    description: 'Dữ liệu composition raw',
   })
   @Post('comp-detail')
-  @HttpCode(HttpStatus.CREATED)
+  @HttpCode(HttpStatus.OK)
   async crawlCompDetail(@Body() dto: CrawlCompDetailDto) {
+    // Hàm này trong Service hiện tại chỉ trả về data, không lưu DB
     return this.crawlerService.crawlCompDetail(dto.url);
   }
 
   @ApiOperation({
-    summary: 'Crawl danh sách comps từ trang team-comps',
-    description: 'Crawl trang team-comps và trả về danh sách link comp.',
+    summary: 'Lấy danh sách link Comps (Test)',
+    description: 'Quét trang team-comps để lấy danh sách URL (Dùng để test số lượng comp tìm thấy).',
   })
   @ApiCreatedResponse({
-    description: 'Danh sách comp links đã parse từ trang web',
+    description: 'Danh sách các URL tìm thấy',
   })
   @Post('team-comps')
-  @HttpCode(HttpStatus.CREATED)
+  @HttpCode(HttpStatus.OK)
   async crawlTeamComps(@Body() dto: CrawlTeamCompsDto) {
     return this.crawlerService.crawlTeamComps(dto.url);
   }
 
   @ApiOperation({
-    summary: 'Crawl toàn bộ comps (manual trigger)',
-    description: 'Chạy full pipeline: lấy danh sách rồi crawl chi tiết từng comp.',
+    summary: 'Trigger Crawl All (Manual)',
+    description: 'Chạy quy trình: Lấy List -> Crawl từng cái -> Lưu/Update DB -> Xóa comp cũ.',
   })
   @ApiCreatedResponse({
-    description: 'Danh sách composition đã parse từ trang web',
+    description: 'Thống kê số lượng tạo mới và cập nhật',
   })
   @Post('crawl-all')
   @HttpCode(HttpStatus.CREATED)
@@ -52,16 +53,16 @@ export class CrawlerController {
   }
 
   @ApiOperation({
-    summary: 'Crawl tier units từ MetaTFT (manual trigger)',
-    description: 'Crawl trang MetaTFT units và cập nhật tier cho units.',
+    summary: 'Trigger Crawl Units Tier (Manual)',
+    description: 'Cập nhật tier cho các unit từ MetaTFT.',
   })
   @ApiCreatedResponse({
-    description: 'Kết quả cập nhật tier units',
+    description: 'Trạng thái cập nhật',
   })
   @Post('units-tier')
-  @HttpCode(HttpStatus.CREATED)
+  @HttpCode(HttpStatus.OK)
   async crawlUnitsTier() {
     await this.crawlerService.handleDailyUnitTierCrawl();
-    return { status: 'ok' };
+    return { status: 'Unit tiers crawl triggered successfully' };
   }
 }
