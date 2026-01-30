@@ -15,9 +15,10 @@ import { TftUnitsService } from '../tft-units/tft-units.service';
 // --- Helper Functions ---
 function extractItemSlugFromUrl(url: string): string {
   if (!url) return '';
+  // url pattern: .../game-items/set16/infinity-edge.png?v=70
   let filename = url.split('/').pop()?.split('?')[0]?.split('.')[0] || '';
-  filename = filename.replace(/[-_]v?\d+$/, '');
-  return filename.replace(/[^a-zA-Z0-9]/g, '');
+  filename = filename.replace(/[-_]v?\d+$/, ''); // remove version suffix if any
+  return filename.replace(/[^a-zA-Z0-9]/g, ''); // keep alphanumeric only
 }
 
 // --- Interfaces ---
@@ -55,19 +56,12 @@ export class CrawlerService {
   ) {}
 
   // ==========================================
-  // PUBLIC METHODS (Cho Controller)
+  // PUBLIC METHODS
   // ==========================================
   
-  /**
-   * Test lấy danh sách link (không crawl chi tiết)
-   */
   async crawlTeamComps(url?: string) {
     const targetUrl = url || 'https://mobalytics.gg/tft/team-comps';
-    const browser = await puppeteer.launch({
-      headless: true,
-      args: ['--no-sandbox', '--disable-setuid-sandbox'],
-      defaultViewport: { width: 1920, height: 1080 },
-    });
+    const browser = await this.initBrowser();
 
     try {
       const links = await this.getCompLinks(browser, targetUrl);
@@ -88,22 +82,19 @@ export class CrawlerService {
   async handleDailyUnitTierCrawl() {
     this.logger.log('🕐 Daily unit tier crawl started.');
     const tiers = await this.fetchMetaTftUnitTiers();
-    if (tiers.length === 0) {
-      this.logger.warn('No unit tiers found from MetaTFT.');
-      return;
-    }
+    if (tiers.length === 0) return;
 
     const units = await this.tftUnitsService.findAll();
     const unitMap = new Map<string, typeof units[number]>();
 
     units.forEach((unit) => {
-      const normalizedName = this.normalizeUnitName(unit.name || unit.characterName || unit.enName || '');
+      const normalizedName = this.normalizeUnitNameForMetaTft(unit.name || unit.characterName || unit.enName || '');
       if (normalizedName) unitMap.set(normalizedName, unit);
     });
 
     let updatedCount = 0;
     for (const entry of tiers) {
-      const key = this.normalizeUnitName(entry.name);
+      const key = this.normalizeUnitNameForMetaTft(entry.name);
       const unit = unitMap.get(key);
       if (!unit) continue;
 
@@ -112,11 +103,10 @@ export class CrawlerService {
         updatedCount += 1;
       }
     }
-
     this.logger.log(`✅ Unit tier crawl finished. Updated: ${updatedCount}`);
   }
 
-  // @Cron(CronExpression.EVERY_4_HOURS) // Tắt tự động crawl
+  // @Cron(CronExpression.EVERY_4_HOURS)
   async handleDailyCrawl() {
     this.logger.log('🕛 Daily crawl job started.');
     await this.crawlAllCompositions();
@@ -125,21 +115,16 @@ export class CrawlerService {
 
   /**
    * ==========================================
-   * MAIN LOGIC: FULL SYNC (CRAWL + DELETE STALE)
+   * MAIN LOGIC: FULL SYNC
    * ==========================================
    */
   async crawlAllCompositions() {
     const targetUrl = 'https://mobalytics.gg/tft/team-comps';
     this.logger.log('🚀 STARTING FULL SYNC CRAWL PROCESS...');
 
-    const browser = await puppeteer.launch({
-      headless: true,
-      args: ['--no-sandbox', '--disable-setuid-sandbox'],
-      defaultViewport: { width: 1920, height: 1080 },
-    });
+    const browser = await this.initBrowser();
 
     try {
-      // 1. Lấy danh sách link
       this.logger.log('Phase 1: Fetching Comp Links...');
       const compLinks = await this.getCompLinks(browser, targetUrl);
       this.logger.log(`Found ${compLinks.length} comps. Starting detailed crawl...`);
@@ -147,16 +132,12 @@ export class CrawlerService {
       const BATCH_SIZE = 3;
       let createdCount = 0;
       let updatedCount = 0;
-      
-      // [QUAN TRỌNG] Danh sách các tên hợp lệ tìm thấy trong lần này
       const validNames: string[] = [];
 
-      // 2. Duyệt qua từng batch
       for (let i = 0; i < compLinks.length; i += BATCH_SIZE) {
         const batch = compLinks.slice(i, i + BATCH_SIZE);
         this.logger.log(`Processing batch ${Math.floor(i / BATCH_SIZE) + 1}...`);
 
-        // A. Crawl dữ liệu song song (không lưu DB)
         const batchResults = await Promise.all(
           batch.map((linkData) =>
             this.crawlCompDetail(linkData.url, browser)
@@ -168,22 +149,17 @@ export class CrawlerService {
           ),
         );
 
-        // B. Lưu DB tuần tự & Tracking tên
         for (const composition of batchResults) {
           if (!composition || !composition.name) continue;
-
-          // Push tên vào danh sách hợp lệ
           validNames.push(composition.name);
 
           try {
             const exists = await this.compositionsService.findByName(composition.name);
 
             if (exists) {
-              // Logic Update: Chỉ update tier hoặc các info quan trọng
               if (exists.tier !== composition.tier) {
                 await this.compositionsService.update(exists.id, { 
                     tier: composition.tier,
-                    // Có thể thêm các field khác cần update tại đây
                 });
                 this.logger.log(`🔄 Updated Tier: ${composition.name} (${exists.tier} -> ${composition.tier})`);
                 updatedCount++;
@@ -191,7 +167,6 @@ export class CrawlerService {
                 this.logger.log(`⏭️ Skip duplicate: ${composition.name}`);
               }
             } else {
-              // Logic Create
               await this.compositionsService.create(composition);
               this.logger.log(`✅ Created: ${composition.name}`);
               createdCount++;
@@ -200,61 +175,42 @@ export class CrawlerService {
             this.logger.error(`DB Error for ${composition.name}: ${dbError}`);
           }
         }
-        
-        // Delay tránh chặn IP
         await new Promise(r => setTimeout(r, 1000));
       }
 
-      // 3. CLEANUP: Xóa các đội hình cũ không còn trong validNames
-      // [SAFETY CHECK] Chỉ chạy xóa khi validNames không rỗng (đề phòng lỗi crawl toàn bộ)
       if (validNames.length > 0) {
         this.logger.log(`🧹 Cleaning up stale compositions...`);
-        // Yêu cầu Service: removeByNameNotIn(names: string[])
         const deletedCount = await this.compositionsService.removeByNameNotIn(validNames);
         this.logger.log(`🗑️ Deleted ${deletedCount} stale compositions.`);
-      } else {
-        this.logger.warn('⚠️ No comps found via crawl. Cleanup skipped to prevent data loss.');
       }
 
-      this.logger.log(`🎉 FINISHED! Created: ${createdCount}, Updated: ${updatedCount}`);
       return { createdCount, updatedCount };
 
     } catch (error) {
-      const message = error instanceof Error ? error.message : String(error);
-      this.logger.error(`Fatal Error: ${message}`);
+      this.logger.error(`Fatal Error: ${error}`);
       return [];
     } finally {
       await browser.close();
     }
   }
 
-/**
-   * CRAWL CHI TIẾT 1 TRANG (FIXED TIMEOUT)
-   */
   async crawlCompDetail(url: string, existingBrowser?: puppeteer.Browser) {
-    const browser = existingBrowser || (await puppeteer.launch({
-        headless: true,
-        args: ['--no-sandbox', '--disable-setuid-sandbox'],
-        defaultViewport: { width: 1920, height: 1080 },
-    }));
-
+    const browser = existingBrowser || (await this.initBrowser());
     const page = await browser.newPage();
 
-    // [QUAN TRỌNG] Set User-Agent để tránh bị chặn hoặc throttle
     await page.setUserAgent(
       'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36'
     );
 
     await page.setRequestInterception(true);
     page.on('request', (req) => {
-      // Chặn thêm các loại resource không cần thiết khác
       const resourceType = req.resourceType();
       if (['font', 'media', 'stylesheet', 'other'].includes(resourceType)) {
         req.abort();
       } else if (resourceType === 'image') {
-        // Chỉ load ảnh icon tướng/item (quan trọng để parse), chặn ảnh banner quảng cáo
         const url = req.url();
-        if (url.includes('champions/icons') || url.includes('items')) {
+        // Chỉ load ảnh quan trọng để parse, chặn quảng cáo
+        if (url.includes('champions/icons') || url.includes('items') || url.includes('game-items') || url.includes('augments')) {
             req.continue();
         } else {
             req.abort();
@@ -265,211 +221,152 @@ export class CrawlerService {
     });
 
     try {
-      // [QUAN TRỌNG] Đổi chiến thuật wait:
-      // 1. Dùng 'domcontentloaded' thay vì 'networkidle0' (nhanh hơn, tránh timeout do tracking script)
-      // 2. Tăng timeout lên 120s (2 phút)
       await page.goto(url, { waitUntil: 'domcontentloaded', timeout: 120000 });
       
-      // [QUAN TRỌNG] Chờ thủ công element quan trọng xuất hiện thay vì chờ network
-      // Class .m-67sb4n là container chứa board, hoặc chờ h1 (tên bài)
+      // Chờ h1 để đảm bảo trang load cơ bản
       await page.waitForSelector('h1', { timeout: 30000 }).catch(() => null);
 
-      // Scroll nhẹ để trigger lazy load (giữ nguyên)
+      // Scroll nhẹ
       await page.evaluate(async () => {
         window.scrollBy(0, 500);
         await new Promise((resolve) => setTimeout(resolve, 500));
       });
 
-      // Chờ ảnh tướng load (giảm timeout xuống để fail-fast nếu không có ảnh)
-      await page.waitForSelector('img[src*="/champions/icons/"]', { timeout: 5000 }).catch(() => null);
+      // Chờ ít nhất 1 ảnh champion xuất hiện trong SVG (đặc điểm của board)
+      await page.waitForSelector('svg image[href*="/champions/icons/"]', { timeout: 10000 }).catch(() => null);
 
       const content = await page.content();
       const composition = await this.parseDetailHtml(content, url);
 
       return composition;
 
-    } catch (error) {
-      // Ném lỗi để hàm cha log lại url bị lỗi
-      throw error;
     } finally {
       await page.close();
-      if (!existingBrowser) {
-        await browser.close();
-      }
+      if (!existingBrowser) await browser.close();
     }
   }
+
   // ==========================================
   // PARSING & UTILS
   // ==========================================
 
-  private async scrollUntilBottom(page: puppeteer.Page) {
-    await page.evaluate(async () => {
-      await new Promise<void>((resolve) => {
-        let totalHeight = 0;
-        const distance = 200;
-        let retries = 0;
-        const timer = setInterval(() => {
-          const scrollHeight = document.body.scrollHeight;
-          window.scrollBy(0, distance);
-          totalHeight += distance;
-
-          if (totalHeight >= scrollHeight - window.innerHeight) {
-            if (retries >= 5) {
-              clearInterval(timer);
-              resolve();
-            } else {
-              retries++;
-              totalHeight = scrollHeight; // Reset logic
-            }
-          } else {
-            retries = 0;
-          }
-        }, 150);
-      });
-    });
-    await new Promise(r => setTimeout(r, 2000));
-  }
-
-  private async getCompLinks(
-    browser: puppeteer.Browser,
-    url: string,
-  ): Promise<Array<{ url: string; name?: string }>> {
-    const page = await browser.newPage();
-
-    await page.setRequestInterception(true);
-    page.on('request', (req) => {
-      if (req.resourceType() === 'image') req.abort();
-      else req.continue();
-    });
-
-    try {
-      await page.goto(url, { waitUntil: 'networkidle2', timeout: 60000 });
-      await page.waitForSelector('a[href*="/tft/comps-guide/"]', { timeout: 15000 });
-
-      await this.scrollUntilBottom(page);
-
-      const content = await page.content();
-      const $ = cheerio.load(content);
-      const links = new Map<string, { url: string; name?: string }>();
-
-      $('a[href*="/tft/comps-guide/"]').each((_, el) => {
-        const href = $(el).attr('href');
-        if (href) {
-          const fullUrl = new URL(href, url).toString();
-          links.set(fullUrl, { url: fullUrl });
-        }
-      });
-
-      return Array.from(links.values());
-    } finally {
-      await page.close();
-    }
-  }
-
   private async parseDetailHtml(html: string, sourceUrl: string): Promise<CreateCompositionDto> {
     const $ = cheerio.load(html);
+    
+    // 1. Basic Metadata
     const compName = $('h1').first().text().trim() || 'Unknown Comp';
     const tier = $('img[src*="hex-tiers"]').attr('alt')?.toUpperCase() || 'C';
-    
     let plan = 'Standard';
-    $('div.m-ttncf1').each((_, el) => {
-      const text = $(el).text().trim();
-      if (['Fast', 'Roll', 'Level'].some((k) => text.includes(k))) plan = text;
+    $('div').each((_, el) => {
+        const t = $(el).text().trim();
+        if(['Fast 8', 'Fast 9', 'Slow Roll', 'Hyper Roll', 'Standard'].includes(t)) {
+            plan = t;
+            return false; // break
+        }
     });
-
     const metaDescription = $('meta[name="description"]').attr('content') || `Guide for ${compName}`;
     const difficulty = $('div').filter((_, el) => ['Easy', 'Medium', 'Hard'].includes($(el).text().trim())).first().text().trim() || 'Medium';
 
+    // 2. LOGIC TÌM BOARD "CHÍNH CHỦ" (DENSITY SCAN)
     const units: CrawlUnit[] = [];
     let coreChampion: CrawlUnit | null = null;
     const unknownItems = new Set<string>();
 
-    const boardRows = $('.m-67sb4n .m-i9rwau'); // Grid layout
-    boardRows.each((rowIndex, rowEl) => {
-      $(rowEl).find('.m-bjn8wh').each((colIndex, cellEl) => {
-          const $cell = $(cellEl);
-          const unitImage = $cell.find('image, img').filter((_, img) => {
-            const src = $(img).attr('href') || $(img).attr('src') || '';
-            return src.includes('/champions/icons/');
-          });
+    const allHexImages = $('svg image[href*="/champions/icons/"]');
+    
+    if (allHexImages.length > 0) {
+        // [FIXED] Bỏ generic <any> gây lỗi TS
+        const boardCandidates = new Map<any, { count: number, element: cheerio.Cheerio }>();
 
-          if (unitImage.length > 0) {
-            const imageUrl = unitImage.attr('href') || unitImage.attr('src') || '';
-            const rawSlug = imageUrl.split('/').pop()?.split('.')[0] || '';
-            if (!rawSlug) return;
+        allHexImages.each((_, imgEl) => {
+            const $img = $(imgEl);
+            // Traverse ngược lên: Image -> SVG -> Wrapper -> Cell -> Row -> Board
+            const $cell = $img.closest('div').parent(); 
+            const $row = $cell.parent();
+            const $board = $row.parent();
 
-            const rawName = rawSlug.charAt(0).toUpperCase() + rawSlug.slice(1);
-            const items: string[] = [];
-            $cell.find('.m-1pmxhli img').each((_, itemEl) => {
-              const src = $(itemEl).attr('src') || $(itemEl).attr('href') || '';
-              const rawSlug = extractItemSlugFromUrl(src) || $(itemEl).attr('alt');
-              if (rawSlug) {
-                // Mapping item đặc biệt
-                if (rawSlug.toLowerCase() === 'guardbreaker') items.push('TFT_Item_PowerGauntlet');
-                else if (rawSlug.toLowerCase() === 'fimbulwinter') items.push('TFT_Item_FrozenHeart');
-                else if (rawSlug.toLowerCase() === 'steadfasthammer') items.push('TFT_Item_NightHarvester');
-                else {
-                    const apiName = this.itemLookupService.getValidApiName(rawSlug);
-                    if (apiName) items.push(apiName);
-                    else { items.push(`UNKNOWN_${rawSlug}`); unknownItems.add(rawSlug as string); }
+            if ($board.length) {
+                const boardEl = $board.get(0);
+                if (!boardCandidates.has(boardEl)) {
+                    boardCandidates.set(boardEl, { count: 0, element: $board });
                 }
-              }
-            });
-
-            const isCarry = items.length > 0;
-            const unitData: CrawlUnit = {
-              championId: generateSlug(rawName),
-              championKey: this.itemLookupService.getValidChampionKey(rawName) || generateChampionKey(rawName),
-              name: rawName,
-              cost: 0,
-              star: 2,
-              carry: isCarry,
-              position: { row: rowIndex, col: colIndex },
-              items: items,
-              image: imageUrl,
-              traits: [],
-            };
-            units.push(unitData);
-            if (isCarry && (!coreChampion || items.length > (coreChampion.items?.length || 0))) {
-              coreChampion = unitData;
+                // [FIXED] Thêm dấu ! để assert non-null
+                boardCandidates.get(boardEl)!.count++;
             }
-          }
-        });
-    });
-
-    // Fallback parsing (List mode)
-    if (units.length === 0) {
-      const unitsMap = new Map<string, CrawlUnit>();
-      $('a[href*="/tft/champions/"]').each((_, el) => {
-        const $el = $(el);
-        const img = $el.find('img').first();
-        const rawName = img.attr('alt');
-        if (!rawName || rawName.length > 20) return;
-
-        const champId = generateSlug(rawName);
-        const items: string[] = [];
-        $el.closest('div').parent().find('img[src*="game-items"]').each((_, itemEl) => {
-            const itemAlt = $(itemEl).attr('alt');
-            if (itemAlt) items.push(generateItemKey(itemAlt));
         });
 
-        const isCarry = items.length >= 2;
-        if (!unitsMap.has(champId)) {
-            unitsMap.set(champId, {
-                championId: champId,
-                championKey: this.itemLookupService.getValidChampionKey(rawName) || generateChampionKey(rawName),
-                name: rawName,
-                cost: 0, star: 2, carry: isCarry,
-                position: { row: 3, col: unitsMap.size },
-                items: items, traits: []
+        // [FIXED] Khai báo type rõ ràng cho bestBoard
+        let bestBoard: cheerio.Cheerio | null = null;
+        let maxCount = 0;
+        for (const candidate of boardCandidates.values()) {
+            if (candidate.count > maxCount) {
+                maxCount = candidate.count;
+                bestBoard = candidate.element;
+            }
+        }
+
+        if (bestBoard) {
+            bestBoard.children('div').each((rowIndex, rowEl) => {
+                $(rowEl).children('div').each((colIndex, cellEl) => {
+                    const $cell = $(cellEl);
+                    
+                    // Tìm ảnh tướng SVG trong Cell này
+                    const $unitImg = $cell.find('svg image[href*="/champions/icons/"]');
+                    if ($unitImg.length === 0) return; // Ô trống
+
+                    // Lấy thông tin Unit
+                    const src = $unitImg.attr('href') || '';
+                    const rawSlug = src.split('/').pop()?.split('?')[0]?.split('.')[0] || '';
+                    if (!rawSlug) return;
+
+                    const rawName = this.normalizeChampionName(rawSlug);
+                    
+                    // Lấy Item: Tìm thẻ img (không phải svg image) trong cell
+                    const items: string[] = [];
+                    $cell.find('img').each((_, itemEl) => {
+                        const itemSrc = $(itemEl).attr('src') || '';
+                        // Bỏ qua icon tướng và synergy
+                        if (itemSrc.includes('/champions/icons/') || itemSrc.includes('synergies') || itemSrc.includes('hex-tiers')) return;
+                        
+                        const itemSlug = extractItemSlugFromUrl(itemSrc) || $(itemEl).attr('alt');
+                        if (itemSlug) {
+                             const apiName = this.mapItemApiName(itemSlug as string);
+                             if (apiName) items.push(apiName);
+                             else unknownItems.add(itemSlug as string);
+                        }
+                    });
+
+                    const isCarry = items.length > 0;
+                    const unitData: CrawlUnit = {
+                        championId: generateSlug(rawName),
+                        championKey: this.itemLookupService.getValidChampionKey(rawName) || generateChampionKey(rawName),
+                        name: rawName,
+                        cost: 0, // Sẽ fill từ DB
+                        star: 2,
+                        carry: isCarry,
+                        position: { row: rowIndex, col: colIndex },
+                        items: items,
+                        image: src,
+                        traits: [],
+                    };
+                    units.push(unitData);
+
+                    // Xác định Core Champ (nhiều đồ nhất)
+                    if (isCarry && (!coreChampion || items.length > (coreChampion.items?.length || 0))) {
+                        coreChampion = unitData;
+                    }
+                });
             });
         }
-      });
-      units.push(...unitsMap.values());
-      coreChampion = units.find(u => u.carry) || units[0];
     }
 
-    // Lấy cost và traits từ DB cho từng unit
+    // 3. Fallback: Nếu không tìm thấy Board
+    if (units.length === 0) {
+       this.logger.warn(`Fallback parsing triggered for ${sourceUrl}`);
+       // Có thể thêm logic fallback list ở đây nếu cần
+    }
+
+    // 4. Update Cost & Traits từ DB
     for (const unit of units) {
       try {
         let tftUnit = await this.tftUnitsService.findByApiName(unit.championKey);
@@ -477,32 +374,38 @@ export class CrawlerService {
           tftUnit = await this.tftUnitsService.findByApiName(`TFT16_${unit.name.replace(/\s/g, '')}`);
         }
         if (tftUnit) {
-          if (tftUnit.cost != null) {
-            unit.cost = tftUnit.cost;
-          }
-          if (tftUnit.traits?.length) {
-            unit.traits = tftUnit.traits;
-          }
+          if (tftUnit.cost != null) unit.cost = tftUnit.cost;
+          if (tftUnit.traits?.length) unit.traits = tftUnit.traits;
         }
-      } catch {
-        // Giữ cost: 0 và traits: [] nếu không tìm thấy
-      }
+      } catch {}
     }
 
-    // Parse Augments
+    // 5. PARSE AUGMENTS (OLD LOGIC - SCAN TEXT)
     const augments: CrawlAugment[] = [];
+    // Tìm các span có text "Tier 1", "Tier 2"...
     const tierSpans = $('span').filter((_, el) => /^Tier\s+\d+$/.test($(el).text().trim()));
+    
     tierSpans.each((_, el) => {
-      const tier = parseInt($(el).text().trim().split(' ')[1], 10);
+      const tierText = $(el).text().trim(); // "Tier 2"
+      const tier = parseInt(tierText.split(' ')[1], 10); // Lấy số 2
+
+      // Leo lên cha để tìm khu vực chứa các icon augment tương ứng với Tier này
       $(el).parent().parent().find('img').each((_, imgEl) => {
         const $img = $(imgEl);
         let rawSlug = $img.attr('alt') || '';
         const src = $img.attr('src') || '';
-        if (!rawSlug || ['t1', 't2', 't3'].includes(rawSlug.toLowerCase())) rawSlug = extractItemSlugFromUrl(src);
+
+        // Nếu alt không có hoặc là rác (t1, t2..), lấy từ URL
+        if (!rawSlug || ['t1', 't2', 't3'].includes(rawSlug.toLowerCase())) {
+             rawSlug = extractItemSlugFromUrl(src);
+        }
+        // Vẫn rác thì bỏ qua
         if (!rawSlug || ['t1', 't2', 't3'].includes(rawSlug.toLowerCase())) return;
 
         const apiName = this.itemLookupService.getValidAugmentApiName(rawSlug);
-        if (apiName) augments.push({ name: apiName, tier: tier });
+        if (apiName) {
+            augments.push({ name: apiName, tier: tier });
+        }
       });
     });
     
@@ -529,15 +432,97 @@ export class CrawlerService {
     };
   }
 
-  // --- MetaTFT Logic ---
-  private async fetchMetaTftUnitTiers(): Promise<Array<{ name: string; tier: string }>> {
-    const url = 'https://www.metatft.com/units';
-    const browser = await puppeteer.launch({
+  // --- Helpers ---
+  
+  private normalizeChampionName(slug: string): string {
+    // Xử lý case đặc biệt
+    if (slug.toLowerCase() === 'luciansenna') return 'Lucian';
+    if (slug.toLowerCase() === 'jarvaniv') return 'Jarvan IV';
+    return slug.charAt(0).toUpperCase() + slug.slice(1);
+  }
+
+  private mapItemApiName(slug: string): string | null {
+      const lower = slug.toLowerCase();
+      if (lower === 'guardbreaker') return 'TFT_Item_PowerGauntlet';
+      if (lower === 'fimbulwinter') return 'TFT_Item_FrozenHeart';
+      if (lower === 'steadfasthammer') return 'TFT_Item_NightHarvester';
+      return this.itemLookupService.getValidApiName(slug);
+  }
+
+  private async initBrowser() {
+    return await puppeteer.launch({
       headless: true,
       args: ['--no-sandbox', '--disable-setuid-sandbox'],
       defaultViewport: { width: 1920, height: 1080 },
     });
+  }
 
+  private async getCompLinks(
+    browser: puppeteer.Browser,
+    url: string,
+  ): Promise<Array<{ url: string; name?: string }>> {
+    const page = await browser.newPage();
+    await page.setRequestInterception(true);
+    page.on('request', (req) => {
+      if (req.resourceType() === 'image') req.abort();
+      else req.continue();
+    });
+
+    try {
+      await page.goto(url, { waitUntil: 'networkidle2', timeout: 60000 });
+      await page.waitForSelector('a[href*="/tft/comps-guide/"]', { timeout: 15000 });
+      
+      await this.scrollUntilBottom(page);
+
+      const content = await page.content();
+      const $ = cheerio.load(content);
+      const links = new Map<string, { url: string; name?: string }>();
+
+      $('a[href*="/tft/comps-guide/"]').each((_, el) => {
+        const href = $(el).attr('href');
+        if (href) {
+          const fullUrl = new URL(href, url).toString();
+          links.set(fullUrl, { url: fullUrl });
+        }
+      });
+      return Array.from(links.values());
+    } finally {
+      await page.close();
+    }
+  }
+
+  private async scrollUntilBottom(page: puppeteer.Page) {
+    await page.evaluate(async () => {
+      await new Promise<void>((resolve) => {
+        let totalHeight = 0;
+        const distance = 200;
+        let retries = 0;
+        const timer = setInterval(() => {
+          const scrollHeight = document.body.scrollHeight;
+          window.scrollBy(0, distance);
+          totalHeight += distance;
+
+          if (totalHeight >= scrollHeight - window.innerHeight) {
+            if (retries >= 5) {
+              clearInterval(timer);
+              resolve();
+            } else {
+              retries++;
+              totalHeight = scrollHeight; 
+            }
+          } else {
+            retries = 0;
+          }
+        }, 150);
+      });
+    });
+    await new Promise(r => setTimeout(r, 2000));
+  }
+
+  // --- MetaTFT Logic ---
+  private async fetchMetaTftUnitTiers(): Promise<Array<{ name: string; tier: string }>> {
+    const url = 'https://www.metatft.com/units';
+    const browser = await this.initBrowser();
     try {
       const page = await browser.newPage();
       await page.goto(url, { waitUntil: 'networkidle2', timeout: 60000 });
@@ -552,10 +537,9 @@ export class CrawlerService {
   }
 
   private extractUnitTiersFromNextData(html: string): Array<{ name: string; tier: string }> {
-    // ... Logic MetaTFT giữ nguyên như cũ ...
     const $ = cheerio.load(html);
     const nextDataText = $('#__NEXT_DATA__').html();
-    if (!nextDataText) return this.extractUnitTiersFromDom($);
+    if (!nextDataText) return [];
 
     try {
       const data = JSON.parse(nextDataText);
@@ -574,17 +558,12 @@ export class CrawlerService {
       visit(data);
       
       const deduped = new Map<string, {name: string, tier: string}>();
-      results.forEach(r => deduped.set(this.normalizeUnitName(r.name), r));
+      results.forEach(r => deduped.set(this.normalizeUnitNameForMetaTft(r.name), r));
       return Array.from(deduped.values());
     } catch { return []; }
   }
 
-  private extractUnitTiersFromDom($: cheerio.Root): Array<{ name: string; tier: string }> {
-      // ... Logic Dom Fallback ...
-      return [];
-  }
-
-  private normalizeUnitName(name: string): string {
+  private normalizeUnitNameForMetaTft(name: string): string {
     return name.toLowerCase().trim().replace(/['’]/g, '').replace(/[^a-z0-9]/g, '');
   }
 }
