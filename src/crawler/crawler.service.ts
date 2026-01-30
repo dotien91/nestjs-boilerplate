@@ -284,7 +284,7 @@ export class CrawlerService {
       await page.waitForSelector('img[src*="/champions/icons/"]', { timeout: 5000 }).catch(() => null);
 
       const content = await page.content();
-      const composition = this.parseDetailHtml(content, url);
+      const composition = await this.parseDetailHtml(content, url);
 
       return composition;
 
@@ -366,7 +366,7 @@ export class CrawlerService {
     }
   }
 
-  private parseDetailHtml(html: string, sourceUrl: string): CreateCompositionDto {
+  private async parseDetailHtml(html: string, sourceUrl: string): Promise<CreateCompositionDto> {
     const $ = cheerio.load(html);
     const compName = $('h1').first().text().trim() || 'Unknown Comp';
     const tier = $('img[src*="hex-tiers"]').attr('alt')?.toUpperCase() || 'C';
@@ -467,6 +467,26 @@ export class CrawlerService {
       });
       units.push(...unitsMap.values());
       coreChampion = units.find(u => u.carry) || units[0];
+    }
+
+    // Lấy cost và traits từ DB cho từng unit
+    for (const unit of units) {
+      try {
+        let tftUnit = await this.tftUnitsService.findByApiName(unit.championKey);
+        if (!tftUnit) {
+          tftUnit = await this.tftUnitsService.findByApiName(`TFT16_${unit.name.replace(/\s/g, '')}`);
+        }
+        if (tftUnit) {
+          if (tftUnit.cost != null) {
+            unit.cost = tftUnit.cost;
+          }
+          if (tftUnit.traits?.length) {
+            unit.traits = tftUnit.traits;
+          }
+        }
+      } catch {
+        // Giữ cost: 0 và traits: [] nếu không tìm thấy
+      }
     }
 
     // Parse Augments
