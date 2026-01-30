@@ -61,22 +61,23 @@ export class TftUnitsService {
     filterOptions,
     sortOptions,
     paginationOptions,
+    minimal,
   }: {
     filterOptions?: FilterTftUnitDto | null;
     sortOptions?: SortTftUnitDto[] | null;
     paginationOptions: IPaginationOptions;
+    minimal?: boolean;
   }): Promise<TftUnit[]> {
-    // Sort được thực hiện trong MongoDB (repository layer)
     return this.tftUnitsRepository.findManyWithPagination({
       filterOptions,
       sortOptions,
       paginationOptions,
+      minimal,
     });
   }
 
-  async findAll(): Promise<TftUnit[]> {
-    // Sort được thực hiện trong MongoDB (repository layer)
-    return this.tftUnitsRepository.findAll();
+  async findAll(options?: { minimal?: boolean }): Promise<TftUnit[]> {
+    return this.tftUnitsRepository.findAll(options);
   }
 
   async findById(id: TftUnit['id']): Promise<NullableType<TftUnit>> {

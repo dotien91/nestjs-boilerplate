@@ -55,6 +55,7 @@ export class TftUnitsController {
 
   private toMinimalUnit(unit: TftUnit): MinimalTftUnitResponse {
     return {
+      id: unit.id != null ? String(unit.id) : '',
       apiName: unit.apiName,
       characterName: unit.characterName ?? null,
       cost: unit.cost ?? null,
@@ -62,7 +63,6 @@ export class TftUnitsController {
       name: unit.name,
       tier: unit.tier ?? null,
       traits: unit.traits ?? [],
-      id: unit.apiName || unit.name,
     };
   }
 
@@ -116,16 +116,15 @@ export class TftUnitsController {
       ];
     }
 
+    const isMinimal = !!query?.minimal;
     const data = await this.tftUnitsService.findManyWithPagination({
       filterOptions: filters,
       sortOptions: sort,
-      paginationOptions: {
-        page,
-        limit,
-      },
+      paginationOptions: { page, limit },
+      minimal: isMinimal,
     });
 
-    const responseData: Array<TftUnit | MinimalTftUnitResponse> = query?.minimal
+    const responseData: Array<TftUnit | MinimalTftUnitResponse> = isMinimal
       ? data.map((unit) => this.toMinimalUnit(unit))
       : data;
 
@@ -146,9 +145,8 @@ export class TftUnitsController {
   async findAllUnits(
     @Query('minimal') minimal?: string,
   ): Promise<Array<TftUnit | MinimalTftUnitResponse>> {
-    console.log('findAllUnits');
-    const data = await this.tftUnitsService.findAll();
     const isMinimal = minimal === 'true' || minimal === '1';
+    const data = await this.tftUnitsService.findAll({ minimal: isMinimal });
     return isMinimal ? data.map((unit) => this.toMinimalUnit(unit)) : data;
   }
 
@@ -186,13 +184,13 @@ export class TftUnitsController {
     @Param('cost') cost: number,
     @Query('minimal') minimal?: string,
   ): Promise<Array<TftUnit | MinimalTftUnitResponse>> {
-    // Không truyền sortOptions để sử dụng default sort theo tier (S > A > B > C > D)
+    const isMinimal = minimal === 'true' || minimal === '1';
     const data = await this.tftUnitsService.findManyWithPagination({
       filterOptions: { cost },
       sortOptions: null,
       paginationOptions: { page: 1, limit: 100 },
+      minimal: isMinimal,
     });
-    const isMinimal = minimal === 'true' || minimal === '1';
     return isMinimal ? data.map((unit) => this.toMinimalUnit(unit)) : data;
   }
 

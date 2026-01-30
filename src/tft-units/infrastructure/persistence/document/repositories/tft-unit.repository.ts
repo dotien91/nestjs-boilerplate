@@ -57,7 +57,7 @@ export class TftUnitsDocumentRepository implements TftUnitRepository {
    */
   private leanToDomain(unitObject: any): TftUnit {
     const domainEntity = new TftUnit();
-    domainEntity.id = unitObject._id?.toString() || unitObject._id;
+    domainEntity.id = unitObject._id != null ? unitObject._id.toString() : unitObject._id;
     domainEntity.apiName = unitObject.apiName;
     domainEntity.name = unitObject.name;
     domainEntity.enName = unitObject.enName;
@@ -93,64 +93,45 @@ export class TftUnitsDocumentRepository implements TftUnitRepository {
     return TftUnitMapper.toDomain(unitObject);
   }
 
+  /** Projection chỉ lấy field cần cho minimal response (tránh load ability, stats, icons...) */
+  private readonly minimalProjection = '_id apiName characterName cost enName name tier traits';
+
   async findManyWithPagination({
     filterOptions,
     sortOptions,
     paginationOptions,
+    minimal,
   }: {
     filterOptions?: FilterTftUnitDto | null;
     sortOptions?: SortTftUnitDto[] | null;
     paginationOptions: IPaginationOptions;
+    minimal?: boolean;
   }): Promise<TftUnit[]> {
     const where = this.buildFilterQuery(filterOptions);
+    const select = minimal ? this.minimalProjection : undefined;
 
-    // Nếu không có sort options, mặc định sort theo tier (S > A > B > C > D) trong MongoDB
     if (!sortOptions || sortOptions.length === 0) {
-      const pipeline: any[] = [
-        { $match: where },
-        // Thêm field tierOrder để sort: S=0, A=1, B=2, C=3, D=4, null/khác=5
-        {
-          $addFields: {
-            tierOrder: {
-              $switch: {
-                branches: [
-                  { case: { $eq: [{ $toUpper: '$tier' }, 'S'] }, then: 0 },
-                  { case: { $eq: [{ $toUpper: '$tier' }, 'A'] }, then: 1 },
-                  { case: { $eq: [{ $toUpper: '$tier' }, 'B'] }, then: 2 },
-                  { case: { $eq: [{ $toUpper: '$tier' }, 'C'] }, then: 3 },
-                  { case: { $eq: [{ $toUpper: '$tier' }, 'D'] }, then: 4 },
-                ],
-                default: 5,
-              },
-            },
-          },
-        },
-        // Sort theo tierOrder, sau đó theo name
-        { $sort: { tierOrder: 1, name: 1 } },
-        // Pagination
-        { $skip: (paginationOptions.page - 1) * paginationOptions.limit },
-        { $limit: paginationOptions.limit },
-        // Remove tierOrder field trước khi return
-        { $unset: 'tierOrder' },
-      ];
-
-      const unitObjects = await this.tftUnitsModel.aggregate(pipeline);
+      let query = this.tftUnitsModel.find(where);
+      if (select) query = query.select(select);
+      const unitObjects = await query
+        .skip((paginationOptions.page - 1) * paginationOptions.limit)
+        .limit(paginationOptions.limit)
+        .lean();
       return unitObjects.map((unitObject: any) => this.leanToDomain(unitObject));
     }
 
-    // Nếu có sort options, dùng sort bình thường
-    const unitObjects = await this.tftUnitsModel
-      .find(where)
-      .sort(
-        sortOptions.reduce(
-          (accumulator, sort) => ({
-            ...accumulator,
-            [sort.orderBy === 'id' ? '_id' : sort.orderBy]:
-              sort.order.toUpperCase() === 'ASC' ? 1 : -1,
-          }),
-          {},
-        ),
-      )
+    let query = this.tftUnitsModel.find(where).sort(
+      sortOptions.reduce(
+        (accumulator, sort) => ({
+          ...accumulator,
+          [sort.orderBy === 'id' ? '_id' : sort.orderBy]:
+            sort.order.toUpperCase() === 'ASC' ? 1 : -1,
+        }),
+        {},
+      ),
+    );
+    if (select) query = query.select(select);
+    const unitObjects = await query
       .skip((paginationOptions.page - 1) * paginationOptions.limit)
       .limit(paginationOptions.limit)
       .lean();
@@ -170,33 +151,11 @@ export class TftUnitsDocumentRepository implements TftUnitRepository {
     return unitObjects.map((unitObject: any) => this.leanToDomain(unitObject));
   }
 
-  async findAll(): Promise<TftUnit[]> {
-    // Sort theo tier (S > A > B > C > D) trong MongoDB
-    const pipeline: any[] = [
-      // Thêm field tierOrder để sort: S=0, A=1, B=2, C=3, D=4, null/khác=5
-      {
-        $addFields: {
-          tierOrder: {
-            $switch: {
-              branches: [
-                { case: { $eq: [{ $toUpper: '$tier' }, 'S'] }, then: 0 },
-                { case: { $eq: [{ $toUpper: '$tier' }, 'A'] }, then: 1 },
-                { case: { $eq: [{ $toUpper: '$tier' }, 'B'] }, then: 2 },
-                { case: { $eq: [{ $toUpper: '$tier' }, 'C'] }, then: 3 },
-                { case: { $eq: [{ $toUpper: '$tier' }, 'D'] }, then: 4 },
-              ],
-              default: 5,
-            },
-          },
-        },
-      },
-      // Sort theo tierOrder, sau đó theo name
-      { $sort: { tierOrder: 1, name: 1 } },
-      // Remove tierOrder field trước khi return
-      { $unset: 'tierOrder' },
-    ];
-
-    const unitObjects = await this.tftUnitsModel.aggregate(pipeline);
+  async findAll(options?: { minimal?: boolean }): Promise<TftUnit[]> {
+    const select = options?.minimal ? this.minimalProjection : undefined;
+    let query = this.tftUnitsModel.find({});
+    if (select) query = query.select(select);
+    const unitObjects = await query.lean();
     return unitObjects.map((unitObject: any) => this.leanToDomain(unitObject));
   }
 

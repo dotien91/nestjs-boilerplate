@@ -13,13 +13,15 @@ export abstract class TftUnitRepository {
     filterOptions,
     sortOptions,
     paginationOptions,
+    minimal,
   }: {
     filterOptions?: FilterTftUnitDto | null;
     sortOptions?: SortTftUnitDto[] | null;
     paginationOptions: IPaginationOptions;
+    minimal?: boolean;
   }): Promise<TftUnit[]>;
 
-  abstract findAll(): Promise<TftUnit[]>;
+  abstract findAll(options?: { minimal?: boolean }): Promise<TftUnit[]>;
 
   abstract findById(id: TftUnit['id']): Promise<NullableType<TftUnit>>;
 
