@@ -35,6 +35,7 @@ import { infinityPagination } from '../utils/infinity-pagination';
 import { NullableType } from '../utils/types/nullable.type';
 
 type MinimalTftUnitResponse = {
+  id: string;
   apiName: string;
   characterName: string | null;
   cost: number | null;
@@ -61,6 +62,7 @@ export class TftUnitsController {
       name: unit.name,
       tier: unit.tier ?? null,
       traits: unit.traits ?? [],
+      id: unit.apiName || unit.name,
     };
   }
 
