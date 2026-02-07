@@ -75,11 +75,12 @@ export class CrawlerService {
   }
 
   // ==========================================
-  // CRON JOBS
+  // CRON JOBS (đã tắt)
   // ==========================================
 
-  @Cron(CronExpression.EVERY_DAY_AT_9AM)
+  // @Cron(CronExpression.EVERY_DAY_AT_9AM)
   async handleDailyUnitTierCrawl() {
+    if (process.env.NODE_ENV !== 'development') return;
     this.logger.log('🕐 Daily unit tier crawl started.');
     const tiers = await this.fetchMetaTftUnitTiers();
     if (tiers.length === 0) return;
@@ -108,6 +109,7 @@ export class CrawlerService {
 
   // @Cron(CronExpression.EVERY_4_HOURS)
   async handleDailyCrawl() {
+    if (process.env.NODE_ENV !== 'development') return;
     this.logger.log('🕛 Daily crawl job started.');
     await this.crawlAllCompositions();
     this.logger.log('✅ Daily crawl job finished.');
@@ -198,6 +200,15 @@ export class CrawlerService {
     const browser = existingBrowser || (await this.initBrowser());
     const page = await browser.newPage();
 
+    // 1. Cấp quyền Clipboard cho trang này (Bắt buộc để đọc Team Code)
+    const context = browser.defaultBrowserContext();
+    try {
+        await context.overridePermissions(new URL(url).origin, ['clipboard-read', 'clipboard-write']);
+    } catch (e) {
+        // Fallback nếu URL invalid hoặc lỗi permission
+        this.logger.warn(`Permission override warning: ${e}`);
+    }
+
     await page.setUserAgent(
       'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36'
     );
@@ -235,8 +246,12 @@ export class CrawlerService {
       // Chờ ít nhất 1 ảnh champion xuất hiện trong SVG (đặc điểm của board)
       await page.waitForSelector('svg image[href*="/champions/icons/"]', { timeout: 10000 }).catch(() => null);
 
+      // --- [NEW] TRÍCH XUẤT TEAM CODE TỪ BUTTON ---
+      const teamCode = await this.extractTeamCode(page);
+      // ---------------------------------------------
+
       const content = await page.content();
-      const composition = await this.parseDetailHtml(content, url);
+      const composition = await this.parseDetailHtml(content, url, teamCode);
 
       return composition;
 
@@ -250,7 +265,68 @@ export class CrawlerService {
   // PARSING & UTILS
   // ==========================================
 
-  private async parseDetailHtml(html: string, sourceUrl: string): Promise<CreateCompositionDto> {
+  // Hàm mới: Click nút Import và lấy code từ clipboard
+// PHIÊN BẢN MỚI: Dùng kỹ thuật Intercept (Bắt chặn)
+private async extractTeamCode(page: puppeteer.Page): Promise<string> {
+  try {
+      // 1. "Monkey Patch": Viết đè hàm writeText của trình duyệt
+      // Thay vì copy vào clipboard thật, ta lưu nó vào biến window.capturedCode
+      await page.evaluate(() => {
+          (window as any).capturedCode = null; // Reset
+          Object.defineProperty(navigator, 'clipboard', {
+              value: {
+                  writeText: async (text: string) => {
+                      (window as any).capturedCode = text;
+                      return Promise.resolve();
+                  },
+                  readText: async () => Promise.resolve((window as any).capturedCode || '')
+              },
+              configurable: true
+          });
+      });
+
+      // 2. Tìm nút bấm (Selector phải chính xác)
+      // Tìm button có chứa text "Import comp" hoặc img có alt chứa text đó
+      const buttonXPath = `//button[contains(., "Import comp")] | //button[.//img[contains(@alt, "Import comp")]]`;
+      
+      try {
+           await page.waitForSelector(`xpath/${buttonXPath}`, { timeout: 4000 });
+      } catch {
+           this.logger.warn('Button import not found via XPath');
+           return '';
+      }
+
+      const elements = await page.$$(`xpath/${buttonXPath}`);
+      
+      if (elements.length > 0) {
+          const btn = elements[0];
+          
+          // Scroll & Click
+          await btn.evaluate((b) => {
+               b.scrollIntoView({ behavior: 'instant', block: 'center' });
+          });
+          await new Promise(r => setTimeout(r, 200)); // Đợi scroll
+          
+          await btn.click();
+          
+          // 3. Đợi trang web thực thi lệnh copy (đã bị ta bắt chặn)
+          // Poll (kiểm tra liên tục) biến capturedCode trong 2 giây
+          const code = await page.waitForFunction(() => (window as any).capturedCode, { timeout: 2000 })
+              .then(handle => handle.jsonValue())
+              .catch(() => null);
+
+          if (code && typeof code === 'string' && code.length > 10) {
+              this.logger.log(`📋 Intercepted Team Code: ${code.substring(0, 15)}...`);
+              return code.trim();
+          }
+      }
+  } catch (error) {
+      this.logger.warn(`Failed to intercept team code: ${error instanceof Error ? error.message : error}`);
+  }
+  return '';
+}
+
+  private async parseDetailHtml(html: string, sourceUrl: string, teamCode: string = ''): Promise<CreateCompositionDto> {
     const $ = cheerio.load(html);
     
     // 1. Basic Metadata
@@ -275,7 +351,6 @@ export class CrawlerService {
     const allHexImages = $('svg image[href*="/champions/icons/"]');
     
     if (allHexImages.length > 0) {
-        // [FIXED] Bỏ generic <any> gây lỗi TS
         const boardCandidates = new Map<any, { count: number, element: cheerio.Cheerio }>();
 
         allHexImages.each((_, imgEl) => {
@@ -290,12 +365,10 @@ export class CrawlerService {
                 if (!boardCandidates.has(boardEl)) {
                     boardCandidates.set(boardEl, { count: 0, element: $board });
                 }
-                // [FIXED] Thêm dấu ! để assert non-null
                 boardCandidates.get(boardEl)!.count++;
             }
         });
 
-        // [FIXED] Khai báo type rõ ràng cho bestBoard
         let bestBoard: cheerio.Cheerio | null = null;
         let maxCount = 0;
         for (const candidate of boardCandidates.values()) {
@@ -360,12 +433,6 @@ export class CrawlerService {
         }
     }
 
-    // 3. Fallback: Nếu không tìm thấy Board
-    if (units.length === 0) {
-       this.logger.warn(`Fallback parsing triggered for ${sourceUrl}`);
-       // Có thể thêm logic fallback list ở đây nếu cần
-    }
-
     // 4. Update Cost & Traits từ DB
     for (const unit of units) {
       try {
@@ -380,26 +447,22 @@ export class CrawlerService {
       } catch {}
     }
 
-    // 5. PARSE AUGMENTS (OLD LOGIC - SCAN TEXT)
+    // 5. PARSE AUGMENTS
     const augments: CrawlAugment[] = [];
-    // Tìm các span có text "Tier 1", "Tier 2"...
     const tierSpans = $('span').filter((_, el) => /^Tier\s+\d+$/.test($(el).text().trim()));
     
     tierSpans.each((_, el) => {
       const tierText = $(el).text().trim(); // "Tier 2"
       const tier = parseInt(tierText.split(' ')[1], 10); // Lấy số 2
 
-      // Leo lên cha để tìm khu vực chứa các icon augment tương ứng với Tier này
       $(el).parent().parent().find('img').each((_, imgEl) => {
         const $img = $(imgEl);
         let rawSlug = $img.attr('alt') || '';
         const src = $img.attr('src') || '';
 
-        // Nếu alt không có hoặc là rác (t1, t2..), lấy từ URL
         if (!rawSlug || ['t1', 't2', 't3'].includes(rawSlug.toLowerCase())) {
              rawSlug = extractItemSlugFromUrl(src);
         }
-        // Vẫn rác thì bỏ qua
         if (!rawSlug || ['t1', 't2', 't3'].includes(rawSlug.toLowerCase())) return;
 
         const apiName = this.itemLookupService.getValidAugmentApiName(rawSlug);
@@ -409,12 +472,12 @@ export class CrawlerService {
       });
     });
     
-    // Dedup augments
     const finalAugments = Array.from(new Map(augments.map(a => [a.name, a])).values());
 
     return {
       compId: `comp-${generateSlug(compName)}-${Date.now()}`,
       name: compName,
+      teamCode: teamCode, // <--- Lưu Team Code vào DTO
       plan: plan,
       difficulty: difficulty,
       metaDescription: metaDescription,
@@ -435,7 +498,6 @@ export class CrawlerService {
   // --- Helpers ---
   
   private normalizeChampionName(slug: string): string {
-    // Xử lý case đặc biệt
     if (slug.toLowerCase() === 'luciansenna') return 'Lucian';
     if (slug.toLowerCase() === 'jarvaniv') return 'Jarvan IV';
     return slug.charAt(0).toUpperCase() + slug.slice(1);
@@ -452,7 +514,13 @@ export class CrawlerService {
   private async initBrowser() {
     return await puppeteer.launch({
       headless: true,
-      args: ['--no-sandbox', '--disable-setuid-sandbox'],
+      args: [
+        '--no-sandbox', 
+        '--disable-setuid-sandbox',
+        // Các cờ sau giúp việc copy paste ổn định hơn trong môi trường headless
+        '--enable-clipboard-read',
+        '--enable-clipboard-write'
+      ],
       defaultViewport: { width: 1920, height: 1080 },
     });
   }

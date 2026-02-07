@@ -481,10 +481,10 @@ export class CreateCompositionDto {
   @ApiPropertyOptional({
     type: String,
     example: 'TFT_TeamCode_Example',
-    description: 'Teamcode để import composition vào game TFT',
+    description: 'TeamCode để import composition vào game TFT',
   })
   @IsOptional()
   @IsString()
-  teamcode?: string;
+  teamCode?: string;
 }
 

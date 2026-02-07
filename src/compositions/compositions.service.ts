@@ -79,6 +79,7 @@ export class CompositionsService {
       carouselPriority: createCompositionDto.carouselPriority,
       augments: createCompositionDto.augments ?? [],
       coreChampion: createCompositionDto.coreChampion,
+      teamCode: createCompositionDto.teamCode,
     });
 
     return composition;
@@ -1014,7 +1015,7 @@ export class CompositionsService {
       carouselPriority: carouselPriority,
       augments: augments.length > 0 ? augments : undefined,
       coreChampion: finalCoreChampionWithApiNames || undefined,
-      teamcode: teamcode || undefined,
+      teamCode: teamcode || undefined,
     };
   }
 }
