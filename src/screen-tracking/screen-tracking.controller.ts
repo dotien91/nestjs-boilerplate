@@ -55,8 +55,8 @@ export class ScreenTrackingController {
       userId,
       lang: userContext?.lang || null,
       location: userContext?.location || null,
-      deviceId: createScreenTrackingDto.deviceId ?? userContext?.deviceId ?? null,
-      appVersion: createScreenTrackingDto.appVersion ?? userContext?.appVersion ?? null,
+      deviceId: createScreenTrackingDto.deviceId ?? userContext?.deviceId ?? undefined,
+      appVersion: createScreenTrackingDto.appVersion ?? userContext?.appVersion ?? undefined,
     });
   }
 }
