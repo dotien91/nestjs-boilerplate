@@ -17,7 +17,8 @@ import * as path from 'path';
   version: '1',
 })
 export class DataController {
-  private readonly assetPath = path.join(process.cwd(), 'src', 'asset');
+  // dist/asset khi chạy build (server), src/asset khi chạy từ source (dev)
+  private readonly assetPath = path.join(__dirname, '..', 'asset');
 
   @ApiOperation({
     summary: 'Lấy dữ liệu TFT Set 16 theo ngôn ngữ',
