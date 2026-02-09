@@ -326,174 +326,181 @@ private async extractTeamCode(page: puppeteer.Page): Promise<string> {
   return '';
 }
 
-  private async parseDetailHtml(html: string, sourceUrl: string, teamCode: string = ''): Promise<CreateCompositionDto> {
-    const $ = cheerio.load(html);
-    
-    // 1. Basic Metadata
-    const compName = $('h1').first().text().trim() || 'Unknown Comp';
-    const tier = $('img[src*="hex-tiers"]').attr('alt')?.toUpperCase() || 'C';
-    let plan = 'Standard';
-    $('div').each((_, el) => {
-        const t = $(el).text().trim();
-        if(['Fast 8', 'Fast 9', 'Slow Roll', 'Hyper Roll', 'Standard'].includes(t)) {
-            plan = t;
-            return false; // break
-        }
-    });
-    const metaDescription = $('meta[name="description"]').attr('content') || `Guide for ${compName}`;
-    const difficulty = $('div').filter((_, el) => ['Easy', 'Medium', 'Hard'].includes($(el).text().trim())).first().text().trim() || 'Medium';
+private async parseDetailHtml(html: string, sourceUrl: string, teamCode: string = ''): Promise<CreateCompositionDto> {
+  const $ = cheerio.load(html);
+  
+  // 1. Basic Metadata
+  const compName = $('h1').first().text().trim() || 'Unknown Comp';
+  const tier = $('img[src*="hex-tiers"]').attr('alt')?.toUpperCase() || 'C';
 
-    // 2. LOGIC TÌM BOARD "CHÍNH CHỦ" (DENSITY SCAN)
-    const units: CrawlUnit[] = [];
-    let coreChampion: CrawlUnit | null = null;
-    const unknownItems = new Set<string>();
-
-    const allHexImages = $('svg image[href*="/champions/icons/"]');
-    
-    if (allHexImages.length > 0) {
-        const boardCandidates = new Map<any, { count: number, element: cheerio.Cheerio }>();
-
-        allHexImages.each((_, imgEl) => {
-            const $img = $(imgEl);
-            // Traverse ngược lên: Image -> SVG -> Wrapper -> Cell -> Row -> Board
-            const $cell = $img.closest('div').parent(); 
-            const $row = $cell.parent();
-            const $board = $row.parent();
-
-            if ($board.length) {
-                const boardEl = $board.get(0);
-                if (!boardCandidates.has(boardEl)) {
-                    boardCandidates.set(boardEl, { count: 0, element: $board });
-                }
-                boardCandidates.get(boardEl)!.count++;
-            }
-        });
-
-        let bestBoard: cheerio.Cheerio | null = null;
-        let maxCount = 0;
-        for (const candidate of boardCandidates.values()) {
-            if (candidate.count > maxCount) {
-                maxCount = candidate.count;
-                bestBoard = candidate.element;
-            }
-        }
-
-        if (bestBoard) {
-            bestBoard.children('div').each((rowIndex, rowEl) => {
-                $(rowEl).children('div').each((colIndex, cellEl) => {
-                    const $cell = $(cellEl);
-                    
-                    // Tìm ảnh tướng SVG trong Cell này
-                    const $unitImg = $cell.find('svg image[href*="/champions/icons/"]');
-                    if ($unitImg.length === 0) return; // Ô trống
-
-                    // Lấy thông tin Unit
-                    const src = $unitImg.attr('href') || '';
-                    const rawSlug = src.split('/').pop()?.split('?')[0]?.split('.')[0] || '';
-                    if (!rawSlug) return;
-
-                    const rawName = this.normalizeChampionName(rawSlug);
-                    
-                    // Lấy Item: Tìm thẻ img (không phải svg image) trong cell
-                    const items: string[] = [];
-                    $cell.find('img').each((_, itemEl) => {
-                        const itemSrc = $(itemEl).attr('src') || '';
-                        // Bỏ qua icon tướng và synergy
-                        if (itemSrc.includes('/champions/icons/') || itemSrc.includes('synergies') || itemSrc.includes('hex-tiers')) return;
-                        
-                        const itemSlug = extractItemSlugFromUrl(itemSrc) || $(itemEl).attr('alt');
-                        if (itemSlug) {
-                             const apiName = this.mapItemApiName(itemSlug as string);
-                             if (apiName) items.push(apiName);
-                             else unknownItems.add(itemSlug as string);
-                        }
-                    });
-
-                    const isCarry = items.length > 0;
-                    const unitData: CrawlUnit = {
-                        championId: generateSlug(rawName),
-                        championKey: this.itemLookupService.getValidChampionKey(rawName) || generateChampionKey(rawName),
-                        name: rawName,
-                        cost: 0, // Sẽ fill từ DB
-                        star: 2,
-                        carry: isCarry,
-                        position: { row: rowIndex, col: colIndex },
-                        items: items,
-                        image: src,
-                        traits: [],
-                    };
-                    units.push(unitData);
-
-                    // Xác định Core Champ (nhiều đồ nhất)
-                    if (isCarry && (!coreChampion || items.length > (coreChampion.items?.length || 0))) {
-                        coreChampion = unitData;
-                    }
-                });
-            });
-        }
-    }
-
-    // 4. Update Cost & Traits từ DB
-    for (const unit of units) {
-      try {
-        let tftUnit = await this.tftUnitsService.findByApiName(unit.championKey);
-        if (!tftUnit) {
-          tftUnit = await this.tftUnitsService.findByApiName(`TFT16_${unit.name.replace(/\s/g, '')}`);
-        }
-        if (tftUnit) {
-          if (tftUnit.cost != null) unit.cost = tftUnit.cost;
-          if (tftUnit.traits?.length) unit.traits = tftUnit.traits;
-        }
-      } catch {}
-    }
-
-    // 5. PARSE AUGMENTS
-    const augments: CrawlAugment[] = [];
-    const tierSpans = $('span').filter((_, el) => /^Tier\s+\d+$/.test($(el).text().trim()));
-    
-    tierSpans.each((_, el) => {
-      const tierText = $(el).text().trim(); // "Tier 2"
-      const tier = parseInt(tierText.split(' ')[1], 10); // Lấy số 2
-
-      $(el).parent().parent().find('img').each((_, imgEl) => {
-        const $img = $(imgEl);
-        let rawSlug = $img.attr('alt') || '';
-        const src = $img.attr('src') || '';
-
-        if (!rawSlug || ['t1', 't2', 't3'].includes(rawSlug.toLowerCase())) {
-             rawSlug = extractItemSlugFromUrl(src);
-        }
-        if (!rawSlug || ['t1', 't2', 't3'].includes(rawSlug.toLowerCase())) return;
-
-        const apiName = this.itemLookupService.getValidAugmentApiName(rawSlug);
-        if (apiName) {
-            augments.push({ name: apiName, tier: tier });
-        }
-      });
-    });
-    
-    const finalAugments = Array.from(new Map(augments.map(a => [a.name, a])).values());
-
-    return {
-      compId: `comp-${generateSlug(compName)}-${Date.now()}`,
-      name: compName,
-      teamCode: teamCode, // <--- Lưu Team Code vào DTO
-      plan: plan,
-      difficulty: difficulty,
-      metaDescription: metaDescription,
-      isLateGame: plan.includes('8') || plan.includes('9'),
-      tier: tier,
-      active: true,
-      boardSize: { rows: 4, cols: 7 },
-      units,
-      earlyGame: [],
-      midGame: [],
-      bench: [],
-      notes: [],
-      augments: finalAugments,
-      coreChampion: coreChampion || units[0],
-    };
+  // --- Cập nhật: Lấy metaDescription từ General Info ---
+  let metaDescription = '';
+  const generalInfoSection = $('.m-22cd40'); // Container chứa General Info
+  if (generalInfoSection.length) {
+      // Tìm div chứa text mô tả chiến thuật (thường là class m-zrc7tx đầu tiên trong block này)
+      metaDescription = generalInfoSection.find('.m-zrc7tx').first().text().trim();
   }
+  
+  // Fallback nếu không tìm thấy nội dung trong General Info
+  if (!metaDescription) {
+      metaDescription = $('meta[name="description"]').attr('content') || `Guide for ${compName}`;
+  }
+
+  let plan = 'Standard';
+  $('div').each((_, el) => {
+      const t = $(el).text().trim();
+      if(['Fast 8', 'Fast 9', 'Slow Roll', 'Hyper Roll', 'Standard'].includes(t)) {
+          plan = t;
+          return false; 
+      }
+  });
+
+  const difficulty = $('div').filter((_, el) => ['Easy', 'Medium', 'Hard'].includes($(el).text().trim())).first().text().trim() || 'Medium';
+
+  // 2. Logic tìm Board "Chính chủ" (Density Scan)
+  const units: CrawlUnit[] = [];
+  let coreChampion: CrawlUnit | null = null;
+  const unknownItems = new Set<string>();
+
+  const allHexImages = $('svg image[href*="/champions/icons/"]');
+  
+  if (allHexImages.length > 0) {
+      const boardCandidates = new Map<any, { count: number, element: cheerio.Cheerio }>();
+
+      allHexImages.each((_, imgEl) => {
+          const $img = $(imgEl);
+          const $cell = $img.closest('div').parent(); 
+          const $row = $cell.parent();
+          const $board = $row.parent();
+
+          if ($board.length) {
+              const boardEl = $board.get(0);
+              if (!boardCandidates.has(boardEl)) {
+                  boardCandidates.set(boardEl, { count: 0, element: $board });
+              }
+              boardCandidates.get(boardEl)!.count++;
+          }
+      });
+
+      let bestBoard: cheerio.Cheerio | null = null;
+      let maxCount = 0;
+      for (const candidate of boardCandidates.values()) {
+          if (candidate.count > maxCount) {
+              maxCount = candidate.count;
+              bestBoard = candidate.element;
+          }
+      }
+
+      if (bestBoard) {
+          bestBoard.children('div').each((rowIndex, rowEl) => {
+              $(rowEl).children('div').each((colIndex, cellEl) => {
+                  const $cell = $(cellEl);
+                  const $unitImg = $cell.find('svg image[href*="/champions/icons/"]');
+                  if ($unitImg.length === 0) return; 
+
+                  const src = $unitImg.attr('href') || '';
+                  const rawSlug = src.split('/').pop()?.split('?')[0]?.split('.')[0] || '';
+                  if (!rawSlug) return;
+
+                  const rawName = this.normalizeChampionName(rawSlug);
+                  
+                  const items: string[] = [];
+                  $cell.find('img').each((_, itemEl) => {
+                      const itemSrc = $(itemEl).attr('src') || '';
+                      if (itemSrc.includes('/champions/icons/') || itemSrc.includes('synergies') || itemSrc.includes('hex-tiers')) return;
+                      
+                      const itemSlug = extractItemSlugFromUrl(itemSrc) || $(itemEl).attr('alt');
+                      if (itemSlug) {
+                           const apiName = this.mapItemApiName(itemSlug as string);
+                           if (apiName) items.push(apiName);
+                           else unknownItems.add(itemSlug as string);
+                      }
+                  });
+
+                  const isCarry = items.length > 0;
+                  const unitData: CrawlUnit = {
+                      championId: generateSlug(rawName),
+                      championKey: this.itemLookupService.getValidChampionKey(rawName) || generateChampionKey(rawName),
+                      name: rawName,
+                      cost: 0, 
+                      star: 2,
+                      carry: isCarry,
+                      position: { row: rowIndex, col: colIndex },
+                      items: items,
+                      image: src,
+                      traits: [],
+                  };
+                  units.push(unitData);
+
+                  if (isCarry && (!coreChampion || items.length > (coreChampion.items?.length || 0))) {
+                      coreChampion = unitData;
+                  }
+              });
+          });
+      }
+  }
+
+  // 4. Update Cost & Traits từ DB
+  for (const unit of units) {
+    try {
+      let tftUnit = await this.tftUnitsService.findByApiName(unit.championKey);
+      if (!tftUnit) {
+        tftUnit = await this.tftUnitsService.findByApiName(`TFT16_${unit.name.replace(/\s/g, '')}`);
+      }
+      if (tftUnit) {
+        if (tftUnit.cost != null) unit.cost = tftUnit.cost;
+        if (tftUnit.traits?.length) unit.traits = tftUnit.traits;
+      }
+    } catch {}
+  }
+
+  // 5. Parse Augments
+  const augments: CrawlAugment[] = [];
+  const tierSpans = $('span').filter((_, el) => /^Tier\s+\d+$/.test($(el).text().trim()));
+  
+  tierSpans.each((_, el) => {
+    const tierText = $(el).text().trim(); 
+    const tierValue = parseInt(tierText.split(' ')[1], 10); 
+
+    $(el).parent().parent().find('img').each((_, imgEl) => {
+      const $img = $(imgEl);
+      let rawSlug = $img.attr('alt') || '';
+      const src = $img.attr('src') || '';
+
+      if (!rawSlug || ['t1', 't2', 't3'].includes(rawSlug.toLowerCase())) {
+            rawSlug = extractItemSlugFromUrl(src);
+      }
+      if (!rawSlug || ['t1', 't2', 't3'].includes(rawSlug.toLowerCase())) return;
+
+      const apiName = this.itemLookupService.getValidAugmentApiName(rawSlug);
+      if (apiName) {
+          augments.push({ name: apiName, tier: tierValue });
+      }
+    });
+  });
+  
+  const finalAugments = Array.from(new Map(augments.map(a => [a.name, a])).values());
+
+  return {
+    compId: `comp-${generateSlug(compName)}-${Date.now()}`,
+    name: compName,
+    teamCode: teamCode, 
+    plan: plan,
+    difficulty: difficulty,
+    metaDescription: metaDescription,
+    isLateGame: plan.includes('8') || plan.includes('9'),
+    tier: tier,
+    active: true,
+    boardSize: { rows: 4, cols: 7 },
+    units,
+    earlyGame: [],
+    midGame: [],
+    bench: [],
+    notes: [],
+    augments: finalAugments,
+    coreChampion: coreChampion || units[0],
+  };
+}
 
   // --- Helpers ---
   
