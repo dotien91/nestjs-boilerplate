@@ -9,12 +9,9 @@ import authConfig from './auth/config/auth.config';
 import appConfig from './config/app.config';
 import mailConfig from './mail/config/mail.config';
 import fileConfig from './files/config/file.config';
-import path from 'path';
-import { ConfigModule, ConfigService } from '@nestjs/config';
-import { HeaderResolver, I18nModule } from 'nestjs-i18n';
+import { ConfigModule } from '@nestjs/config';
 import { MailModule } from './mail/mail.module';
 import { HomeModule } from './home/home.module';
-import { AllConfigType } from './config/config.type';
 import { SessionModule } from './session/session.module';
 import { MailerModule } from './mailer/mailer.module';
 import { MongooseModule } from '@nestjs/mongoose';
@@ -51,29 +48,6 @@ const infrastructureDatabaseModule = MongooseModule.forRootAsync({
     }),
     ScheduleModule.forRoot(),
     infrastructureDatabaseModule,
-    I18nModule.forRootAsync({
-      useFactory: (configService: ConfigService<AllConfigType>) => ({
-        fallbackLanguage: configService.getOrThrow('app.fallbackLanguage', {
-          infer: true,
-        }),
-        loaderOptions: { path: path.join(__dirname, '/i18n/'), watch: true },
-      }),
-      resolvers: [
-        {
-          use: HeaderResolver,
-          useFactory: (configService: ConfigService<AllConfigType>) => {
-            return [
-              configService.get('app.headerLanguage', {
-                infer: true,
-              }),
-            ];
-          },
-          inject: [ConfigService],
-        },
-      ],
-      imports: [ConfigModule],
-      inject: [ConfigService],
-    }),
     UsersModule,
     FilesModule,
     AuthModule,

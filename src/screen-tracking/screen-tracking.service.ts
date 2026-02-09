@@ -10,18 +10,22 @@ export class ScreenTrackingService {
   ) {}
 
   async create(
-    createScreenTrackingDto: CreateScreenTrackingDto & { 
+    createScreenTrackingDto: CreateScreenTrackingDto & {
       userId?: string | null;
       lang?: string | null;
       location?: string | null;
+      deviceId?: string | null;
+      appVersion?: string | null;
     },
   ): Promise<ScreenTracking> {
     const tracking = new ScreenTracking();
     tracking.userId = createScreenTrackingDto.userId || null;
     tracking.screenName = createScreenTrackingDto.screenName;
-    tracking.screenPath = `/${createScreenTrackingDto.screenName}`; // Tự tạo từ screenName
+    tracking.screenPath = `/${createScreenTrackingDto.screenName}`;
     tracking.lang = createScreenTrackingDto.lang || null;
     tracking.location = createScreenTrackingDto.location || null;
+    tracking.deviceId = createScreenTrackingDto.deviceId || null;
+    tracking.appVersion = createScreenTrackingDto.appVersion || null;
     tracking.metadata = null;
     tracking.createdAt = new Date();
     tracking.updatedAt = new Date();

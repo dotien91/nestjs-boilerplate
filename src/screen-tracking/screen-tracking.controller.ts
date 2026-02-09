@@ -41,10 +41,13 @@ export class ScreenTrackingController {
   async trackScreen(
     @Body() createScreenTrackingDto: CreateScreenTrackingDto,
     @Request() request: any,
-    @UserContext() userContext: { lang?: string; location?: string },
+    @UserContext() userContext: {
+      lang?: string;
+      location?: string;
+      deviceId?: string;
+      appVersion?: string;
+    },
   ): Promise<ScreenTracking> {
-    // Lấy userId từ JWT token nếu có (user đã đăng nhập)
-    // Nếu không có token, userId sẽ là null
     const userId = request.user?.id || null;
 
     return this.screenTrackingService.create({
@@ -52,6 +55,8 @@ export class ScreenTrackingController {
       userId,
       lang: userContext?.lang || null,
       location: userContext?.location || null,
+      deviceId: createScreenTrackingDto.deviceId ?? userContext?.deviceId ?? null,
+      appVersion: createScreenTrackingDto.appVersion ?? userContext?.appVersion ?? null,
     });
   }
 }

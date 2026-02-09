@@ -10,6 +10,8 @@ export class ScreenTrackingMapper {
     domainEntity.screenPath = raw.screenPath;
     domainEntity.lang = raw.lang || null;
     domainEntity.location = raw.location || null;
+    domainEntity.deviceId = raw.deviceId || null;
+    domainEntity.appVersion = raw.appVersion || null;
     domainEntity.metadata = raw.metadata || null;
     domainEntity.createdAt = raw.createdAt;
     domainEntity.updatedAt = raw.updatedAt;
@@ -30,6 +32,8 @@ export class ScreenTrackingMapper {
     persistenceSchema.screenPath = domainEntity.screenPath;
     persistenceSchema.lang = domainEntity.lang || null;
     persistenceSchema.location = domainEntity.location || null;
+    persistenceSchema.deviceId = domainEntity.deviceId || null;
+    persistenceSchema.appVersion = domainEntity.appVersion || null;
     persistenceSchema.metadata = domainEntity.metadata || null;
     persistenceSchema.createdAt = domainEntity.createdAt;
     persistenceSchema.updatedAt = domainEntity.updatedAt;

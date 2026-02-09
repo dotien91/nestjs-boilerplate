@@ -25,6 +25,10 @@ export class ScreenTrackingDocumentRepository
     domainEntity.userId = trackingObject.userId || null;
     domainEntity.screenName = trackingObject.screenName;
     domainEntity.screenPath = trackingObject.screenPath;
+    domainEntity.lang = trackingObject.lang || null;
+    domainEntity.location = trackingObject.location || null;
+    domainEntity.deviceId = trackingObject.deviceId || null;
+    domainEntity.appVersion = trackingObject.appVersion || null;
     domainEntity.metadata = trackingObject.metadata || null;
     domainEntity.createdAt = trackingObject.createdAt;
     domainEntity.updatedAt = trackingObject.updatedAt;

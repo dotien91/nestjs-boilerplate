@@ -4,7 +4,6 @@
   "sourceRoot": "src",
   "compilerOptions": {
     "assets": [
-      { "include": "i18n/**/*", "watchAssets": true },
       { "include": "asset/**/*.json", "watchAssets": true }
     ]
   }

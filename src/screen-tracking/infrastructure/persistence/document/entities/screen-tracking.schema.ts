@@ -44,6 +44,18 @@ export class ScreenTrackingSchemaClass extends EntityDocumentHelper {
   location?: string | null;
 
   @Prop({
+    type: String,
+    default: null,
+  })
+  deviceId?: string | null;
+
+  @Prop({
+    type: String,
+    default: null,
+  })
+  appVersion?: string | null;
+
+  @Prop({
     type: Object,
     default: null,
   })
@@ -69,6 +81,8 @@ ScreenTrackingSchema.index({ screenName: 1 });
 ScreenTrackingSchema.index({ screenPath: 1 });
 ScreenTrackingSchema.index({ lang: 1 });
 ScreenTrackingSchema.index({ location: 1 });
+ScreenTrackingSchema.index({ deviceId: 1 });
+ScreenTrackingSchema.index({ appVersion: 1 });
 ScreenTrackingSchema.index({ createdAt: -1 });
 ScreenTrackingSchema.index({ userId: 1, screenName: 1 });
 ScreenTrackingSchema.index({ userId: 1, createdAt: -1 });

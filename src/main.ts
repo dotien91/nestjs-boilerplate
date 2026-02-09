@@ -91,6 +91,24 @@ async function bootstrap() {
         },
         description: 'User location/country code (e.g., US, VN, ES)',
       },
+      {
+        in: 'header',
+        required: false,
+        name: 'x-device-id',
+        schema: {
+          example: 'device-uuid-xxx',
+        },
+        description: 'Device ID for tracking',
+      },
+      {
+        in: 'header',
+        required: false,
+        name: 'x-app-version',
+        schema: {
+          example: '1.2.0',
+        },
+        description: 'App version for tracking',
+      },
     )
     .build();
 

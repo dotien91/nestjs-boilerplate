@@ -43,6 +43,20 @@ export class ScreenTracking {
   location?: string | null;
 
   @ApiPropertyOptional({
+    type: String,
+    example: 'device-uuid-xxx',
+    description: 'Device ID từ header x-device-id',
+  })
+  deviceId?: string | null;
+
+  @ApiPropertyOptional({
+    type: String,
+    example: '1.2.0',
+    description: 'Phiên bản app từ header x-app-version',
+  })
+  appVersion?: string | null;
+
+  @ApiPropertyOptional({
     type: Object,
     description: 'Metadata bổ sung (device, browser, etc.)',
   })
