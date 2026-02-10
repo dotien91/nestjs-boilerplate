@@ -379,6 +379,16 @@ export class CreateCompositionDto {
   @IsBoolean()
   active?: boolean;
 
+  @ApiPropertyOptional({
+    type: Boolean,
+    example: false,
+    description: 'Composition có được đánh dấu OP (overpowered) không',
+    default: false,
+  })
+  @IsOptional()
+  @IsBoolean()
+  isOp?: boolean;
+
   @ApiProperty({
     type: BoardSizeDto,
     description: 'Kích thước bàn cờ',

@@ -69,6 +69,8 @@ export class CompositionsService {
       metaDescription: createCompositionDto.metaDescription,
       isLateGame: createCompositionDto.isLateGame ?? false,
       tier: createCompositionDto.tier,
+      active: createCompositionDto.active ?? false,
+      isOp: createCompositionDto.isOp ?? false,
       boardSize: createCompositionDto.boardSize || { rows: 4, cols: 7 }, // Mặc định 4x7
       units: createCompositionDto.units,
       earlyGame: createCompositionDto.earlyGame,

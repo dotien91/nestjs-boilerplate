@@ -169,6 +169,12 @@ export class CompositionSchemaClass extends EntityDocumentHelper {
   active?: boolean;
 
   @Prop({
+    type: Boolean,
+    default: false,
+  })
+  isOp?: boolean;
+
+  @Prop({
     required: true,
     type: BoardSizeSchemaClass,
   })
@@ -254,4 +260,5 @@ CompositionSchema.index({ name: 1 });
 CompositionSchema.index({ difficulty: 1 });
 CompositionSchema.index({ isLateGame: 1 });
 CompositionSchema.index({ active: 1 });
+CompositionSchema.index({ isOp: 1 });
 

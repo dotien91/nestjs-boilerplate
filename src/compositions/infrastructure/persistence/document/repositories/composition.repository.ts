@@ -113,12 +113,14 @@ export class CompositionsDocumentRepository
       where.$and = andConditions;
     }
 
-    // Luôn sort theo tier (S > A > B > C > D) trước, sau đó mới sort theo các field khác và thời gian
+    // Luôn sort: isOp (OP trước) -> tier (S > A > B > C > D) -> các field khác -> thời gian
     const pipeline: any[] = [
       { $match: where },
-      // Thêm field tierOrder để sort: S=0, A=1, B=2, C=3, D=4, null/khác=5
       {
         $addFields: {
+          // isOp: true -> 0 (ưu tiên trước), false -> 1
+          isOpOrder: { $cond: [{ $eq: ['$isOp', true] }, 0, 1] },
+          // tierOrder: S=0, A=1, B=2, C=3, D=4, null/khác=5
           tierOrder: {
             $switch: {
               branches: [
@@ -135,15 +137,14 @@ export class CompositionsDocumentRepository
       },
     ];
 
-    // Build sort object: luôn sort theo tierOrder trước, sau đó mới sort theo các field khác
-    const sortObj: any = { tierOrder: 1 }; // Tier từ S xuống (0 -> 5)
+    // Build sort: isOp trước (0 rồi 1), sau đó tierOrder (S rồi A, B, C, D), rồi field khác
+    const sortObj: any = { isOpOrder: 1, tierOrder: 1 };
 
     if (sortOptions && sortOptions.length > 0) {
-      // Thêm các sort options từ user
+      // Thêm các sort options từ user (sau isOp và tier)
       sortOptions.forEach((sort) => {
         const field = sort.orderBy === 'id' ? '_id' : sort.orderBy;
-        // Bỏ qua nếu đã có tierOrder (không sort tier theo user option)
-        if (field !== 'tierOrder' && field !== 'tier') {
+        if (field !== 'tierOrder' && field !== 'tier' && field !== 'isOpOrder' && field !== 'isOp') {
           sortObj[field] = sort.order.toUpperCase() === 'ASC' ? 1 : -1;
         }
       });
@@ -159,8 +160,8 @@ export class CompositionsDocumentRepository
       // Pagination
       { $skip: (paginationOptions.page - 1) * paginationOptions.limit },
       { $limit: paginationOptions.limit },
-      // Remove tierOrder field trước khi return
-      { $unset: 'tierOrder' },
+      // Remove helper fields trước khi return
+      { $unset: ['tierOrder', 'isOpOrder'] },
     );
 
     const compositionObjects = await this.compositionsModel.aggregate(pipeline);

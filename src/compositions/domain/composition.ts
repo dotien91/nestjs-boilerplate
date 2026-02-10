@@ -277,6 +277,14 @@ export class Composition {
   })
   active?: boolean;
 
+  @ApiPropertyOptional({
+    type: Boolean,
+    example: false,
+    description: 'Composition có được đánh dấu OP (overpowered) không',
+    default: false,
+  })
+  isOp?: boolean;
+
   @ApiProperty({
     type: BoardSize,
     description: 'Kích thước bàn cờ',
