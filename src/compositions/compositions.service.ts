@@ -59,8 +59,6 @@ export class CompositionsService {
       }
     }
 
-    // Champion validation removed
-
     const composition = await this.compositionsRepository.create({
       compId: compId,
       name: createCompositionDto.name,
@@ -148,8 +146,6 @@ export class CompositionsService {
       }
     }
 
-    // Champion validation removed
-
     return this.compositionsRepository.update(id, updateCompositionDto);
   }
 
@@ -222,7 +218,6 @@ export class CompositionsService {
 
   /**
    * Normalize string: bỏ dấu nháy đơn ('), khoảng trắng (space), lowercase, trim
-   * Ví dụ: "Kraken's Fury" -> "krakensfury"
    */
   private normalizeString(str: string): string {
     return str
@@ -288,7 +283,6 @@ export class CompositionsService {
 
   /**
    * Convert augment name sang apiName bằng cách tìm trong JSON file
-   * Ví dụ: "upward-mobility" -> "TFT_Augment_UpwardMobility"
    */
   private convertAugmentNameToApiName(
     augmentName: string,
@@ -296,9 +290,6 @@ export class CompositionsService {
   ): string {
     if (!augmentName) return augmentName;
 
-    // 1. Normalize input: xóa gạch dưới, gạch nối, khoảng trắng và chuyển về chữ thường
-    // "eyeforaneye_i" -> "eyeforaneyei"
-    // "levelup" -> "levelup"
     const normalizedInput = augmentName.toLowerCase().replace(/[_-]/g, '').trim();
 
     console.log(`[convertAugmentNameToApiName] Input: "${augmentName}" -> Normalized: "${normalizedInput}"`);
@@ -309,13 +300,12 @@ export class CompositionsService {
         const apiNameLow = augment.apiName.toLowerCase().replace(/[_-]/g, '');
         const enNameLow = (augment.en_name || '').toLowerCase().replace(/[_-]/g, '');
         const nameLow = augment.name.toLowerCase().replace(/[_-]/g, '');
-        const iconLow = (augment.icon || '').toLowerCase(); // Lấy đường dẫn icon
+        const iconLow = (augment.icon || '').toLowerCase();
 
         if (
           apiNameLow.includes(normalizedInput) || 
           enNameLow === normalizedInput || 
           nameLow === normalizedInput ||
-          // Kiểm tra xem tên có nằm trong đường dẫn icon không (Case: LevelUp)
           iconLow.includes(normalizedInput)
         ) {
           console.log(`====== data find dc`);
@@ -326,10 +316,9 @@ export class CompositionsService {
 
       // --- VÒNG LẶP 2: FUZZY MATCHING (Nếu vòng 1 không ra) ---
       let bestMatch: { apiName: string; similarity: number } | null = null;
-      const threshold = 0.6; // Giảm threshold một chút để linh hoạt hơn
+      const threshold = 0.6;
 
       for (const augment of jsonAugments) {
-        // Tính độ tương đồng với cả tên tiếng Anh và đường dẫn icon
         const enNameClean = (augment.en_name || '').toLowerCase().replace(/[!?.@#$%^&*]/g, '');
         const iconFileName = (augment.icon || '').toLowerCase().split('/').pop() || '';
 
@@ -377,91 +366,63 @@ export class CompositionsService {
   ): Promise<string> {
     if (!itemName) return itemName;
 
-    // Hardcode mapping cho các trường hợp đặc biệt
     const specialItemMapping: Record<string, string> = {
       'guardbreaker': 'TFT_Item_PowerGauntlet',
       'Guardbreaker': 'TFT_Item_PowerGauntlet',
       'Guard Breaker': 'TFT_Item_PowerGauntlet',
     };
     
-    // Kiểm tra hardcode mapping trước (case-insensitive)
     const normalizedItemName = itemName.toLowerCase().trim();
     if (specialItemMapping[normalizedItemName] || specialItemMapping[itemName]) {
       const apiName = specialItemMapping[normalizedItemName] || specialItemMapping[itemName];
-      console.log(`====== data find dc`);
-      console.log(`[convertItemNameToApiName] Found in hardcode mapping: "${itemName}" -> "${apiName}"`);
       return apiName;
     }
 
-    // Normalize input: xóa ký tự đặc biệt, lowercase
     const normalizedInput = this.normalizeString(itemName);
 
-    console.log(`[convertItemNameToApiName] Input: "${itemName}" -> Normalized: "${normalizedInput}"`);
-
-    // 1. Tìm exact match trong map (sau khi normalize) - nhanh nhất
+    // 1. Tìm exact match trong map
     if (itemsMap.has(normalizedInput)) {
       const apiName = itemsMap.get(normalizedInput)!;
-      console.log(`====== data find dc`);
-      console.log(`[convertItemNameToApiName] Found in map: "${itemName}" -> "${apiName}"`);
       return apiName;
     }
 
-    // 2. Tìm trong itemsList với normalized (xóa ký tự đặc biệt) - exact match
-    // Ưu tiên check name trước, sau đó check enName
+    // 2. Tìm trong itemsList
     for (const item of itemsList) {
-      // Check name: "Evenshroud" -> normalize -> "evenshroud"
       const nameNormalized = this.normalizeString(item.name);
       if (nameNormalized === normalizedInput) {
-        console.log(`====== data find dc`);
-        console.log(`[convertItemNameToApiName] Found in itemsList by name: "${itemName}" -> "${item.apiName}" (item.name: "${item.name}")`);
         return item.apiName;
       }
-
-      // Check enName nếu có: "Evenshroud" -> normalize -> "evenshroud"
       if (item.enName) {
         const enNameNormalized = this.normalizeString(item.enName);
         if (enNameNormalized === normalizedInput) {
-          console.log(`====== data find dc`);
-          console.log(`[convertItemNameToApiName] Found in itemsList by enName: "${itemName}" -> "${item.apiName}" (item.enName: "${item.enName}")`);
           return item.apiName;
         }
       }
     }
 
-    // 2.5. Tìm trong file JSON nếu không tìm thấy trong database
+    // 2.5. Tìm trong file JSON
     if (jsonItems && jsonItems.length > 0) {
       for (const item of jsonItems) {
-        // Check name
         const nameNormalized = this.normalizeString(item.name);
         if (nameNormalized === normalizedInput) {
-          console.log(`====== data find dc`);
-          console.log(`[convertItemNameToApiName] Found in JSON file by name: "${itemName}" -> "${item.apiName}" (item.name: "${item.name}")`);
           return item.apiName;
         }
-
-        // Check en_name
         if (item.en_name) {
           const enNameNormalized = this.normalizeString(item.en_name);
           if (enNameNormalized === normalizedInput) {
-            console.log(`====== data find dc`);
-            console.log(`[convertItemNameToApiName] Found in JSON file by en_name: "${itemName}" -> "${item.apiName}" (item.en_name: "${item.en_name}")`);
             return item.apiName;
           }
         }
       }
     }
 
-    // 4. Tìm trong itemsList với fuzzy matching (>= 75% similarity) - fallback
+    // 4. Tìm trong itemsList với fuzzy matching
     let bestMatch: { apiName: string; similarity: number; source: string } | null = null;
     const threshold = 0.75;
 
     for (const item of itemsList) {
-      // Check name với fuzzy matching
       const nameNormalized = this.normalizeString(item.name);
-      const similarity = this.calculateSimilarity(
-        normalizedInput,
-        nameNormalized,
-      );
+      const similarity = this.calculateSimilarity(normalizedInput, nameNormalized);
 
       if (similarity >= threshold) {
         if (!bestMatch || similarity > bestMatch.similarity) {
@@ -469,13 +430,9 @@ export class CompositionsService {
         }
       }
 
-      // Check enName nếu có
       if (item.enName) {
         const enNameNormalized = this.normalizeString(item.enName);
-        const similarity2 = this.calculateSimilarity(
-          normalizedInput,
-          enNameNormalized,
-        );
+        const similarity2 = this.calculateSimilarity(normalizedInput, enNameNormalized);
 
         if (similarity2 >= threshold) {
           if (!bestMatch || similarity2 > bestMatch.similarity) {
@@ -485,15 +442,11 @@ export class CompositionsService {
       }
     }
 
-    // 4.5. Tìm trong file JSON với fuzzy matching nếu chưa tìm thấy
+    // 4.5. Tìm trong file JSON với fuzzy matching
     if (!bestMatch && jsonItems && jsonItems.length > 0) {
       for (const item of jsonItems) {
-        // Check name với fuzzy matching
         const nameNormalized = this.normalizeString(item.name);
-        const similarity = this.calculateSimilarity(
-          normalizedInput,
-          nameNormalized,
-        );
+        const similarity = this.calculateSimilarity(normalizedInput, nameNormalized);
 
         if (similarity >= threshold) {
           if (!bestMatch || similarity > bestMatch.similarity) {
@@ -501,13 +454,9 @@ export class CompositionsService {
           }
         }
 
-        // Check en_name nếu có
         if (item.en_name) {
           const enNameNormalized = this.normalizeString(item.en_name);
-          const similarity2 = this.calculateSimilarity(
-            normalizedInput,
-            enNameNormalized,
-          );
+          const similarity2 = this.calculateSimilarity(normalizedInput, enNameNormalized);
 
           if (similarity2 >= threshold) {
             if (!bestMatch || similarity2 > bestMatch.similarity) {
@@ -519,42 +468,32 @@ export class CompositionsService {
     }
 
     if (bestMatch) {
-      console.log(`====== data find dc`);
-      console.log(`[convertItemNameToApiName] Found by fuzzy matching: "${itemName}" -> "${bestMatch.apiName}" (similarity: ${(bestMatch.similarity * 100).toFixed(2)}%, source: ${bestMatch.source})`);
       return bestMatch.apiName;
     }
 
-    // 5. Nếu không tìm thấy, thử convert pattern
-    // Ví dụ: "guinsoos-rageblade" -> "TFT_Item_GuinsoosRageblade"
+    // 5. Thử convert pattern
     const originalParts = itemName.toLowerCase().trim().split(/[-_\s]+/);
     const camelCase = originalParts
       .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
       .join('');
     const possibleApiName = `TFT_Item_${camelCase}`;
 
-    // Tìm trong map
     const possibleApiNameNormalized = this.normalizeString(possibleApiName);
     if (itemsMap.has(possibleApiNameNormalized)) {
-      console.log(`====== data find dc`);
-      console.log(`[convertItemNameToApiName] Found by pattern matching: "${itemName}" -> "${itemsMap.get(possibleApiNameNormalized)!}" (pattern: "${possibleApiName}")`);
       return itemsMap.get(possibleApiNameNormalized)!;
     }
 
-    // 6. Tìm partial match (fallback)
+    // 6. Tìm partial match
     for (const [key, apiName] of itemsMap.entries()) {
       const keyNormalized = this.normalizeString(key);
       if (
         keyNormalized.includes(normalizedInput) ||
         normalizedInput.includes(keyNormalized)
       ) {
-        console.log(`====== data find dc`);
-        console.log(`[convertItemNameToApiName] Found by partial match: "${itemName}" -> "${apiName}" (key: "${key}")`);
         return apiName;
       }
     }
 
-    // Nếu không tìm thấy, trả về original name
-    console.log(`[convertItemNameToApiName] NOT FOUND: "${itemName}" (normalized: "${normalizedInput}") - returning original name`);
     return itemName;
   }
 
@@ -564,120 +503,57 @@ export class CompositionsService {
   async parseMobalyticsHTML(htmlString: string): Promise<CreateCompositionDto> {
     const $ = cheerio.load(htmlString);
 
-    // Load tất cả items từ database để convert item names
     const allItems = await this.tftItemsService.findManyWithPagination({
       filterOptions: null,
       sortOptions: null,
       paginationOptions: { page: 1, limit: 1000 },
     });
 
-    // Load items từ file JSON như fallback
     const jsonItems = this.loadItemsFromJsonFile();
-
-    // Load augments từ file JSON để convert augment names
     const jsonAugments = this.loadAugmentsFromJsonFile();
 
-    // Tạo map để lookup nhanh: key = normalized name (xóa ký tự đặc biệt), value = apiName
     const itemsMap = new Map<string, string>();
     allItems.forEach((item) => {
-      // Normalize name: xóa ký tự đặc biệt, lowercase
       const nameNormalized = this.normalizeString(item.name);
       itemsMap.set(nameNormalized, item.apiName);
 
-      // Normalize apiName
       const apiNameNormalized = this.normalizeString(item.apiName);
       itemsMap.set(apiNameNormalized, item.apiName);
 
-      // Thêm enName nếu có
       if (item.enName) {
         const enNameNormalized = this.normalizeString(item.enName);
         itemsMap.set(enNameNormalized, item.apiName);
       }
     });
 
-    console.log(`[parseMobalyticsHTML] Loaded ${allItems.length} items from database`);
-    console.log(`[parseMobalyticsHTML] ItemsMap size: ${itemsMap.size}`);
-    
-    // Log một số ví dụ items trong map để debug
-    const sampleItems = Array.from(itemsMap.entries()).slice(0, 10);
-    console.log(`[parseMobalyticsHTML] Sample items in map:`, sampleItems);
-    
-    // Log item "Evenshroud" nếu có
-    const evenshroudNormalized = this.normalizeString('Evenshroud');
-    if (itemsMap.has(evenshroudNormalized)) {
-      console.log(`[parseMobalyticsHTML] Found "Evenshroud" in map: "${evenshroudNormalized}" -> "${itemsMap.get(evenshroudNormalized)}"`);
-    } else {
-      console.log(`[parseMobalyticsHTML] "Evenshroud" NOT in map (normalized: "${evenshroudNormalized}")`);
-      // Tìm trong itemsList
-      const evenshroudItem = allItems.find(item => 
-        this.normalizeString(item.name) === evenshroudNormalized || 
-        (item.enName && this.normalizeString(item.enName) === evenshroudNormalized)
-      );
-      if (evenshroudItem) {
-        console.log(`[parseMobalyticsHTML] Found "Evenshroud" in itemsList: name="${evenshroudItem.name}", enName="${evenshroudItem.enName}", apiName="${evenshroudItem.apiName}"`);
-      } else {
-        console.log(`[parseMobalyticsHTML] "Evenshroud" NOT found in itemsList either`);
-      }
-    }
+    // 1. Lấy thông tin cơ bản
+    const compName = $('.m-vt6jeq span').first().text().trim() || '';
+    const tier = $('.m-jmopu0').first().attr('alt')?.toUpperCase() || 'S';
+    const plan = $('.m-ttncf1:nth-child(2)').first().text().trim() || 'Fast 8';
+    const difficulty = $('.m-1w3013t').first().text().trim() || 'Medium';
+    const description = $('.m-yg89s3 p').first().text().trim() || '';
 
-    // 1. Lấy thông tin cơ bản của Composition
-    const compName =
-      $('.m-vt6jeq span').first().text().trim() || '';
-    const tier =
-      $('.m-jmopu0').first().attr('alt')?.toUpperCase() || 'S';
-    const plan =
-      $('.m-ttncf1:nth-child(2)').first().text().trim() || 'Fast 8';
-    const difficulty =
-      $('.m-1w3013t').first().text().trim() || 'Medium';
-    const description =
-      $('.m-yg89s3 p').first().text().trim() || '';
-
-    // 1.5. Lấy Teamcode (nếu có) - thường nằm trong button copy hoặc input/textarea
+    // 1.5. Lấy Teamcode
     let teamcode: string | undefined = undefined;
-    
-    // Tìm trong các selector có thể chứa teamcode
-    // Thử tìm trong button có text "Copy" hoặc "Copy Code"
     const copyButton = $('button:contains("Copy"), button:contains("Copy Code"), [data-clipboard-text]').first();
     if (copyButton.length > 0) {
       const clipboardText = copyButton.attr('data-clipboard-text');
       if (clipboardText) {
         teamcode = clipboardText.trim();
       } else {
-        // Thử lấy từ data attribute khác
         const dataCode = copyButton.attr('data-code') || copyButton.attr('data-teamcode');
-        if (dataCode) {
-          teamcode = dataCode.trim();
-        }
+        if (dataCode) teamcode = dataCode.trim();
       }
     }
     
-    // Nếu không tìm thấy, thử tìm trong input hoặc textarea
     if (!teamcode) {
-      const codeInput = $('input[type="text"][value*="TFT"], textarea[value*="TFT"], input[placeholder*="code" i], textarea[placeholder*="code" i]').first();
+      const codeInput = $('input[type="text"][value*="TFT"], textarea[value*="TFT"]').first();
       if (codeInput.length > 0) {
         teamcode = codeInput.attr('value') || codeInput.val()?.toString().trim() || undefined;
       }
     }
-    
-    // Nếu vẫn không tìm thấy, thử tìm trong các element có class liên quan đến code
-    if (!teamcode) {
-      const codeElement = $('[class*="code" i], [class*="teamcode" i], [id*="code" i], [id*="teamcode" i]').first();
-      if (codeElement.length > 0) {
-        const codeText = codeElement.text().trim() || codeElement.attr('value') || codeElement.val()?.toString().trim();
-        // Kiểm tra xem có phải là teamcode không (thường bắt đầu bằng "TFT" hoặc có format đặc biệt)
-        if (codeText && (codeText.startsWith('TFT') || codeText.length > 10)) {
-          teamcode = codeText;
-        }
-      }
-    }
-    
-    if (teamcode) {
-      console.log(`[parseMobalyticsHTML] Found teamcode: "${teamcode}"`);
-    } else {
-      console.log(`[parseMobalyticsHTML] No teamcode found in HTML`);
-    }
 
-    // 2. Lấy danh sách tướng (Units) và trang bị (Items)
+    // 2. Lấy danh sách tướng (Units)
     const unitElements = $('.m-1pjvpo5');
     const unitsMap = new Map<string, UnitDto>();
 
@@ -686,54 +562,24 @@ export class CompositionsService {
       const name = $el.find('.m-fdk2wo').first().text().trim();
       if (!name) return;
 
-      // Trích xuất items (sẽ convert sang apiName sau)
       const itemNames: string[] = [];
       $el.find('.m-19fbyqx img').each((_, img) => {
         const itemName = $(img).attr('alt');
         if (itemName) itemNames.push(itemName);
       });
 
-      // Kiểm tra xem có icon "khóa" (cần unlock) không
       const needUnlock = $el.find('.m-vbsdhx').length > 0;
-
-      // Lấy ảnh tướng
-      const image =
-        $el
-          .find('img[src*="champions/icons"], .m-1mzzpt2 img, .m-yyfvx7 img, .m-f0owky img')
-          .first()
-          .attr('src') || null;
-
+      const image = $el.find('img[src*="champions/icons"], .m-1mzzpt2 img').first().attr('src') || null;
       const championId = name.toLowerCase().replace(/\s/g, '-');
       
-      // Xử lý tên có dạng "a&b" hoặc "a-&-b" -> lấy phần đầu tiên và tạo "TFT16_A"
-      // Ví dụ: "kobuko-&-yuumi" -> "TFT16_Kobuko", "Lucian&Senna" -> "TFT16_Lucian"
-      // Loại bỏ tất cả ký tự đặc biệt (dấu chấm, nháy đơn, khoảng trắng, v.v.): 
-      // "Dr.Mundo" -> "TFT16_DrMundo", "Kog'Maw" -> "TFT16_KogMaw"
       let championKey: string;
-      
-      // Kiểm tra nếu tên có chứa "&" hoặc "-&-"
       const hasAmpersand = name.includes('&') || name.includes('-&-');
       
       if (hasAmpersand) {
-        // Tách lấy phần đầu tiên (trước dấu & hoặc -&-)
-        let firstPart: string;
-        if (name.includes('-&-')) {
-          firstPart = name.split('-&-')[0].trim();
-        } else if (name.includes('&')) {
-          firstPart = name.split('&')[0].trim();
-        } else {
-          firstPart = name;
-        }
-        
-        // Xóa tất cả ký tự đặc biệt, chỉ giữ lại chữ cái và số
-        // Loại bỏ: dấu chấm (.), nháy đơn ('), khoảng trắng, gạch nối, v.v.
+        let firstPart = name.includes('-&-') ? name.split('-&-')[0].trim() : name.split('&')[0].trim();
         const cleanedFirstPart = firstPart.replace(/[^a-zA-Z0-9]/g, '');
         championKey = `TFT16_${cleanedFirstPart}`;
-        
-        console.log(`[parseMobalyticsHTML] Unit name with "&" detected: "${name}" -> championKey: "${championKey}"`);
       } else {
-        // Xử lý bình thường: xóa tất cả ký tự đặc biệt, chỉ giữ lại chữ cái và số
-        // Ví dụ: "Dr.Mundo" -> "TFT16_DrMundo", "Kog'Maw" -> "TFT16_KogMaw"
         const cleanedName = name.replace(/[^a-zA-Z0-9]/g, '');
         championKey = `TFT16_${cleanedName}`;
       }
@@ -742,20 +588,19 @@ export class CompositionsService {
         championId: championId,
         championKey: championKey,
         name: name,
-        cost: 0, // Sẽ được update từ database sau
+        cost: 0,
         star: 2,
         carry: itemNames.length > 0,
         need3Star: false,
         needUnlock: needUnlock,
         image: image || undefined,
-        items: itemNames.length > 0 ? itemNames : undefined, // Sẽ convert sang apiName sau
+        items: itemNames.length > 0 ? itemNames : undefined,
         traits: [],
-        position: { row: 0, col: 0 }, // Sẽ update ở bước Formation
+        position: { row: 0, col: 0 },
       });
     });
 
-    // 3. Xử lý Formation (Vị trí trên bàn cờ)
-    // Mobalytics dùng 4 hàng, mỗi hàng có class .m-i9rwau
+    // 3. Xử lý Formation
     const rows = $('.m-c4qvow .m-i9rwau');
     rows.each((rowIndex, rowElement) => {
       const $row = $(rowElement);
@@ -765,14 +610,8 @@ export class CompositionsService {
         const img = $slot.find('image').first();
         if (img.length > 0) {
           const imgUrl = img.attr('href');
-          // Tìm tướng tương ứng trong map dựa vào URL ảnh hoặc Alt
           for (const unit of unitsMap.values()) {
-            if (
-              imgUrl &&
-              imgUrl.includes(
-                unit.name.toLowerCase().replace(/\s/g, ''),
-              )
-            ) {
+            if (imgUrl && imgUrl.includes(unit.name.toLowerCase().replace(/\s/g, ''))) {
               unit.position = { row: rowIndex, col: colIndex };
             }
           }
@@ -780,7 +619,7 @@ export class CompositionsService {
       });
     });
 
-    // 4. Tổng hợp Carry Items (Những tướng có 3 đồ)
+    // 4. Tổng hợp Carry Items
     const carryItems: CarryItemDto[] = Array.from(unitsMap.values())
       .filter((u) => u.items && u.items.length > 0)
       .map((u) => ({
@@ -792,149 +631,84 @@ export class CompositionsService {
         items: u.items || [],
       }));
 
-    // 5. Lấy Carousel Priority (Trang bị ưu tiên)
-    // Mobalytics liệt kê trang bị theo thứ tự ưu tiên từ trái sang phải
+    // 5. Lấy Carousel Priority
     const carouselPriorityItems: string[] = [];
     $('.m-1bx4po4 .m-17j8r88').each((_, img) => {
       const alt = $(img).attr('alt');
-      if (alt) {
-        carouselPriorityItems.push(alt);
-      }
+      if (alt) carouselPriorityItems.push(alt);
     });
-    // Lưu số lượng items ưu tiên (hoặc có thể lưu danh sách items nếu cần)
     const carouselPriority = carouselPriorityItems.length > 0 ? carouselPriorityItems.length : undefined;
 
-    // 6. Lấy Core Champion (Tướng nòng cốt) - dạng Unit object
-    // Thường nằm trong phần "Core Champions" của Mobalytics
+    // 6. Lấy Core Champion
     const coreChampionImg = $('.m-164p6p3 .m-14iqx8t img').first();
     const coreChampionName = coreChampionImg.attr('alt') || coreChampionImg.attr('title') || undefined;
-    
-    // Tìm unit object từ unitsMap dựa vào name
     let finalCoreChampion: UnitDto | undefined = undefined;
     
     if (coreChampionName) {
-      // Tìm trong unitsMap
       for (const unit of unitsMap.values()) {
         if (unit.name.toLowerCase() === coreChampionName.toLowerCase() ||
-            coreChampionName.toLowerCase().includes(unit.name.toLowerCase()) ||
-            unit.name.toLowerCase().includes(coreChampionName.toLowerCase())) {
+            coreChampionName.toLowerCase().includes(unit.name.toLowerCase())) {
           finalCoreChampion = unit;
           break;
         }
       }
     }
     
-    // Fallback: Nếu không tìm thấy, lấy champion đầu tiên trong carryItems hoặc unit có nhiều items nhất
-    if (!finalCoreChampion) {
-      if (carryItems.length > 0) {
-        const carryChampionName = carryItems[0].championName;
-        for (const unit of unitsMap.values()) {
-          if (unit.name === carryChampionName) {
-            finalCoreChampion = unit;
-            break;
-          }
-        }
-      }
-      
-      // Nếu vẫn chưa có, tìm unit có nhiều items nhất
-      if (!finalCoreChampion) {
-        let maxItems = 0;
-        for (const unit of unitsMap.values()) {
-          const itemCount = unit.items?.length || 0;
-          if (itemCount > maxItems) {
-            maxItems = itemCount;
-            finalCoreChampion = unit;
-          }
+    if (!finalCoreChampion && carryItems.length > 0) {
+      const carryChampionName = carryItems[0].championName;
+      for (const unit of unitsMap.values()) {
+        if (unit.name === carryChampionName) {
+          finalCoreChampion = unit;
+          break;
         }
       }
     }
 
-    // 7. Lấy Augments (Lõi công nghệ) kèm Tier
-    // Tìm tất cả các hàng Augment (mỗi hàng tương ứng với 1 Tier)
+    // 7. Lấy Augments
     const augments: Array<{ name: string; tier: number }> = [];
-    const augmentRows = $('.m-1cggxe8');
-    
-    augmentRows.each((_, row) => {
+    $('.m-1cggxe8').each((_, row) => {
       const $row = $(row);
-      // Lấy text Tier (ví dụ: "Tier 1", "Tier 2"...)
       const tierText = $row.find('.m-1xb5jtj span').first().text().trim();
-      // Chuyển đổi chuỗi "Tier 1" thành số 1
       const tierNumber = parseInt(tierText.replace(/[^0-9]/g, '')) || 0;
 
-      // Lấy tất cả các ảnh lõi trong hàng này
       $row.find('img.m-13ul2l1').each((_, img) => {
         const augmentName = $(img).attr('alt');
         if (augmentName) {
-          // Convert augment name sang apiName từ JSON file
           const apiName = this.convertAugmentNameToApiName(augmentName, jsonAugments);
           augments.push({
-            name: apiName, // Lưu apiName thay vì original name
+            name: apiName,
             tier: tierNumber,
           });
         }
       });
     });
 
-    // 8. Tìm cost từ database TFT Units cho tất cả units
+    // 8. Tìm cost
     const unitsWithCost = await Promise.all(
       Array.from(unitsMap.values()).map(async (unit) => {
-        let cost = 0; // Default cost
-        
-        // Tìm unit trong database bằng championKey hoặc name
+        let cost = 0;
         try {
-          // championKey đã được xử lý ở bước trước (đã xử lý trường hợp "a&b" -> "TFT16_A")
-          // Nên chỉ cần tìm bằng championKey là đủ
           let tftUnit = await this.tftUnitsService.findByApiName(unit.championKey);
-          
-          // Nếu không tìm thấy, thử tìm bằng name
           if (!tftUnit) {
-            // Thử các biến thể của name
             const nameVariations = [
               unit.name,
               `TFT16_${unit.name.replace(/\s/g, '')}`,
               `TFT_${unit.name.replace(/\s/g, '')}`,
             ];
-            
             for (const variation of nameVariations) {
               tftUnit = await this.tftUnitsService.findByApiName(variation);
               if (tftUnit) break;
             }
           }
-          
-          // Nếu vẫn không tìm thấy, thử tìm bằng name trong database
-          if (!tftUnit) {
-            const allUnits = await this.tftUnitsService.findManyWithPagination({
-              filterOptions: null,
-              sortOptions: null,
-              paginationOptions: { page: 1, limit: 1000 },
-            });
-            
-            const foundUnit = allUnits.find(
-              (u) =>
-                u.name.toLowerCase() === unit.name.toLowerCase() ||
-                (u.enName && u.enName.toLowerCase() === unit.name.toLowerCase()),
-            );
-            
-            if (foundUnit) {
-              tftUnit = foundUnit;
-            }
-          }
-          
-          if (tftUnit && tftUnit.cost !== null && tftUnit.cost !== undefined) {
-            cost = tftUnit.cost;
-          }
+          if (tftUnit && tftUnit.cost !== null) cost = tftUnit.cost || 0;
         } catch (error) {
           console.log(`[parseMobalyticsHTML] Error finding cost for unit "${unit.name}":`, error);
         }
-        
-        return {
-          ...unit,
-          cost: cost,
-        };
+        return { ...unit, cost: cost };
       }),
     );
 
-    // 9. Convert items từ name sang apiName cho tất cả units
+    // 9. Convert items trong units
     const unitsWithApiNames = await Promise.all(
       unitsWithCost.map(async (unit) => {
         if (unit.items && unit.items.length > 0) {
@@ -943,10 +717,7 @@ export class CompositionsService {
               this.convertItemNameToApiName(itemName, itemsMap, allItems, jsonItems),
             ),
           );
-          return {
-            ...unit,
-            items: convertedItems,
-          };
+          return { ...unit, items: convertedItems };
         }
         return unit;
       }),
@@ -961,10 +732,7 @@ export class CompositionsService {
             this.convertItemNameToApiName(itemName, itemsMap, allItems, jsonItems),
           ),
         );
-        finalCoreChampionWithApiNames = {
-          ...finalCoreChampion,
-          items: convertedItems,
-        };
+        finalCoreChampionWithApiNames = { ...finalCoreChampion, items: convertedItems };
       } else {
         finalCoreChampionWithApiNames = finalCoreChampion;
       }
@@ -979,10 +747,7 @@ export class CompositionsService {
               this.convertItemNameToApiName(itemName, itemsMap, allItems, jsonItems),
             ),
           );
-          return {
-            ...carry,
-            items: convertedItems,
-          };
+          return { ...carry, items: convertedItems };
         }
         return carry;
       }),
@@ -992,15 +757,14 @@ export class CompositionsService {
     const compIdSlug = compName
       .toLowerCase()
       .normalize('NFD')
-      .replace(/[\u0300-\u036f]/g, '') // Xóa dấu
-      .replace(/[^a-z0-9\s-]/g, '') // Xóa ký tự đặc biệt
-      .replace(/\s+/g, '-') // Thay space bằng dấu gạch ngang
-      .replace(/-+/g, '-') // Xóa nhiều dấu gạch ngang liên tiếp
+      .replace(/[\u0300-\u036f]/g, '')
+      .replace(/[^a-z0-9\s-]/g, '')
+      .replace(/\s+/g, '-')
+      .replace(/-+/g, '-')
       .trim();
     const randomSuffix = Math.random().toString(36).substring(7);
     const compId = `comp-${compIdSlug}-${randomSuffix}`;
 
-    // 13. Kết quả cuối cùng khớp với CreateCompositionDto
     return {
       compId: compId,
       name: compName,
@@ -1021,4 +785,3 @@ export class CompositionsService {
     };
   }
 }
-

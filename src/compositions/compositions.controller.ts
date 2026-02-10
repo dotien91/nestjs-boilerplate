@@ -36,7 +36,6 @@ import {
   InfinityPaginationResponseDto,
 } from '../utils/dto/infinity-pagination-response.dto';
 import { infinityPagination } from '../utils/infinity-pagination';
-import { UserContext } from '../utils/decorators/user-context.decorator';
 
 @ApiTags('Compositions')
 @Controller({
@@ -44,9 +43,7 @@ import { UserContext } from '../utils/decorators/user-context.decorator';
   version: '1',
 })
 export class CompositionsController {
-  constructor(
-    private readonly compositionsService: CompositionsService,
-  ) {}
+  constructor(private readonly compositionsService: CompositionsService) {}
 
   @ApiBearerAuth()
   @UseGuards(AuthGuard('jwt'))
@@ -78,112 +75,8 @@ export class CompositionsController {
       limit = 50;
     }
 
-    // Parse nested query parameters filters[name], filters[difficulty], etc.
-    let filters: FilterCompositionDto | undefined = query?.filters ?? undefined;
-
-    if (!filters) {
-      const queryParams = request.query;
-
-      // Check for nested format: filters[name], filters[difficulty], etc.
-      if (
-        queryParams['filters[name]'] ||
-        queryParams['filters[compId]'] ||
-        queryParams['filters[difficulty]'] ||
-        queryParams['filters[tier]'] ||
-        queryParams['filters[isLateGame]'] ||
-        queryParams['filters[units]'] ||
-        queryParams['filters[searchInAllArrays]']
-      ) {
-        filters = {};
-        if (queryParams['filters[name]']) {
-          filters.name = queryParams['filters[name]'];
-        }
-        if (queryParams['filters[compId]']) {
-          filters.compId = queryParams['filters[compId]'];
-        }
-        if (queryParams['filters[difficulty]']) {
-          filters.difficulty = queryParams['filters[difficulty]'];
-        }
-        if (queryParams['filters[tier]']) {
-          filters.tier = queryParams['filters[tier]'];
-        }
-        if (queryParams['filters[isLateGame]']) {
-          filters.isLateGame =
-            queryParams['filters[isLateGame]'] === 'true' ||
-            queryParams['filters[isLateGame]'] === true;
-        }
-        if (queryParams['filters[units]']) {
-          // Handle array: can be comma-separated string or array
-          const unitsParam = queryParams['filters[units]'];
-          if (Array.isArray(unitsParam)) {
-            filters.units = unitsParam;
-          } else if (typeof unitsParam === 'string') {
-            filters.units = unitsParam.split(',').map(u => u.trim()).filter(u => u);
-          }
-        }
-        if (queryParams['filters[searchInAllArrays]']) {
-          filters.searchInAllArrays =
-            queryParams['filters[searchInAllArrays]'] === 'true' ||
-            queryParams['filters[searchInAllArrays]'] === true;
-        }
-      }
-      // Check for flat format: name, compId, difficulty, tier, isLateGame, units
-      else if (
-        queryParams['name'] ||
-        queryParams['compId'] ||
-        queryParams['difficulty'] ||
-        queryParams['tier'] ||
-        queryParams['isLateGame'] ||
-        queryParams['units'] ||
-        queryParams['searchInAllArrays']
-      ) {
-        filters = {};
-        if (queryParams['name']) {
-          filters.name = queryParams['name'];
-        }
-        if (queryParams['compId']) {
-          filters.compId = queryParams['compId'];
-        }
-        if (queryParams['difficulty']) {
-          filters.difficulty = queryParams['difficulty'];
-        }
-        if (queryParams['tier']) {
-          filters.tier = queryParams['tier'];
-        }
-        if (queryParams['isLateGame']) {
-          filters.isLateGame =
-            queryParams['isLateGame'] === 'true' ||
-            queryParams['isLateGame'] === true;
-        }
-        if (queryParams['units']) {
-          // Handle array: can be comma-separated string or array
-          const unitsParam = queryParams['units'];
-          if (Array.isArray(unitsParam)) {
-            filters.units = unitsParam;
-          } else if (typeof unitsParam === 'string') {
-            filters.units = unitsParam.split(',').map(u => u.trim()).filter(u => u);
-          }
-        }
-        if (queryParams['searchInAllArrays']) {
-          filters.searchInAllArrays =
-            queryParams['searchInAllArrays'] === 'true' ||
-            queryParams['searchInAllArrays'] === true;
-        }
-      }
-      // Check if filters is sent as JSON string or object
-      else if (queryParams['filters']) {
-        try {
-          const filtersStr = queryParams['filters'];
-          if (typeof filtersStr === 'string') {
-            filters = JSON.parse(filtersStr) as FilterCompositionDto;
-          } else if (typeof filtersStr === 'object') {
-            filters = filtersStr as FilterCompositionDto;
-          }
-        } catch (e) {
-          console.error('Error parsing filters:', e);
-        }
-      }
-    }
+    // Tự động parse filters từ query params (thay thế khối if-else dài dòng cũ)
+    const filters = this.parseFilters(query, request.query);
 
     return infinityPagination(
       await this.compositionsService.findManyWithPagination({
@@ -307,5 +200,75 @@ export class CompositionsController {
       parseMobalyticsHtmlDto.html,
     );
   }
-}
 
+  // --- PRIVATE HELPER METHODS ---
+
+  /**
+   * Helper function để parse filters từ query params
+   * Hỗ trợ:
+   * 1. DTO object (nếu framework đã parse)
+   * 2. JSON string ?filters={"name":"X"}
+   * 3. Nested param ?filters[name]=X
+   * 4. Flat param ?name=X
+   */
+  private parseFilters(
+    dtoQuery: QueryCompositionDto,
+    rawQuery: any,
+  ): FilterCompositionDto | undefined {
+    // 1. Ưu tiên DTO đã parse sẵn
+    if (dtoQuery?.filters) return dtoQuery.filters;
+
+    // 2. Check JSON string
+    if (rawQuery['filters']) {
+      if (typeof rawQuery['filters'] === 'string') {
+        try {
+          return JSON.parse(rawQuery['filters']);
+        } catch {
+          // Ignore parse error
+        }
+      } else if (typeof rawQuery['filters'] === 'object') {
+        return rawQuery['filters'];
+      }
+    }
+
+    // 3. Manual Mapping cho các trường hợp nested và flat
+    const allowedKeys: (keyof FilterCompositionDto)[] = [
+      'name',
+      'compId',
+      'difficulty',
+      'tier',
+      'isLateGame',
+      'units',
+      'searchInAllArrays',
+    ];
+
+    const filters: FilterCompositionDto = {};
+    let hasFilter = false;
+
+    for (const key of allowedKeys) {
+      // Check format: filters[key] HOẶC format: key (flat)
+      const value = rawQuery[`filters[${key}]`] ?? rawQuery[key];
+
+      if (value !== undefined) {
+        hasFilter = true;
+        
+        if (key === 'isLateGame' || key === 'searchInAllArrays') {
+          // Xử lý boolean
+          filters[key] = value === 'true' || value === true;
+        } else if (key === 'units') {
+          // Xử lý array
+          filters[key] = Array.isArray(value)
+            ? value
+            : typeof value === 'string'
+            ? value.split(',').map((u) => u.trim()).filter(Boolean)
+            : [];
+        } else {
+          // Xử lý string
+          filters[key] = value;
+        }
+      }
+    }
+
+    return hasFilter ? filters : undefined;
+  }
+}
