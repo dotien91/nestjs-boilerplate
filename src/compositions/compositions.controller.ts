@@ -238,6 +238,7 @@ export class CompositionsController {
       'difficulty',
       'tier',
       'isLateGame',
+      'isOp',
       'units',
       'searchInAllArrays',
     ];
@@ -252,7 +253,7 @@ export class CompositionsController {
       if (value !== undefined) {
         hasFilter = true;
         
-        if (key === 'isLateGame' || key === 'searchInAllArrays') {
+        if (key === 'isLateGame' || key === 'searchInAllArrays' || key === 'isOp') {
           // Xử lý boolean
           filters[key] = value === 'true' || value === true;
         } else if (key === 'units') {

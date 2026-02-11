@@ -61,6 +61,10 @@ export class CompositionsDocumentRepository
       where.isLateGame = filterOptions.isLateGame;
     }
 
+    if (filterOptions?.isOp !== undefined && filterOptions?.isOp !== null) {
+      where.isOp = filterOptions.isOp;
+    }
+
     // Filter by units
     if (filterOptions?.units && filterOptions.units.length > 0) {
       const searchInAllArrays = filterOptions.searchInAllArrays ?? true;

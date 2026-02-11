@@ -41,6 +41,19 @@ export class FilterCompositionDto {
   isLateGame?: boolean | null;
 
   @ApiPropertyOptional({
+    type: Boolean,
+    description: 'Filter theo composition được đánh dấu OP',
+  })
+  @IsOptional()
+  @IsBoolean()
+  @Transform(({ value }) => {
+    if (value === 'true') return true;
+    if (value === 'false') return false;
+    return value;
+  })
+  isOp?: boolean | null;
+
+  @ApiPropertyOptional({
     type: [String],
     description: 'Filter by units (championId or championKey). Compositions must contain ALL specified units.',
     example: ['garen', 'jarvaniv'],
