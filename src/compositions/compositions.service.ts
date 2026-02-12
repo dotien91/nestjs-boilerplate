@@ -20,6 +20,7 @@ import { UnitDto } from './dto/create-composition.dto';
 import { CarryItemDto } from './dto/create-composition.dto';
 import { TftItemsService } from '../tft-items/tft-items.service';
 import { TftUnitsService } from '../tft-units/tft-units.service';
+import { SearchByUnitsDto, SearchCompositionDtoV2 } from './dto/search-by-units.dto'; // Import DTO for search V2
 
 @Injectable()
 export class CompositionsService {
@@ -160,6 +161,9 @@ export class CompositionsService {
     return this.compositionsRepository.removeByNameNotIn(names);
   }
 
+  /**
+   * Search V1 (Legacy) - Only by Units
+   */
   async findCompositionsByUnits(
     unitIdentifiers: string[],
     searchInAllArrays: boolean = true,
@@ -168,6 +172,18 @@ export class CompositionsService {
       unitIdentifiers,
       searchInAllArrays,
     );
+  }
+
+  /**
+   * Search V2 (New) - Search by Units + Items + Augments
+   */
+  async searchCompositions(dto: SearchCompositionDtoV2): Promise<Composition[]> {
+    return this.compositionsRepository.search({
+      units: dto.units || [],
+      items: dto.items || [],
+      augments: dto.augments || [],
+      searchInAllArrays: dto.searchInAllArrays ?? true,
+    });
   }
 
   /**

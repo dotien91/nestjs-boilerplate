@@ -29,7 +29,7 @@ import {
   QueryCompositionDto,
   FilterCompositionDto,
 } from './dto/query-composition.dto';
-import { SearchByUnitsDto } from './dto/search-by-units.dto';
+import { SearchByUnitsDto, SearchCompositionDtoV2 } from './dto/search-by-units.dto';
 import { ParseMobalyticsHtmlDto } from './dto/parse-mobalytics-html.dto';
 import {
   InfinityPaginationResponse,
@@ -57,6 +57,28 @@ export class CompositionsController {
     @Body() createCompositionDto: CreateCompositionDto,
   ): Promise<Composition> {
     return this.compositionsService.create(createCompositionDto);
+  }
+
+  @ApiBearerAuth()
+  @ApiOperation({
+    summary: '[V2] Tìm kiếm nâng cao (Units, Items, Augments)',
+    description: 'API V2: Tìm đội hình thỏa mãn chứa Units, Items HOẶC Augments. Logic AND (phải chứa tất cả).',
+  })
+  @ApiOkResponse({
+    type: [Composition],
+    description: 'Danh sách compositions thỏa mãn',
+  })
+  @Post('search-v2') // <--- Endpoint mới
+  @HttpCode(HttpStatus.OK)
+  async searchV2(
+    @Body() searchDto: SearchCompositionDtoV2, // Dùng DTO V2 (Tất cả optional)
+  ): Promise<Composition[]> {
+    return this.compositionsService.searchCompositions({
+      units: searchDto.units,
+      items: searchDto.items,
+      augments: searchDto.augments,
+      searchInAllArrays: searchDto.searchInAllArrays,
+    });
   }
 
   @ApiOperation({ summary: 'Lấy danh sách compositions với phân trang' })

@@ -13,9 +13,7 @@ import { CompositionSchemaClass } from '../entities/composition.schema';
 import { CompositionMapper } from '../mappers/composition.mapper';
 
 @Injectable()
-export class CompositionsDocumentRepository
-  implements CompositionRepository
-{
+export class CompositionsDocumentRepository implements CompositionRepository {
   constructor(
     @InjectModel(CompositionSchemaClass.name)
     private readonly compositionsModel: Model<CompositionSchemaClass>,
@@ -57,7 +55,10 @@ export class CompositionsDocumentRepository
       where.tier = filterOptions.tier;
     }
 
-    if (filterOptions?.isLateGame !== undefined && filterOptions?.isLateGame !== null) {
+    if (
+      filterOptions?.isLateGame !== undefined &&
+      filterOptions?.isLateGame !== null
+    ) {
       where.isLateGame = filterOptions.isLateGame;
     }
 
@@ -65,16 +66,17 @@ export class CompositionsDocumentRepository
       where.isOp = filterOptions.isOp;
     }
 
-    // Filter by units
+    // Filter by units (Logic cũ của V1 integrated vào pagination)
     if (filterOptions?.units && filterOptions.units.length > 0) {
       const searchInAllArrays = filterOptions.searchInAllArrays ?? true;
-      const unitFilters = filterOptions.units.map(identifier => {
-        // Escape special regex characters
-        const escapedIdentifier = identifier.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+      const unitFilters = filterOptions.units.map((identifier) => {
+        const escapedIdentifier = identifier.replace(
+          /[.*+?^${}()|[\]\\]/g,
+          '\\$&',
+        );
         const regexMatch = { $regex: escapedIdentifier, $options: 'i' };
 
         if (searchInAllArrays) {
-          // Search in units, earlyGame, midGame, and bench
           return {
             $or: [
               { 'units.championId': regexMatch },
@@ -88,7 +90,6 @@ export class CompositionsDocumentRepository
             ],
           };
         } else {
-          // Search only in units array
           return {
             $or: [
               { 'units.championId': regexMatch },
@@ -98,17 +99,15 @@ export class CompositionsDocumentRepository
         }
       });
 
-      // Add unit filters to $and conditions
       andConditions.push(...unitFilters);
     }
 
     // Combine base filters and unit filters
     if (andConditions.length > 0) {
-      // If we have base filters, add them to $and as well
       const baseFilterKeys = Object.keys(where);
       if (baseFilterKeys.length > 0) {
         const baseFilters: any = {};
-        baseFilterKeys.forEach(key => {
+        baseFilterKeys.forEach((key) => {
           baseFilters[key] = where[key];
           delete where[key];
         });
@@ -117,14 +116,12 @@ export class CompositionsDocumentRepository
       where.$and = andConditions;
     }
 
-    // Luôn sort: isOp (OP trước) -> tier (S > A > B > C > D) -> các field khác -> thời gian
+    // Pipeline aggregation logic
     const pipeline: any[] = [
       { $match: where },
       {
         $addFields: {
-          // isOp: true -> 0 (ưu tiên trước), false -> 1
           isOpOrder: { $cond: [{ $eq: ['$isOp', true] }, 0, 1] },
-          // tierOrder: S=0, A=1, B=2, C=3, D=4, null/khác=5
           tierOrder: {
             $switch: {
               branches: [
@@ -141,30 +138,30 @@ export class CompositionsDocumentRepository
       },
     ];
 
-    // Build sort: isOp trước (0 rồi 1), sau đó tierOrder (S rồi A, B, C, D), rồi field khác
     const sortObj: any = { isOpOrder: 1, tierOrder: 1 };
 
     if (sortOptions && sortOptions.length > 0) {
-      // Thêm các sort options từ user (sau isOp và tier)
       sortOptions.forEach((sort) => {
         const field = sort.orderBy === 'id' ? '_id' : sort.orderBy;
-        if (field !== 'tierOrder' && field !== 'tier' && field !== 'isOpOrder' && field !== 'isOp') {
+        if (
+          field !== 'tierOrder' &&
+          field !== 'tier' &&
+          field !== 'isOpOrder' &&
+          field !== 'isOp'
+        ) {
           sortObj[field] = sort.order.toUpperCase() === 'ASC' ? 1 : -1;
         }
       });
     }
 
-    // Sau cùng, luôn sort theo updatedAt DESC (gần nhất trước) nếu chưa có sort theo updatedAt
     if (!sortObj.updatedAt && !sortObj.createdAt) {
-      sortObj.updatedAt = -1; // DESC - gần nhất trước
+      sortObj.updatedAt = -1;
     }
 
     pipeline.push(
       { $sort: sortObj },
-      // Pagination
       { $skip: (paginationOptions.page - 1) * paginationOptions.limit },
       { $limit: paginationOptions.limit },
-      // Remove helper fields trước khi return
       { $unset: ['tierOrder', 'isOpOrder'] },
     );
 
@@ -183,7 +180,6 @@ export class CompositionsDocumentRepository
 
   async findByCompId(compId: string): Promise<NullableType<Composition>> {
     if (!compId) return null;
-
     const compositionObject = await this.compositionsModel.findOne({ compId });
     return compositionObject
       ? CompositionMapper.toDomain(compositionObject)
@@ -217,9 +213,9 @@ export class CompositionsDocumentRepository
       ? CompositionMapper.toDomain(compositionObject)
       : null;
   }
+
   async findOne(name: string): Promise<NullableType<Composition>> {
     if (!name) return null;
-
     const compositionObject = await this.compositionsModel.findOne({ name });
     return compositionObject
       ? CompositionMapper.toDomain(compositionObject)
@@ -239,20 +235,20 @@ export class CompositionsDocumentRepository
     return result.deletedCount || 0;
   }
 
+  // --- V1 Legacy Search ---
   async findCompositionsByUnits(
     unitIdentifiers: string[],
     searchInAllArrays: boolean = true,
   ): Promise<Composition[]> {
-    // Build MongoDB query to find compositions containing ALL specified units
-    // Use case-insensitive regex for flexible matching
     const where: FilterQuery<CompositionSchemaClass> = {
-      $and: unitIdentifiers.map(identifier => {
-        // Escape special regex characters
-        const escapedIdentifier = identifier.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+      $and: unitIdentifiers.map((identifier) => {
+        const escapedIdentifier = identifier.replace(
+          /[.*+?^${}()|[\]\\]/g,
+          '\\$&',
+        );
         const regexMatch = { $regex: escapedIdentifier, $options: 'i' };
 
         if (searchInAllArrays) {
-          // Search in units, earlyGame, midGame, and bench
           return {
             $or: [
               { 'units.championId': regexMatch },
@@ -266,7 +262,6 @@ export class CompositionsDocumentRepository
             ],
           };
         } else {
-          // Search only in units array
           return {
             $or: [
               { 'units.championId': regexMatch },
@@ -278,10 +273,82 @@ export class CompositionsDocumentRepository
     };
 
     const compositionObjects = await this.compositionsModel.find(where);
-
     return compositionObjects.map((compositionObject) =>
       CompositionMapper.toDomain(compositionObject),
     );
   }
-}
 
+  // --- V2 Advanced Search (Units + Items + Augments) ---
+  async search(params: {
+    units?: string[];
+    items?: string[];
+    augments?: string[];
+    searchInAllArrays?: boolean;
+  }): Promise<Composition[]> {
+    const { units, items, augments, searchInAllArrays } = params;
+
+    // Nếu không có tiêu chí nào thì trả về rỗng
+    if (
+      (!units || units.length === 0) &&
+      (!items || items.length === 0) &&
+      (!augments || augments.length === 0)
+    ) {
+      return [];
+    }
+
+    const andConditions: any[] = [];
+
+    // 1. Units Logic
+    if (units && units.length > 0) {
+      const unitConditions = units.map((u) => {
+        const escapedU = u.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+        const regex = { $regex: escapedU, $options: 'i' };
+        
+        const orConditions: any[] = [
+          { 'units.championId': regex },
+          { 'units.championKey': regex },
+          { 'units.name': regex }, // Thêm search theo Name hiển thị
+        ];
+
+        if (searchInAllArrays) {
+          orConditions.push(
+            { 'earlyGame.championId': regex },
+            { 'midGame.championId': regex },
+            { 'bench.championId': regex },
+          );
+        }
+        return { $or: orConditions };
+      });
+      andConditions.push({ $and: unitConditions });
+    }
+
+    // 2. Items Logic
+    if (items && items.length > 0) {
+      const itemConditions = items.map((i) => {
+        const escapedI = i.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+        // MongoDB tự tìm trong nested array: units[].items[]
+        return { 'units.items': { $regex: escapedI, $options: 'i' } };
+      });
+      andConditions.push({ $and: itemConditions });
+    }
+
+    // 3. Augments Logic
+    if (augments && augments.length > 0) {
+      const augmentConditions = augments.map((a) => {
+        const escapedA = a.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+        return { 'augments.name': { $regex: escapedA, $options: 'i' } };
+      });
+      andConditions.push({ $and: augmentConditions });
+    }
+
+    const filter = andConditions.length > 0 ? { $and: andConditions } : {};
+
+    const entities = await this.compositionsModel
+      .find(filter)
+      .limit(50)
+      .sort({ createdAt: -1 }) // Mới nhất trước
+      .exec();
+
+    return entities.map((entity) => CompositionMapper.toDomain(entity));
+  }
+}

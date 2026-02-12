@@ -34,9 +34,18 @@ export abstract class CompositionRepository {
 
   abstract findOne(name: string): Promise<NullableType<Composition>>;
 
+  // Method cũ (giữ lại để tương thích ngược)
   abstract findCompositionsByUnits(
     unitIdentifiers: string[],
     searchInAllArrays?: boolean,
   ): Promise<Composition[]>;
-}
 
+  // --- METHOD MỚI (V2) ---
+  // Định nghĩa abstract method cho tính năng Search nâng cao
+  abstract search(params: {
+    units?: string[];
+    items?: string[];
+    augments?: string[];
+    searchInAllArrays?: boolean;
+  }): Promise<Composition[]>;
+}
