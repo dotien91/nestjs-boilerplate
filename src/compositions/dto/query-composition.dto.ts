@@ -54,6 +54,19 @@ export class FilterCompositionDto {
   isOp?: boolean | null;
 
   @ApiPropertyOptional({
+    type: Boolean,
+    description: 'Filter theo composition active (đang hiển thị)',
+  })
+  @IsOptional()
+  @IsBoolean()
+  @Transform(({ value }) => {
+    if (value === 'true') return true;
+    if (value === 'false') return false;
+    return value;
+  })
+  active?: boolean | null;
+
+  @ApiPropertyOptional({
     type: [String],
     description: 'Filter by units (championId or championKey). Compositions must contain ALL specified units.',
     example: ['garen', 'jarvaniv'],

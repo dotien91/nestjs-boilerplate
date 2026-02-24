@@ -66,6 +66,10 @@ export class CompositionsDocumentRepository implements CompositionRepository {
       where.isOp = filterOptions.isOp;
     }
 
+    if (filterOptions?.active !== undefined && filterOptions?.active !== null) {
+      where.active = filterOptions.active;
+    }
+
     // Filter by units (Logic cũ của V1 integrated vào pagination)
     if (filterOptions?.units && filterOptions.units.length > 0) {
       const searchInAllArrays = filterOptions.searchInAllArrays ?? true;
@@ -229,6 +233,14 @@ export class CompositionsDocumentRepository implements CompositionRepository {
     await this.compositionsModel.deleteOne({
       _id: id.toString(),
     });
+  }
+
+  async deactivateByNameNotIn(names: string[]): Promise<number> {
+    const result = await this.compositionsModel.updateMany(
+      { name: { $nin: names } },
+      { $set: { active: false } }
+    );
+    return result.modifiedCount;
   }
 
   async removeByNameNotIn(names: string[]): Promise<number> {

@@ -31,6 +31,7 @@ export abstract class CompositionRepository {
   abstract remove(id: Composition['id']): Promise<void>;
 
   abstract removeByNameNotIn(names: string[]): Promise<number>;
+  abstract deactivateByNameNotIn(names: string[]): Promise<number>;
 
   abstract findOne(name: string): Promise<NullableType<Composition>>;
 

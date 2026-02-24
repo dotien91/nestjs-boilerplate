@@ -117,6 +117,7 @@ export class CompositionsService {
     }
     return this.compositionsRepository.findByCompId(compId);
   }
+  
 
   async findByName(
     name: string,
@@ -160,6 +161,14 @@ export class CompositionsService {
       return 0;
     }
     return this.compositionsRepository.removeByNameNotIn(names);
+  }
+
+  async deactivateByNameNotIn(names: string[]): Promise<number> {
+    if (!names || names.length === 0) {
+      return 0;
+    }
+    // Gọi xuống tầng Repository để xử lý Database
+    return this.compositionsRepository.deactivateByNameNotIn(names);
   }
 
   /**

@@ -163,9 +163,11 @@ export class CrawlerService {
             if (exists) {
               const tierChanged = exists.tier !== composition.tier;
               const { compId: _drop, ...rest } = composition;
+              // Reactivate the composition if it was previously marked inactive
               await this.compositionsService.update(exists.id, {
                 ...rest,
                 order,
+                active: true, // Ensure it's active when found again
               });
               
               if (tierChanged) {
@@ -188,16 +190,17 @@ export class CrawlerService {
       }
 
       if (validNames.length > 0) {
-        this.logger.log(`🧹 Cleaning up stale compositions...`);
-        const deletedCount = await this.compositionsService.removeByNameNotIn(validNames);
-        this.logger.log(`🗑️ Deleted ${deletedCount} stale compositions.`);
+        this.logger.log(`🧹 Deactivating stale compositions...`);
+        // We assume you will add this method to your CompositionsService
+        const deactivatedCount = await this.compositionsService.deactivateByNameNotIn(validNames);
+        this.logger.log(`🗑️ Deactivated ${deactivatedCount} stale compositions.`);
       }
 
       return { createdCount, updatedCount };
 
     } catch (error) {
       this.logger.error(`Fatal Error: ${error}`);
-      return [];
+      return { createdCount: 0, updatedCount: 0 };
     } finally {
       await browser.close();
     }

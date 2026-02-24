@@ -261,6 +261,7 @@ export class CompositionsController {
       'tier',
       'isLateGame',
       'isOp',
+      'active',
       'units',
       'searchInAllArrays',
     ];
@@ -273,11 +274,15 @@ export class CompositionsController {
       const value = rawQuery[`filters[${key}]`] ?? rawQuery[key];
 
       if (value !== undefined) {
-        hasFilter = true;
-        
-        if (key === 'isLateGame' || key === 'searchInAllArrays' || key === 'isOp') {
-          // Xử lý boolean
-          filters[key] = value === 'true' || value === true;
+        if (key === 'isLateGame' || key === 'searchInAllArrays' || key === 'isOp' || key === 'active') {
+          // Chỉ lọc boolean khi truyền rõ true/false; không truyền hoặc rỗng = trả về hết
+          if (value === 'true' || value === true) {
+            filters[key] = true;
+            hasFilter = true;
+          } else if (value === 'false' || value === false) {
+            filters[key] = false;
+            hasFilter = true;
+          }
         } else if (key === 'units') {
           // Xử lý array
           filters[key] = Array.isArray(value)
@@ -285,9 +290,11 @@ export class CompositionsController {
             : typeof value === 'string'
             ? value.split(',').map((u) => u.trim()).filter(Boolean)
             : [];
+          hasFilter = true;
         } else {
           // Xử lý string
           filters[key] = value;
+          hasFilter = true;
         }
       }
     }
