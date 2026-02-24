@@ -67,7 +67,7 @@ export class TftAugmentsService {
     filterOptions?: FilterTftAugmentDto | null;
     sortOptions?: SortTftAugmentDto[] | null;
     paginationOptions: IPaginationOptions;
-  }): Promise<TftAugment[]> {
+  }): Promise<{ data: TftAugment[]; totalCount: number }> {
     return this.tftAugmentsRepository.findManyWithPagination({
       filterOptions,
       sortOptions,

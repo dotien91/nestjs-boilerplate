@@ -4,6 +4,7 @@ import { ApiProperty } from '@nestjs/swagger';
 export class InfinityPaginationResponseDto<T> {
   data: T[];
   hasNextPage: boolean;
+  total_count: number;
 }
 
 export function InfinityPaginationResponse<T>(classReference: Type<T>) {
@@ -16,6 +17,13 @@ export function InfinityPaginationResponse<T>(classReference: Type<T>) {
       example: true,
     })
     hasNextPage: boolean;
+
+    @ApiProperty({
+      type: Number,
+      example: 100,
+      description: 'Tổng số bản ghi thỏa điều kiện (trước khi phân trang)',
+    })
+    total_count: number;
   }
 
   Object.defineProperty(Pagination, 'name', {

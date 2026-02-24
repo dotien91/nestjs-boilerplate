@@ -35,7 +35,7 @@ async function updateItemsTier() {
     logger.log(`Found ${crawledItems.length} items with tier data.`);
 
     // 2. Get all existing items from the database (using pagination with large limit)
-    const allItems = await tftItemsService.findManyWithPagination({
+    const { data: allItems } = await tftItemsService.findManyWithPagination({
       filterOptions: null,
       sortOptions: null,
       paginationOptions: {
@@ -61,7 +61,7 @@ async function updateItemsTier() {
 
         // If not found by apiName, try by name (case-insensitive)
         if (!matchedItem) {
-          const itemsByName = await tftItemsService.findManyWithPagination({
+          const { data: itemsByName } = await tftItemsService.findManyWithPagination({
             filterOptions: {
               name: crawledItem.name.trim(),
             },

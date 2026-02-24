@@ -7,11 +7,13 @@ import {
   Param,
   Delete,
   Query,
+  Res,
   HttpStatus,
   HttpCode,
   UseGuards,
   UseInterceptors,
 } from '@nestjs/common';
+import { Response } from 'express';
 import { CacheInterceptor, CacheTTL } from '@nestjs/cache-manager';
 import {
   ApiCreatedResponse,
@@ -88,6 +90,7 @@ export class TftUnitsController {
   @HttpCode(HttpStatus.OK)
   async findAll(
     @Query() query: QueryTftUnitDto,
+    @Res({ passthrough: true }) res: Response,
   ): Promise<InfinityPaginationResponseDto<TftUnit | MinimalTftUnitResponse>> {
     const page = query?.page ?? 1;
     let limit = query?.limit ?? 10;
@@ -117,21 +120,24 @@ export class TftUnitsController {
     }
 
     const isMinimal = !!query?.minimal;
-    const data = await this.tftUnitsService.findManyWithPagination({
+    const result = await this.tftUnitsService.findManyWithPagination({
       filterOptions: filters,
       sortOptions: sort,
       paginationOptions: { page, limit },
       minimal: isMinimal,
     });
+    const data = Array.isArray(result) ? result : result.data ?? [];
+    const totalCount = typeof (result as any).totalCount === 'number' ? (result as any).totalCount : data.length;
 
     const responseData: Array<TftUnit | MinimalTftUnitResponse> = isMinimal
       ? data.map((unit) => this.toMinimalUnit(unit))
       : data;
 
+    res.setHeader('X-Total-Count', String(totalCount));
     return infinityPagination<TftUnit | MinimalTftUnitResponse>(responseData, {
       page,
       limit,
-    });
+    }, totalCount);
   }
 
   @ApiOperation({ summary: 'Lấy tất cả TFT units (không phân trang)' })
@@ -185,7 +191,7 @@ export class TftUnitsController {
     @Query('minimal') minimal?: string,
   ): Promise<Array<TftUnit | MinimalTftUnitResponse>> {
     const isMinimal = minimal === 'true' || minimal === '1';
-    const data = await this.tftUnitsService.findManyWithPagination({
+    const { data } = await this.tftUnitsService.findManyWithPagination({
       filterOptions: { cost },
       sortOptions: null,
       paginationOptions: { page: 1, limit: 100 },

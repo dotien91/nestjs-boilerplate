@@ -15,10 +15,9 @@ import { TftUnitsService } from '../tft-units/tft-units.service';
 // --- Helper Functions ---
 function extractItemSlugFromUrl(url: string): string {
   if (!url) return '';
-  // url pattern: .../game-items/set16/infinity-edge.png?v=70
   let filename = url.split('/').pop()?.split('?')[0]?.split('.')[0] || '';
-  filename = filename.replace(/[-_]v?\d+$/, ''); // remove version suffix if any
-  return filename.replace(/[^a-zA-Z0-9]/g, ''); // keep alphanumeric only
+  filename = filename.replace(/[-_]v?\d+$/, '');
+  return filename.replace(/[^a-zA-Z0-9]/g, '');
 }
 
 // --- Interfaces ---
@@ -127,7 +126,7 @@ export class CrawlerService {
     const browser = await this.initBrowser();
 
     try {
-      this.logger.log('Phase 1: Fetching Comp Links...');
+      this.logger.log('Phase 1: Fetching Comp Links and Tiers from Home...');
       const compLinks = await this.getCompLinks(browser, targetUrl);
       this.logger.log(`Found ${compLinks.length} comps. Starting detailed crawl...`);
 
@@ -142,7 +141,8 @@ export class CrawlerService {
 
         const batchResults = await Promise.all(
           batch.map((linkData) =>
-            this.crawlCompDetail(linkData.url, browser)
+            // --- [UPDATED] TRUYỀN TIER LẤY TỪ HOME VÀO HÀM DETAIL ---
+            this.crawlCompDetail(linkData.url, browser, linkData.tier)
               .catch((err) => {
                 const message = err instanceof Error ? err.message : String(err);
                 this.logger.error(`❌ Failed ${linkData.url}: ${message}`);
@@ -151,26 +151,33 @@ export class CrawlerService {
           ),
         );
 
-        for (const composition of batchResults) {
+        for (let j = 0; j < batchResults.length; j++) {
+          const composition = batchResults[j];
           if (!composition || !composition.name) continue;
           validNames.push(composition.name);
+          const order = i + j + 1;
 
           try {
             const exists = await this.compositionsService.findByName(composition.name);
 
             if (exists) {
-              if (exists.tier !== composition.tier) {
-                await this.compositionsService.update(exists.id, { 
-                    tier: composition.tier,
-                });
+              const tierChanged = exists.tier !== composition.tier;
+              const { compId: _drop, ...rest } = composition;
+              await this.compositionsService.update(exists.id, {
+                ...rest,
+                order,
+              });
+              
+              if (tierChanged) {
                 this.logger.log(`🔄 Updated Tier: ${composition.name} (${exists.tier} -> ${composition.tier})`);
-                updatedCount++;
-              } else {
-                this.logger.log(`⏭️ Skip duplicate: ${composition.name}`);
               }
+              const compUrl = batch[j]?.url ?? '';
+              this.logger.log(`🔄 Updated: ${composition.name} (tier: ${composition.tier}, order: ${order}) ${compUrl}`);
+              updatedCount++;
             } else {
-              await this.compositionsService.create(composition);
-              this.logger.log(`✅ Created: ${composition.name}`);
+              await this.compositionsService.create({ ...composition, order });
+              const compUrl = batch[j]?.url ?? '';
+              this.logger.log(`✅ Created: ${composition.name} (order: ${order}) ${compUrl}`);
               createdCount++;
             }
           } catch (dbError) {
@@ -196,16 +203,15 @@ export class CrawlerService {
     }
   }
 
-  async crawlCompDetail(url: string, existingBrowser?: puppeteer.Browser) {
+  // --- [UPDATED] NHẬN THÊM passedTier VÀ BỎ CÁC BƯỚC CLICK RANK ---
+  async crawlCompDetail(url: string, existingBrowser?: puppeteer.Browser, passedTier: string = 'C') {
     const browser = existingBrowser || (await this.initBrowser());
     const page = await browser.newPage();
 
-    // 1. Cấp quyền Clipboard cho trang này (Bắt buộc để đọc Team Code)
     const context = browser.defaultBrowserContext();
     try {
         await context.overridePermissions(new URL(url).origin, ['clipboard-read', 'clipboard-write']);
     } catch (e) {
-        // Fallback nếu URL invalid hoặc lỗi permission
         this.logger.warn(`Permission override warning: ${e}`);
     }
 
@@ -219,9 +225,8 @@ export class CrawlerService {
       if (['font', 'media', 'stylesheet', 'other'].includes(resourceType)) {
         req.abort();
       } else if (resourceType === 'image') {
-        const url = req.url();
-        // Chỉ load ảnh quan trọng để parse, chặn quảng cáo
-        if (url.includes('champions/icons') || url.includes('items') || url.includes('game-items') || url.includes('augments')) {
+        const reqUrl = req.url();
+        if (reqUrl.includes('champions/icons') || reqUrl.includes('items') || reqUrl.includes('game-items') || reqUrl.includes('augments')) {
             req.continue();
         } else {
             req.abort();
@@ -233,25 +238,20 @@ export class CrawlerService {
 
     try {
       await page.goto(url, { waitUntil: 'domcontentloaded', timeout: 120000 });
-      
-      // Chờ h1 để đảm bảo trang load cơ bản
       await page.waitForSelector('h1', { timeout: 30000 }).catch(() => null);
 
-      // Scroll nhẹ
       await page.evaluate(async () => {
         window.scrollBy(0, 500);
         await new Promise((resolve) => setTimeout(resolve, 500));
       });
 
-      // Chờ ít nhất 1 ảnh champion xuất hiện trong SVG (đặc điểm của board)
       await page.waitForSelector('svg image[href*="/champions/icons/"]', { timeout: 10000 }).catch(() => null);
 
-      // --- [NEW] TRÍCH XUẤT TEAM CODE TỪ BUTTON ---
       const teamCode = await this.extractTeamCode(page);
-      // ---------------------------------------------
-
+      
       const content = await page.content();
-      const composition = await this.parseDetailHtml(content, url, teamCode);
+      // Truyền passedTier xuống hàm parse
+      const composition = await this.parseDetailHtml(content, url, teamCode, passedTier);
 
       return composition;
 
@@ -265,242 +265,235 @@ export class CrawlerService {
   // PARSING & UTILS
   // ==========================================
 
-  // Hàm mới: Click nút Import và lấy code từ clipboard
-// PHIÊN BẢN MỚI: Dùng kỹ thuật Intercept (Bắt chặn)
-private async extractTeamCode(page: puppeteer.Page): Promise<string> {
-  try {
-      // 1. "Monkey Patch": Viết đè hàm writeText của trình duyệt
-      // Thay vì copy vào clipboard thật, ta lưu nó vào biến window.capturedCode
-      await page.evaluate(() => {
-          (window as any).capturedCode = null; // Reset
-          Object.defineProperty(navigator, 'clipboard', {
-              value: {
-                  writeText: async (text: string) => {
-                      (window as any).capturedCode = text;
-                      return Promise.resolve();
-                  },
-                  readText: async () => Promise.resolve((window as any).capturedCode || '')
-              },
-              configurable: true
-          });
-      });
-
-      // 2. Tìm nút bấm (Selector phải chính xác)
-      // Tìm button có chứa text "Import comp" hoặc img có alt chứa text đó
-      const buttonXPath = `//button[contains(., "Import comp")] | //button[.//img[contains(@alt, "Import comp")]]`;
-      
-      try {
-           await page.waitForSelector(`xpath/${buttonXPath}`, { timeout: 4000 });
-      } catch {
-           this.logger.warn('Button import not found via XPath');
-           return '';
-      }
-
-      const elements = await page.$$(`xpath/${buttonXPath}`);
-      
-      if (elements.length > 0) {
-          const btn = elements[0];
-          
-          // Scroll & Click
-          await btn.evaluate((b) => {
-               b.scrollIntoView({ behavior: 'instant', block: 'center' });
-          });
-          await new Promise(r => setTimeout(r, 200)); // Đợi scroll
-          
-          await btn.click();
-          
-          // 3. Đợi trang web thực thi lệnh copy (đã bị ta bắt chặn)
-          // Poll (kiểm tra liên tục) biến capturedCode trong 2 giây
-          const code = await page.waitForFunction(() => (window as any).capturedCode, { timeout: 2000 })
-              .then(handle => handle.jsonValue())
-              .catch(() => null);
-
-          if (code && typeof code === 'string' && code.length > 10) {
-              this.logger.log(`📋 Intercepted Team Code: ${code.substring(0, 15)}...`);
-              return code.trim();
-          }
-      }
-  } catch (error) {
-      this.logger.warn(`Failed to intercept team code: ${error instanceof Error ? error.message : error}`);
-  }
-  return '';
-}
-
-private async parseDetailHtml(html: string, sourceUrl: string, teamCode: string = ''): Promise<CreateCompositionDto> {
-  const $ = cheerio.load(html);
-  
-  // 1. Basic Metadata
-  const compName = $('h1').first().text().trim() || 'Unknown Comp';
-  const tier = $('img[src*="hex-tiers"]').attr('alt')?.toUpperCase() || 'C';
-
-  // --- Cập nhật: Lấy metaDescription từ General Info ---
-  let metaDescription = '';
-  const generalInfoSection = $('.m-22cd40'); // Container chứa General Info
-  if (generalInfoSection.length) {
-      // Tìm div chứa text mô tả chiến thuật (thường là class m-zrc7tx đầu tiên trong block này)
-      metaDescription = generalInfoSection.find('.m-zrc7tx').first().text().trim();
-  }
-  
-  // Fallback nếu không tìm thấy nội dung trong General Info
-  if (!metaDescription) {
-      metaDescription = $('meta[name="description"]').attr('content') || `Guide for ${compName}`;
-  }
-
-  let plan = 'Standard';
-  $('div').each((_, el) => {
-      const t = $(el).text().trim();
-      if(['Fast 8', 'Fast 9', 'Slow Roll', 'Hyper Roll', 'Standard'].includes(t)) {
-          plan = t;
-          return false; 
-      }
-  });
-
-  const difficulty = $('div').filter((_, el) => ['Easy', 'Medium', 'Hard'].includes($(el).text().trim())).first().text().trim() || 'Medium';
-
-  // 2. Logic tìm Board "Chính chủ" (Density Scan)
-  const units: CrawlUnit[] = [];
-  let coreChampion: CrawlUnit | null = null;
-  const unknownItems = new Set<string>();
-
-  const allHexImages = $('svg image[href*="/champions/icons/"]');
-  
-  if (allHexImages.length > 0) {
-      const boardCandidates = new Map<any, { count: number, element: cheerio.Cheerio }>();
-
-      allHexImages.each((_, imgEl) => {
-          const $img = $(imgEl);
-          const $cell = $img.closest('div').parent(); 
-          const $row = $cell.parent();
-          const $board = $row.parent();
-
-          if ($board.length) {
-              const boardEl = $board.get(0);
-              if (!boardCandidates.has(boardEl)) {
-                  boardCandidates.set(boardEl, { count: 0, element: $board });
-              }
-              boardCandidates.get(boardEl)!.count++;
-          }
-      });
-
-      let bestBoard: cheerio.Cheerio | null = null;
-      let maxCount = 0;
-      for (const candidate of boardCandidates.values()) {
-          if (candidate.count > maxCount) {
-              maxCount = candidate.count;
-              bestBoard = candidate.element;
-          }
-      }
-
-      if (bestBoard) {
-          bestBoard.children('div').each((rowIndex, rowEl) => {
-              $(rowEl).children('div').each((colIndex, cellEl) => {
-                  const $cell = $(cellEl);
-                  const $unitImg = $cell.find('svg image[href*="/champions/icons/"]');
-                  if ($unitImg.length === 0) return; 
-
-                  const src = $unitImg.attr('href') || '';
-                  const rawSlug = src.split('/').pop()?.split('?')[0]?.split('.')[0] || '';
-                  if (!rawSlug) return;
-
-                  const rawName = this.normalizeChampionName(rawSlug);
-                  
-                  const items: string[] = [];
-                  $cell.find('img').each((_, itemEl) => {
-                      const itemSrc = $(itemEl).attr('src') || '';
-                      if (itemSrc.includes('/champions/icons/') || itemSrc.includes('synergies') || itemSrc.includes('hex-tiers')) return;
-                      
-                      const itemSlug = extractItemSlugFromUrl(itemSrc) || $(itemEl).attr('alt');
-                      if (itemSlug) {
-                           const apiName = this.mapItemApiName(itemSlug as string);
-                           if (apiName) items.push(apiName);
-                           else unknownItems.add(itemSlug as string);
-                      }
-                  });
-
-                  const isCarry = items.length > 0;
-                  const unitData: CrawlUnit = {
-                      championId: generateSlug(rawName),
-                      championKey: this.itemLookupService.getValidChampionKey(rawName) || generateChampionKey(rawName),
-                      name: rawName,
-                      cost: 0, 
-                      star: 2,
-                      carry: isCarry,
-                      position: { row: rowIndex, col: colIndex },
-                      items: items,
-                      image: src,
-                      traits: [],
-                  };
-                  units.push(unitData);
-
-                  if (isCarry && (!coreChampion || items.length > (coreChampion.items?.length || 0))) {
-                      coreChampion = unitData;
-                  }
-              });
-          });
-      }
-  }
-
-  // 4. Update Cost & Traits từ DB
-  for (const unit of units) {
+  private async extractTeamCode(page: puppeteer.Page): Promise<string> {
     try {
-      let tftUnit = await this.tftUnitsService.findByApiName(unit.championKey);
-      if (!tftUnit) {
-        tftUnit = await this.tftUnitsService.findByApiName(`TFT16_${unit.name.replace(/\s/g, '')}`);
-      }
-      if (tftUnit) {
-        if (tftUnit.cost != null) unit.cost = tftUnit.cost;
-        if (tftUnit.traits?.length) unit.traits = tftUnit.traits;
-      }
-    } catch {}
+        await page.evaluate(() => {
+            (window as any).capturedCode = null;
+            Object.defineProperty(navigator, 'clipboard', {
+                value: {
+                    writeText: async (text: string) => {
+                        (window as any).capturedCode = text;
+                        return Promise.resolve();
+                    },
+                    readText: async () => Promise.resolve((window as any).capturedCode || '')
+                },
+                configurable: true
+            });
+        });
+
+        const buttonXPath = `//button[contains(., "Import comp")] | //button[.//img[contains(@alt, "Import comp")]]`;
+        
+        try {
+             await page.waitForSelector(`xpath/${buttonXPath}`, { timeout: 4000 });
+        } catch {
+             this.logger.warn('Button import not found via XPath');
+             return '';
+        }
+
+        const elements = await page.$$(`xpath/${buttonXPath}`);
+        
+        if (elements.length > 0) {
+            const btn = elements[0];
+            await btn.evaluate((b) => {
+                 b.scrollIntoView({ behavior: 'instant', block: 'center' });
+            });
+            await new Promise(r => setTimeout(r, 200)); 
+            await btn.click();
+            
+            const code = await page.waitForFunction(() => (window as any).capturedCode, { timeout: 2000 })
+                .then(handle => handle.jsonValue())
+                .catch(() => null);
+
+            if (code && typeof code === 'string' && code.length > 10) {
+                this.logger.log(`📋 Intercepted Team Code: ${code.substring(0, 15)}...`);
+                return code.trim();
+            }
+        }
+    } catch (error) {
+        this.logger.warn(`Failed to intercept team code: ${error instanceof Error ? error.message : error}`);
+    }
+    return '';
   }
 
-  // 5. Parse Augments
-  const augments: CrawlAugment[] = [];
-  const tierSpans = $('span').filter((_, el) => /^Tier\s+\d+$/.test($(el).text().trim()));
-  
-  tierSpans.each((_, el) => {
-    const tierText = $(el).text().trim(); 
-    const tierValue = parseInt(tierText.split(' ')[1], 10); 
+  // --- [UPDATED] NHẬN passedTier VÀ SỬ DỤNG LUÔN, KHÔNG QUÉT LẠI NỮA ---
+  private async parseDetailHtml(html: string, sourceUrl: string, teamCode: string = '', passedTier: string = 'C'): Promise<CreateCompositionDto> {
+    const $ = cheerio.load(html);
+    
+    const $h1 = $('h1').first();
+    const compName = $h1.text().trim() || 'Unknown Comp';
+    
+    // Sử dụng tier từ ngoài truyền vào
+    const tier = passedTier; 
 
-    $(el).parent().parent().find('img').each((_, imgEl) => {
-      const $img = $(imgEl);
-      let rawSlug = $img.attr('alt') || '';
-      const src = $img.attr('src') || '';
+    // LOG KIỂM TRA TIER 
+    this.logger.log(`[Tier Check] Comp: ${compName} - Inherited Tier from List: ${tier}`);
+    // ---------------------------------------------------------
 
-      if (!rawSlug || ['t1', 't2', 't3'].includes(rawSlug.toLowerCase())) {
-            rawSlug = extractItemSlugFromUrl(src);
-      }
-      if (!rawSlug || ['t1', 't2', 't3'].includes(rawSlug.toLowerCase())) return;
+    let metaDescription = '';
+    const generalInfoSection = $('.m-22cd40'); 
+    if (generalInfoSection.length) {
+        metaDescription = generalInfoSection.find('.m-zrc7tx').first().text().trim();
+    }
+    
+    if (!metaDescription) {
+        metaDescription = $('meta[name="description"]').attr('content') || `Guide for ${compName}`;
+    }
 
-      const apiName = this.itemLookupService.getValidAugmentApiName(rawSlug);
-      if (apiName) {
-          augments.push({ name: apiName, tier: tierValue });
-      }
+    let plan = 'Standard';
+    $('div').each((_, el) => {
+        const t = $(el).text().trim();
+        if(['Fast 8', 'Fast 9', 'Slow Roll', 'Hyper Roll', 'Standard'].includes(t)) {
+            plan = t;
+            return false; 
+        }
     });
-  });
-  
-  const finalAugments = Array.from(new Map(augments.map(a => [a.name, a])).values());
 
-  return {
-    compId: `comp-${generateSlug(compName)}-${Date.now()}`,
-    name: compName,
-    teamCode: teamCode, 
-    plan: plan,
-    difficulty: difficulty,
-    metaDescription: metaDescription,
-    isLateGame: plan.includes('8') || plan.includes('9'),
-    tier: tier,
-    active: true,
-    boardSize: { rows: 4, cols: 7 },
-    units,
-    earlyGame: [],
-    midGame: [],
-    bench: [],
-    notes: [],
-    augments: finalAugments,
-    coreChampion: coreChampion || units[0],
-  };
-}
+    const difficulty = $('div').filter((_, el) => ['Easy', 'Medium', 'Hard'].includes($(el).text().trim())).first().text().trim() || 'Medium';
+
+    // 2. Logic tìm Board "Chính chủ"
+    const units: CrawlUnit[] = [];
+    let coreChampion: CrawlUnit | null = null;
+    const unknownItems = new Set<string>();
+
+    const allHexImages = $('svg image[href*="/champions/icons/"]');
+    
+    if (allHexImages.length > 0) {
+        const boardCandidates = new Map<any, { count: number, element: cheerio.Cheerio }>();
+
+        allHexImages.each((_, imgEl) => {
+            const $img = $(imgEl);
+            const $cell = $img.closest('div').parent(); 
+            const $row = $cell.parent();
+            const $board = $row.parent();
+
+            if ($board.length) {
+                const boardEl = $board.get(0);
+                if (!boardCandidates.has(boardEl)) {
+                    boardCandidates.set(boardEl, { count: 0, element: $board });
+                }
+                boardCandidates.get(boardEl)!.count++;
+            }
+        });
+
+        let bestBoard: cheerio.Cheerio | null = null;
+        let maxCount = 0;
+        for (const candidate of boardCandidates.values()) {
+            if (candidate.count > maxCount) {
+                maxCount = candidate.count;
+                bestBoard = candidate.element;
+            }
+        }
+
+        if (bestBoard) {
+            bestBoard.children('div').each((rowIndex, rowEl) => {
+                $(rowEl).children('div').each((colIndex, cellEl) => {
+                    const $cell = $(cellEl);
+                    const $unitImg = $cell.find('svg image[href*="/champions/icons/"]');
+                    if ($unitImg.length === 0) return; 
+
+                    const src = $unitImg.attr('href') || '';
+                    const rawSlug = src.split('/').pop()?.split('?')[0]?.split('.')[0] || '';
+                    if (!rawSlug) return;
+
+                    const rawName = this.normalizeChampionName(rawSlug);
+                    
+                    const items: string[] = [];
+                    $cell.find('img').each((_, itemEl) => {
+                        const itemSrc = $(itemEl).attr('src') || '';
+                        if (itemSrc.includes('/champions/icons/') || itemSrc.includes('synergies') || itemSrc.includes('hex-tiers')) return;
+                        
+                        const itemSlug = extractItemSlugFromUrl(itemSrc) || $(itemEl).attr('alt');
+                        if (itemSlug) {
+                             const apiName = this.mapItemApiName(itemSlug as string);
+                             if (apiName) items.push(apiName);
+                             else unknownItems.add(itemSlug as string);
+                        }
+                    });
+
+                    const isCarry = items.length > 0;
+                    const unitData: CrawlUnit = {
+                        championId: generateSlug(rawName),
+                        championKey: this.itemLookupService.getValidChampionKey(rawName) || generateChampionKey(rawName),
+                        name: rawName,
+                        cost: 0, 
+                        star: 2,
+                        carry: isCarry,
+                        position: { row: rowIndex, col: colIndex },
+                        items: items,
+                        image: src,
+                        traits: [],
+                    };
+                    units.push(unitData);
+
+                    if (isCarry && (!coreChampion || items.length > (coreChampion.items?.length || 0))) {
+                        coreChampion = unitData;
+                    }
+                });
+            });
+        }
+    }
+
+    // 4. Update Cost & Traits từ DB
+    for (const unit of units) {
+      try {
+        let tftUnit = await this.tftUnitsService.findByApiName(unit.championKey);
+        if (!tftUnit) {
+          tftUnit = await this.tftUnitsService.findByApiName(`TFT16_${unit.name.replace(/\s/g, '')}`);
+        }
+        if (tftUnit) {
+          if (tftUnit.cost != null) unit.cost = tftUnit.cost;
+          if (tftUnit.traits?.length) unit.traits = tftUnit.traits;
+        }
+      } catch {}
+    }
+
+    // 5. Parse Augments
+    const augments: CrawlAugment[] = [];
+    const tierSpans = $('span').filter((_, el) => /^Tier\s+\d+$/.test($(el).text().trim()));
+    
+    tierSpans.each((_, el) => {
+      const tierText = $(el).text().trim(); 
+      const tierValue = parseInt(tierText.split(' ')[1], 10); 
+
+      $(el).parent().parent().find('img').each((_, imgEl) => {
+        const $img = $(imgEl);
+        let rawSlug = $img.attr('alt') || '';
+        const src = $img.attr('src') || '';
+
+        if (!rawSlug || ['t1', 't2', 't3'].includes(rawSlug.toLowerCase())) {
+              rawSlug = extractItemSlugFromUrl(src);
+        }
+        if (!rawSlug || ['t1', 't2', 't3'].includes(rawSlug.toLowerCase())) return;
+
+        const apiName = this.itemLookupService.getValidAugmentApiName(rawSlug);
+        if (apiName) {
+            augments.push({ name: apiName, tier: tierValue });
+        }
+      });
+    });
+    
+    const finalAugments = Array.from(new Map(augments.map(a => [a.name, a])).values());
+
+    return {
+      compId: `comp-${generateSlug(compName)}-${Date.now()}`,
+      name: compName,
+      teamCode: teamCode, 
+      plan: plan,
+      difficulty: difficulty,
+      metaDescription: metaDescription,
+      isLateGame: plan.includes('8') || plan.includes('9'),
+      tier: tier,
+      active: true,
+      boardSize: { rows: 4, cols: 7 },
+      units,
+      earlyGame: [],
+      midGame: [],
+      bench: [],
+      notes: [],
+      augments: finalAugments,
+      coreChampion: coreChampion || units[0],
+    };
+  }
 
   // --- Helpers ---
   
@@ -524,7 +517,6 @@ private async parseDetailHtml(html: string, sourceUrl: string, teamCode: string 
       args: [
         '--no-sandbox', 
         '--disable-setuid-sandbox',
-        // Các cờ sau giúp việc copy paste ổn định hơn trong môi trường headless
         '--enable-clipboard-read',
         '--enable-clipboard-write'
       ],
@@ -535,10 +527,11 @@ private async parseDetailHtml(html: string, sourceUrl: string, teamCode: string 
   private async getCompLinks(
     browser: puppeteer.Browser,
     url: string,
-  ): Promise<Array<{ url: string; name?: string }>> {
+  ): Promise<Array<{ url: string; name?: string; tier: string }>> {
     const page = await browser.newPage();
     await page.setRequestInterception(true);
     page.on('request', (req) => {
+      // Tạm thời chặn load ảnh để lướt trang nhanh hơn
       if (req.resourceType() === 'image') req.abort();
       else req.continue();
     });
@@ -547,17 +540,49 @@ private async parseDetailHtml(html: string, sourceUrl: string, teamCode: string 
       await page.goto(url, { waitUntil: 'networkidle2', timeout: 60000 });
       await page.waitForSelector('a[href*="/tft/comps-guide/"]', { timeout: 15000 });
       
+      // Cuộn xuống cuối để web load hết tất cả các đội hình
       await this.scrollUntilBottom(page);
 
       const content = await page.content();
       const $ = cheerio.load(content);
-      const links = new Map<string, { url: string; name?: string }>();
+      const links = new Map<string, { url: string; name?: string; tier: string }>();
 
       $('a[href*="/tft/comps-guide/"]').each((_, el) => {
         const href = $(el).attr('href');
+        
+        // --- QUÉT TIER TỪ THẺ HTML BÊN NGOÀI CỦA ĐỘI HÌNH ---
+        let compTier = 'C'; // Mặc định
+        
+        // Cấu trúc: <a> nằm trong <div> con, ảnh <img> nằm ở <div> cha
+        // Dùng .closest() để tìm ngược lên thẻ div cha gần nhất có chứa ảnh "hex-tiers"
+        let $tierImg = $(el).parent().parent().find('img[src*="hex-tiers"]');
+        
+        if ($tierImg.length === 0) {
+           // Fallback cực mạnh: Quét tổ tiên bọc ngoài cùng miễn là có ảnh hex-tiers
+           $tierImg = $(el).closest(':has(img[src*="hex-tiers"])').find('img[src*="hex-tiers"]').first();
+        }
+
+        if ($tierImg.length) {
+            // Lấy từ thuộc tính Alt (ví dụ: alt="s")
+            const altText = $tierImg.attr('alt')?.toUpperCase().trim();
+            if (altText && ['S', 'A', 'B', 'C', 'D'].includes(altText)) {
+                compTier = altText;
+            } 
+            // Nếu không có Alt, cắt chữ từ đường dẫn src (ví dụ: /hex-tiers/S.svg)
+            else {
+                const srcText = $tierImg.attr('src') || '';
+                const srcMatch = srcText.match(/hex-tiers\/([SABCD])\.svg/i);
+                if (srcMatch) compTier = srcMatch[1].toUpperCase();
+            }
+        }
+        // ----------------------------------------------------
+
         if (href) {
           const fullUrl = new URL(href, url).toString();
-          links.set(fullUrl, { url: fullUrl });
+          // Dùng Map để tránh trùng lặp nếu 1 đội hình xuất hiện 2 lần
+          if (!links.has(fullUrl)) {
+            links.set(fullUrl, { url: fullUrl, tier: compTier });
+          }
         }
       });
       return Array.from(links.values());

@@ -19,7 +19,7 @@ export abstract class TftUnitRepository {
     sortOptions?: SortTftUnitDto[] | null;
     paginationOptions: IPaginationOptions;
     minimal?: boolean;
-  }): Promise<TftUnit[]>;
+  }): Promise<{ data: TftUnit[]; totalCount: number }>;
 
   abstract findAll(options?: { minimal?: boolean }): Promise<TftUnit[]>;
 

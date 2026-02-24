@@ -121,6 +121,7 @@ export class CompositionsDocumentRepository implements CompositionRepository {
       { $match: where },
       {
         $addFields: {
+          orderSort: { $ifNull: ['$order', 999999] },
           isOpOrder: { $cond: [{ $eq: ['$isOp', true] }, 0, 1] },
           tierOrder: {
             $switch: {
@@ -138,7 +139,8 @@ export class CompositionsDocumentRepository implements CompositionRepository {
       },
     ];
 
-    const sortObj: any = { isOpOrder: 1, tierOrder: 1 };
+    // Mặc định: order thấp → cao (orderSort), rồi tier (S→D), rồi isOp, rồi sort từ query
+    const sortObj: any = { orderSort: 1, tierOrder: 1, isOpOrder: 1 };
 
     if (sortOptions && sortOptions.length > 0) {
       sortOptions.forEach((sort) => {
@@ -147,7 +149,8 @@ export class CompositionsDocumentRepository implements CompositionRepository {
           field !== 'tierOrder' &&
           field !== 'tier' &&
           field !== 'isOpOrder' &&
-          field !== 'isOp'
+          field !== 'isOp' &&
+          field !== 'orderSort'
         ) {
           sortObj[field] = sort.order.toUpperCase() === 'ASC' ? 1 : -1;
         }
@@ -162,7 +165,7 @@ export class CompositionsDocumentRepository implements CompositionRepository {
       { $sort: sortObj },
       { $skip: (paginationOptions.page - 1) * paginationOptions.limit },
       { $limit: paginationOptions.limit },
-      { $unset: ['tierOrder', 'isOpOrder'] },
+      { $unset: ['tierOrder', 'isOpOrder', 'orderSort'] },
     );
 
     const compositionObjects = await this.compositionsModel.aggregate(pipeline);
@@ -272,7 +275,10 @@ export class CompositionsDocumentRepository implements CompositionRepository {
       }),
     };
 
-    const compositionObjects = await this.compositionsModel.find(where);
+    const compositionObjects = await this.compositionsModel
+      .find(where)
+      .sort({ order: 1 })
+      .exec();
     return compositionObjects.map((compositionObject) =>
       CompositionMapper.toDomain(compositionObject),
     );
@@ -346,7 +352,7 @@ export class CompositionsDocumentRepository implements CompositionRepository {
     const entities = await this.compositionsModel
       .find(filter)
       .limit(50)
-      .sort({ createdAt: -1 }) // Mới nhất trước
+      .sort({ order: 1, createdAt: -1 }) // Ưu tiên order thấp → cao, rồi mới nhất (tier chỉ có trong GET list)
       .exec();
 
     return entities.map((entity) => CompositionMapper.toDomain(entity));

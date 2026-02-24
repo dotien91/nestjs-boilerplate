@@ -14,7 +14,7 @@ export abstract class TftItemRepository {
     filterOptions?: FilterTftItemDto | null;
     sortOptions?: SortTftItemDto[] | null;
     paginationOptions: IPaginationOptions;
-  }): Promise<TftItem[]>;
+  }): Promise<{ data: TftItem[]; totalCount: number }>;
 
   abstract findById(id: TftItem['id']): Promise<NullableType<TftItem>>;
 

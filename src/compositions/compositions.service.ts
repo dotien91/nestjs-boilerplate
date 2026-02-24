@@ -81,6 +81,7 @@ export class CompositionsService {
       augments: createCompositionDto.augments ?? [],
       coreChampion: createCompositionDto.coreChampion,
       teamCode: createCompositionDto.teamCode,
+      order: createCompositionDto.order,
     });
 
     return composition;
@@ -519,7 +520,7 @@ export class CompositionsService {
   async parseMobalyticsHTML(htmlString: string): Promise<CreateCompositionDto> {
     const $ = cheerio.load(htmlString);
 
-    const allItems = await this.tftItemsService.findManyWithPagination({
+    const { data: allItems } = await this.tftItemsService.findManyWithPagination({
       filterOptions: null,
       sortOptions: null,
       paginationOptions: { page: 1, limit: 1000 },

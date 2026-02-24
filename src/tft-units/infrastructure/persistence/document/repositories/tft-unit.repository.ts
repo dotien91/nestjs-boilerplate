@@ -106,37 +106,41 @@ export class TftUnitsDocumentRepository implements TftUnitRepository {
     sortOptions?: SortTftUnitDto[] | null;
     paginationOptions: IPaginationOptions;
     minimal?: boolean;
-  }): Promise<TftUnit[]> {
+  }): Promise<{ data: TftUnit[]; totalCount: number }> {
     const where = this.buildFilterQuery(filterOptions);
     const select = minimal ? this.minimalProjection : undefined;
 
-    if (!sortOptions || sortOptions.length === 0) {
-      let query = this.tftUnitsModel.find(where);
-      if (select) query = query.select(select);
-      const unitObjects = await query
-        .skip((paginationOptions.page - 1) * paginationOptions.limit)
-        .limit(paginationOptions.limit)
-        .lean();
-      return unitObjects.map((unitObject: any) => this.leanToDomain(unitObject));
-    }
+    const [totalCount, unitObjects] = await Promise.all([
+      this.tftUnitsModel.countDocuments(where),
+      (() => {
+        if (!sortOptions || sortOptions.length === 0) {
+          let query = this.tftUnitsModel.find(where);
+          if (select) query = query.select(select);
+          return query
+            .skip((paginationOptions.page - 1) * paginationOptions.limit)
+            .limit(paginationOptions.limit)
+            .lean();
+        }
+        let query = this.tftUnitsModel.find(where).sort(
+          sortOptions!.reduce(
+            (accumulator, sort) => ({
+              ...accumulator,
+              [sort.orderBy === 'id' ? '_id' : sort.orderBy]:
+                sort.order.toUpperCase() === 'ASC' ? 1 : -1,
+            }),
+            {},
+          ),
+        );
+        if (select) query = query.select(select);
+        return query
+          .skip((paginationOptions.page - 1) * paginationOptions.limit)
+          .limit(paginationOptions.limit)
+          .lean();
+      })(),
+    ]);
 
-    let query = this.tftUnitsModel.find(where).sort(
-      sortOptions.reduce(
-        (accumulator, sort) => ({
-          ...accumulator,
-          [sort.orderBy === 'id' ? '_id' : sort.orderBy]:
-            sort.order.toUpperCase() === 'ASC' ? 1 : -1,
-        }),
-        {},
-      ),
-    );
-    if (select) query = query.select(select);
-    const unitObjects = await query
-      .skip((paginationOptions.page - 1) * paginationOptions.limit)
-      .limit(paginationOptions.limit)
-      .lean();
-
-    return unitObjects.map((unitObject: any) => this.leanToDomain(unitObject));
+    const data = (unitObjects as any[]).map((unitObject: any) => this.leanToDomain(unitObject));
+    return { data, totalCount };
   }
 
   /**

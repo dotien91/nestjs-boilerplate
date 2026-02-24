@@ -7,11 +7,13 @@ import {
   Param,
   Delete,
   Query,
+  Res,
   HttpStatus,
   HttpCode,
   UseGuards,
   UseInterceptors,
 } from '@nestjs/common';
+import { Response } from 'express';
 import { CacheInterceptor, CacheTTL } from '@nestjs/cache-manager';
 import {
   ApiCreatedResponse,
@@ -64,6 +66,7 @@ export class TftAugmentsController {
   @HttpCode(HttpStatus.OK)
   async findAll(
     @Query() query: QueryTftAugmentDto,
+    @Res({ passthrough: true }) res: Response,
   ): Promise<InfinityPaginationResponseDto<TftAugment>> {
     const page = query?.page ?? 1;
     let limit = query?.limit ?? 10;
@@ -96,17 +99,13 @@ export class TftAugmentsController {
       ];
     }
 
-    return infinityPagination(
-      await this.tftAugmentsService.findManyWithPagination({
-        filterOptions: filters,
-        sortOptions: sort,
-        paginationOptions: {
-          page,
-          limit,
-        },
-      }),
-      { page, limit },
-    );
+    const { data, totalCount } = await this.tftAugmentsService.findManyWithPagination({
+      filterOptions: filters,
+      sortOptions: sort,
+      paginationOptions: { page, limit },
+    });
+    res.setHeader('X-Total-Count', String(totalCount));
+    return infinityPagination(data, { page, limit }, totalCount);
   }
 
   @ApiOperation({ summary: 'Lấy TFT augment theo ID' })
@@ -157,11 +156,12 @@ export class TftAugmentsController {
   async findByStage(
     @Param('stage') stage: string,
   ): Promise<TftAugment[]> {
-    return this.tftAugmentsService.findManyWithPagination({
+    const { data } = await this.tftAugmentsService.findManyWithPagination({
       filterOptions: { stage },
       sortOptions: null,
       paginationOptions: { page: 1, limit: 100 },
     });
+    return data;
   }
 
   @ApiBearerAuth()

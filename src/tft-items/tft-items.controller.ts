@@ -7,11 +7,13 @@ import {
   Param,
   Delete,
   Query,
+  Res,
   HttpStatus,
   HttpCode,
   UseGuards,
   UseInterceptors,
 } from '@nestjs/common';
+import { Response } from 'express';
 import { CacheInterceptor, CacheTTL } from '@nestjs/cache-manager';
 import {
   ApiCreatedResponse,
@@ -64,6 +66,7 @@ export class TftItemsController {
   @HttpCode(HttpStatus.OK)
   async findAll(
     @Query() query: QueryTftItemDto,
+    @Res({ passthrough: true }) res: Response,
   ): Promise<InfinityPaginationResponseDto<TftItem>> {
     const page = query?.page ?? 1;
     let limit = query?.limit ?? 10;
@@ -74,12 +77,15 @@ export class TftItemsController {
     // Build filters từ flat properties - chỉ giữ field có giá trị
     let filters: FilterTftItemDto | undefined = undefined;
     const filterObj: Partial<FilterTftItemDto> = {};
-    
     if (query?.name) filterObj.name = query.name;
     if (query?.apiName) filterObj.apiName = query.apiName;
     if (query?.trait) filterObj.trait = query.trait;
     if (query?.unique !== undefined && query?.unique !== null) filterObj.unique = query.unique;
-    
+    if (query?.hasComposition !== undefined && query?.hasComposition !== null) {
+      const v = query.hasComposition;
+      filterObj.hasComposition = v === true || String(v).toLowerCase() === 'true';
+    }
+
     if (Object.keys(filterObj).length > 0) {
       filters = filterObj as FilterTftItemDto;
     }
@@ -95,17 +101,13 @@ export class TftItemsController {
       ];
     }
 
-    return infinityPagination(
-      await this.tftItemsService.findManyWithPagination({
-        filterOptions: filters,
-        sortOptions: sort,
-        paginationOptions: {
-          page,
-          limit,
-        },
-      }),
-      { page, limit },
-    );
+    const { data, totalCount } = await this.tftItemsService.findManyWithPagination({
+      filterOptions: filters,
+      sortOptions: sort,
+      paginationOptions: { page, limit },
+    });
+    res.setHeader('X-Total-Count', String(totalCount));
+    return infinityPagination(data, { page, limit }, totalCount);
   }
 
   @ApiOperation({ summary: 'Lấy TFT item theo ID' })

@@ -68,7 +68,7 @@ export class TftItemsService {
     filterOptions?: FilterTftItemDto | null;
     sortOptions?: SortTftItemDto[] | null;
     paginationOptions: IPaginationOptions;
-  }): Promise<TftItem[]> {
+  }): Promise<{ data: TftItem[]; totalCount: number }> {
     return this.tftItemsRepository.findManyWithPagination({
       filterOptions,
       sortOptions,

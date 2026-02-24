@@ -17,7 +17,7 @@ export abstract class TftAugmentRepository {
     filterOptions?: FilterTftAugmentDto | null;
     sortOptions?: SortTftAugmentDto[] | null;
     paginationOptions: IPaginationOptions;
-  }): Promise<TftAugment[]>;
+  }): Promise<{ data: TftAugment[]; totalCount: number }>;
 
   abstract findById(id: TftAugment['id']): Promise<NullableType<TftAugment>>;
 

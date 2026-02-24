@@ -29,6 +29,15 @@ export class FilterTftItemDto {
   unique?: boolean | null;
 
   tier?: string | null;
+
+  @ApiPropertyOptional({
+    type: Boolean,
+    description: 'true = chỉ items có xuất hiện trong ít nhất 1 composition; false = chỉ items không có trong composition nào',
+  })
+  @IsOptional()
+  @IsBoolean()
+  @Transform(({ value }) => value === 'true' || value === true)
+  hasComposition?: boolean | null;
 }
 
 export class SortTftItemDto {
@@ -79,6 +88,14 @@ export class QueryTftItemDto {
   @IsOptional()
   @IsString()
   tier?: string | null;
+
+  @ApiPropertyOptional({
+    type: Boolean,
+    description: 'true = chỉ items có trong composition; false = chỉ items không có trong composition',
+  })
+  @IsOptional()
+  @Transform(({ value }) => value === 'true' || value === true)
+  hasComposition?: boolean | null;
 
   // Flat format: orderBy=name&order=asc
   @ApiPropertyOptional({ type: String })

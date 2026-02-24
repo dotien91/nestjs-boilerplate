@@ -34,7 +34,7 @@ export class TftAugmentsDocumentRepository implements TftAugmentRepository {
     filterOptions?: FilterTftAugmentDto | null;
     sortOptions?: SortTftAugmentDto[] | null;
     paginationOptions: IPaginationOptions;
-  }): Promise<TftAugment[]> {
+  }): Promise<{ data: TftAugment[]; totalCount: number }> {
     const where: FilterQuery<TftAugmentSchemaClass> = {};
 
     if (filterOptions?.name) {
@@ -60,24 +60,28 @@ export class TftAugmentsDocumentRepository implements TftAugmentRepository {
       where.unique = filterOptions.unique;
     }
 
-    const augmentObjects = await this.tftAugmentsModel
-      .find(where)
-      .sort(
-        sortOptions?.reduce(
-          (accumulator, sort) => ({
-            ...accumulator,
-            [sort.orderBy === 'id' ? '_id' : sort.orderBy]:
-              sort.order.toUpperCase() === 'ASC' ? 1 : -1,
-          }),
-          {},
-        ),
-      )
-      .skip((paginationOptions.page - 1) * paginationOptions.limit)
-      .limit(paginationOptions.limit);
+    const sortObj = sortOptions?.reduce(
+      (accumulator, sort) => ({
+        ...accumulator,
+        [sort.orderBy === 'id' ? '_id' : sort.orderBy]:
+          sort.order.toUpperCase() === 'ASC' ? 1 : -1,
+      }),
+      {},
+    );
 
-    return augmentObjects.map((augmentObject) =>
+    const [totalCount, augmentObjects] = await Promise.all([
+      this.tftAugmentsModel.countDocuments(where),
+      this.tftAugmentsModel
+        .find(where)
+        .sort(sortObj ?? {})
+        .skip((paginationOptions.page - 1) * paginationOptions.limit)
+        .limit(paginationOptions.limit),
+    ]);
+
+    const data = augmentObjects.map((augmentObject) =>
       TftAugmentMapper.toDomain(augmentObject),
     );
+    return { data, totalCount };
   }
 
   async findById(id: TftAugment['id']): Promise<NullableType<TftAugment>> {

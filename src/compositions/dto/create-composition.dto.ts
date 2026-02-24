@@ -496,5 +496,14 @@ export class CreateCompositionDto {
   @IsOptional()
   @IsString()
   teamCode?: string;
+
+  @ApiPropertyOptional({
+    type: Number,
+    example: 1,
+    description: 'Thứ tự hiển thị (đội hình tìm thấy đầu tiên = 1, tăng dần theo crawl)',
+  })
+  @IsOptional()
+  @IsNumber()
+  order?: number;
 }
 

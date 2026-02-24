@@ -242,6 +242,12 @@ export class CompositionSchemaClass extends EntityDocumentHelper {
   })
   teamcode?: string | null;
 
+  @Prop({
+    type: Number,
+    default: null,
+  })
+  order?: number | null;
+
   @Prop({ default: now })
   createdAt: Date;
 
@@ -261,4 +267,5 @@ CompositionSchema.index({ difficulty: 1 });
 CompositionSchema.index({ isLateGame: 1 });
 CompositionSchema.index({ active: 1 });
 CompositionSchema.index({ isOp: 1 });
+CompositionSchema.index({ order: 1 });
 

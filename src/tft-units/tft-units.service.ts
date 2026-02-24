@@ -67,7 +67,7 @@ export class TftUnitsService {
     sortOptions?: SortTftUnitDto[] | null;
     paginationOptions: IPaginationOptions;
     minimal?: boolean;
-  }): Promise<TftUnit[]> {
+  }): Promise<{ data: TftUnit[]; totalCount: number }> {
     return this.tftUnitsRepository.findManyWithPagination({
       filterOptions,
       sortOptions,
