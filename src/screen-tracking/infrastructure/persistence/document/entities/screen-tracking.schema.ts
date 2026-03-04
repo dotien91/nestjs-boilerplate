@@ -69,6 +69,12 @@ export class ScreenTrackingSchemaClass extends EntityDocumentHelper {
 
   @Prop()
   deletedAt: Date;
+
+  @Prop({
+    type: String,
+    default: null,
+  })
+  os?: string | null;
 }
 
 export const ScreenTrackingSchema = SchemaFactory.createForClass(

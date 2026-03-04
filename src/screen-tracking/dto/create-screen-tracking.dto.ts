@@ -20,6 +20,10 @@ export class CreateScreenTrackingDto {
   @IsString()
   deviceId?: string;
 
+  @IsOptional()
+  @IsString()
+  os?: string;
+
   @ApiPropertyOptional({
     type: String,
     example: '1.2.0',
