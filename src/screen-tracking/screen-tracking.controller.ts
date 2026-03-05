@@ -46,6 +46,7 @@ export class ScreenTrackingController {
       location?: string;
       deviceId?: string;
       appVersion?: string;
+      os?: string;
     },
   ): Promise<ScreenTracking> {
     const userId = request.user?.id || null;

@@ -70,5 +70,12 @@ export class ScreenTracking {
 
   @ApiProperty()
   deletedAt: Date;
+
+  @ApiPropertyOptional({
+    type: String,
+    example: 'iOS',
+    description: 'OS của device từ header x-os',
+  })
+  os?: string | null;
 }
 

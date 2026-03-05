@@ -26,6 +26,7 @@ export class ScreenTrackingService {
     tracking.location = createScreenTrackingDto.location || null;
     tracking.deviceId = createScreenTrackingDto.deviceId || null;
     tracking.appVersion = createScreenTrackingDto.appVersion || null;
+    tracking.os = createScreenTrackingDto.os || null;
     tracking.metadata = null;
     tracking.createdAt = new Date();
     tracking.updatedAt = new Date();
