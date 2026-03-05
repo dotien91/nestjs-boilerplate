@@ -16,6 +16,7 @@ export class ScreenTrackingMapper {
     domainEntity.createdAt = raw.createdAt;
     domainEntity.updatedAt = raw.updatedAt;
     domainEntity.deletedAt = raw.deletedAt;
+    domainEntity.os = raw.os || null;
 
     return domainEntity;
   }
@@ -38,7 +39,7 @@ export class ScreenTrackingMapper {
     persistenceSchema.createdAt = domainEntity.createdAt;
     persistenceSchema.updatedAt = domainEntity.updatedAt;
     persistenceSchema.deletedAt = domainEntity.deletedAt;
-
+    persistenceSchema.os = domainEntity.os || null;
     return persistenceSchema;
   }
 }

@@ -93,4 +93,5 @@ ScreenTrackingSchema.index({ createdAt: -1 });
 ScreenTrackingSchema.index({ userId: 1, screenName: 1 });
 ScreenTrackingSchema.index({ userId: 1, createdAt: -1 });
 ScreenTrackingSchema.index({ lang: 1, location: 1 });
+ScreenTrackingSchema.index({ os: 1 });
 
