@@ -35,6 +35,7 @@ export class TftAugmentsService {
     }
 
     const augment = new TftAugment();
+    augment.season_id = createTftAugmentDto.season_id ?? '16';
     augment.apiName = createTftAugmentDto.apiName;
     augment.name = createTftAugmentDto.name;
     augment.enName = createTftAugmentDto.enName;
@@ -109,4 +110,3 @@ export class TftAugmentsService {
     await this.tftAugmentsRepository.remove(id);
   }
 }
-

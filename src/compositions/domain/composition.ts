@@ -221,6 +221,13 @@ export class Composition {
 
   @ApiProperty({
     type: String,
+    example: '18',
+    description: 'ID mùa TFT',
+  })
+  season_id: string;
+
+  @ApiProperty({
+    type: String,
     example: 'comp-daicogiap-yone',
     description: 'ID của composition',
   })
@@ -371,4 +378,3 @@ export class Composition {
   @ApiProperty()
   deletedAt: Date;
 }
-

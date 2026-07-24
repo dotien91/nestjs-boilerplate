@@ -61,6 +61,7 @@ export class CompositionsService {
     }
 
     const composition = await this.compositionsRepository.create({
+      season_id: createCompositionDto.season_id ?? '16',
       compId: compId,
       name: createCompositionDto.name,
       plan: createCompositionDto.plan,

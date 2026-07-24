@@ -18,6 +18,7 @@ export class TftTraitMapper {
   static toDomain(raw: TftTraitSchemaClass): TftTrait {
     const domainEntity = new TftTrait();
     domainEntity.id = raw._id.toString();
+    domainEntity.season_id = raw.season_id || '16';
     domainEntity.apiName = raw.apiName;
     domainEntity.name = raw.name;
     domainEntity.enName = raw.enName;
@@ -42,6 +43,7 @@ export class TftTraitMapper {
       persistenceSchema._id = domainEntity.id;
     }
 
+    persistenceSchema.season_id = domainEntity.season_id || '16';
     persistenceSchema.apiName = domainEntity.apiName;
     persistenceSchema.name = domainEntity.name;
     persistenceSchema.enName = domainEntity.enName;
@@ -58,4 +60,3 @@ export class TftTraitMapper {
     return persistenceSchema;
   }
 }
-

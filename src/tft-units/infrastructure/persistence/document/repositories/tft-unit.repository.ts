@@ -25,6 +25,10 @@ export class TftUnitsDocumentRepository implements TftUnitRepository {
   private buildFilterQuery(filterOptions?: FilterTftUnitDto | null): FilterQuery<TftUnitSchemaClass> {
     const where: FilterQuery<TftUnitSchemaClass> = {};
 
+    if (filterOptions?.season_id) {
+      where.season_id = filterOptions.season_id;
+    }
+
     if (filterOptions?.name) {
       // Escape special regex characters và tìm partial match
       const escapedName = filterOptions.name.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
@@ -58,6 +62,8 @@ export class TftUnitsDocumentRepository implements TftUnitRepository {
   private leanToDomain(unitObject: any): TftUnit {
     const domainEntity = new TftUnit();
     domainEntity.id = unitObject._id != null ? unitObject._id.toString() : unitObject._id;
+    domainEntity.season_id = unitObject.season_id || '16';
+    domainEntity.slug = unitObject.slug;
     domainEntity.apiName = unitObject.apiName;
     domainEntity.name = unitObject.name;
     domainEntity.enName = unitObject.enName;
@@ -94,7 +100,7 @@ export class TftUnitsDocumentRepository implements TftUnitRepository {
   }
 
   /** Projection chỉ lấy field cần cho minimal response (tránh load ability, stats, icons...) */
-  private readonly minimalProjection = '_id apiName characterName cost enName name tier traits';
+  private readonly minimalProjection = '_id season_id slug apiName characterName cost enName name tier traits';
 
   async findManyWithPagination({
     filterOptions,
@@ -209,4 +215,3 @@ export class TftUnitsDocumentRepository implements TftUnitRepository {
     await this.tftUnitsModel.deleteOne({ _id: id.toString() });
   }
 }
-

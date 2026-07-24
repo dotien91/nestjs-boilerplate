@@ -1,5 +1,5 @@
 import { ApiPropertyOptional } from '@nestjs/swagger';
-import { Transform, Type } from 'class-transformer';
+import { plainToInstance, Transform, Type } from 'class-transformer';
 import {
   IsArray,
   IsBoolean,
@@ -9,7 +9,27 @@ import {
   ValidateNested,
 } from 'class-validator';
 
+function parseJsonQueryValue(value: unknown): unknown {
+  if (typeof value !== 'string') return value;
+  const trimmed = value.trim();
+  if (!trimmed) return undefined;
+  try {
+    return JSON.parse(trimmed);
+  } catch {
+    return value;
+  }
+}
+
 export class FilterCompositionDto {
+  @ApiPropertyOptional({
+    type: String,
+    example: '18',
+    description: 'Filter theo mùa TFT',
+  })
+  @IsOptional()
+  @IsString()
+  season_id?: string | null;
+
   @ApiPropertyOptional({ type: String })
   @IsOptional()
   @IsString()
@@ -116,14 +136,32 @@ export class QueryCompositionDto {
 
   @ApiPropertyOptional({ type: FilterCompositionDto })
   @IsOptional()
+  @Transform(
+    ({ value }) => {
+      const parsed = parseJsonQueryValue(value);
+      return parsed && typeof parsed === 'object'
+        ? plainToInstance(FilterCompositionDto, parsed)
+        : parsed;
+    },
+    { toClassOnly: true },
+  )
   @ValidateNested()
   @Type(() => FilterCompositionDto)
   filters?: FilterCompositionDto | null;
 
   @ApiPropertyOptional({ type: [SortCompositionDto] })
   @IsOptional()
+  @Transform(
+    ({ value }) => {
+      const parsed = parseJsonQueryValue(value);
+      return Array.isArray(parsed)
+        ? plainToInstance(SortCompositionDto, parsed)
+        : parsed;
+    },
+    { toClassOnly: true },
+  )
+  @IsArray()
   @ValidateNested({ each: true })
   @Type(() => SortCompositionDto)
   sort?: SortCompositionDto[] | null;
 }
-

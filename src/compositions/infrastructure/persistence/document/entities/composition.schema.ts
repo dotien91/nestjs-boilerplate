@@ -122,6 +122,14 @@ export class CompositionSchemaClass extends EntityDocumentHelper {
   @Prop({
     required: true,
     type: String,
+    default: '16',
+    index: true,
+  })
+  season_id: string;
+
+  @Prop({
+    required: true,
+    type: String,
     unique: true,
   })
   compId: string;
@@ -268,4 +276,3 @@ CompositionSchema.index({ isLateGame: 1 });
 CompositionSchema.index({ active: 1 });
 CompositionSchema.index({ isOp: 1 });
 CompositionSchema.index({ order: 1 });
-

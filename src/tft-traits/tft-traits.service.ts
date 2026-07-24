@@ -35,6 +35,7 @@ export class TftTraitsService {
     }
 
     const trait = new TftTrait();
+    trait.season_id = createTftTraitDto.season_id ?? '16';
     trait.apiName = createTftTraitDto.apiName;
     trait.name = createTftTraitDto.name;
     trait.enName = createTftTraitDto.enName;
@@ -101,4 +102,3 @@ export class TftTraitsService {
     await this.tftTraitsRepository.remove(id);
   }
 }
-

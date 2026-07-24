@@ -36,6 +36,8 @@ export class TftUnitsService {
     }
 
     const unit = new TftUnit();
+    unit.season_id = createTftUnitDto.season_id ?? '16';
+    unit.slug = createTftUnitDto.slug ?? createTftUnitDto.apiName.toLowerCase();
     unit.apiName = createTftUnitDto.apiName;
     unit.name = createTftUnitDto.name;
     unit.enName = createTftUnitDto.enName;
@@ -114,4 +116,3 @@ export class TftUnitsService {
     await this.tftUnitsRepository.remove(id);
   }
 }
-

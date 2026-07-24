@@ -36,6 +36,21 @@ export interface UnitStatsDto {
 }
 
 export class CreateTftUnitDto {
+  @ApiPropertyOptional({
+    type: String,
+    example: '18',
+    default: '16',
+    description: 'ID mùa TFT',
+  })
+  @IsOptional()
+  @IsString()
+  season_id?: string;
+
+  @ApiPropertyOptional({ type: String, example: 'ahri' })
+  @IsOptional()
+  @IsString()
+  slug?: string;
+
   @ApiProperty({
     type: String,
     example: 'TFT16_Tristana',
@@ -165,4 +180,3 @@ export class CreateTftUnitDto {
   @IsString({ each: true })
   popularItems?: string[];
 }
-

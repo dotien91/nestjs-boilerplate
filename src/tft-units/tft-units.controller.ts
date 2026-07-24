@@ -38,6 +38,8 @@ import { NullableType } from '../utils/types/nullable.type';
 
 type MinimalTftUnitResponse = {
   id: string;
+  season_id: string;
+  slug: string;
   apiName: string;
   characterName: string | null;
   cost: number | null;
@@ -58,6 +60,8 @@ export class TftUnitsController {
   private toMinimalUnit(unit: TftUnit): MinimalTftUnitResponse {
     return {
       id: unit.id != null ? String(unit.id) : '',
+      season_id: unit.season_id,
+      slug: unit.slug,
       apiName: unit.apiName,
       characterName: unit.characterName ?? null,
       cost: unit.cost ?? null,
@@ -98,6 +102,7 @@ export class TftUnitsController {
     let filters: FilterTftUnitDto | undefined = undefined;
     const filterObj: Partial<FilterTftUnitDto> = {};
     
+    if (query?.season_id) filterObj.season_id = query.season_id;
     if (query?.name) filterObj.name = query.name;
     if (query?.apiName) filterObj.apiName = query.apiName;
     if (query?.trait) filterObj.trait = query.trait;
@@ -249,4 +254,3 @@ export class TftUnitsController {
     return this.tftUnitsService.remove(id);
   }
 }
-

@@ -39,6 +39,10 @@ export class CompositionsDocumentRepository implements CompositionRepository {
     const andConditions: any[] = [];
 
     // Build base filters
+    if (filterOptions?.season_id) {
+      where.season_id = filterOptions.season_id;
+    }
+
     if (filterOptions?.name) {
       where.name = { $regex: filterOptions.name, $options: 'i' };
     }

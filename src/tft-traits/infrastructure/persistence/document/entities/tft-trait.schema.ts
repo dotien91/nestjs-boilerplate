@@ -12,10 +12,12 @@ export type TftTraitSchemaDocument = HydratedDocument<TftTraitSchemaClass>;
   },
 })
 export class TftTraitSchemaClass extends EntityDocumentHelper {
+  @Prop({ required: true, type: String, default: '16', index: true })
+  season_id: string;
+
   @Prop({
     required: true,
     type: String,
-    unique: true,
   })
   apiName: string;
 
@@ -122,7 +124,6 @@ export class TftTraitSchemaClass extends EntityDocumentHelper {
 export const TftTraitSchema = SchemaFactory.createForClass(TftTraitSchemaClass);
 
 // Indexes để tối ưu query
-TftTraitSchema.index({ apiName: 1 });
+TftTraitSchema.index({ season_id: 1, apiName: 1 }, { unique: true });
 TftTraitSchema.index({ name: 1 });
 TftTraitSchema.index({ type: 1 });
-

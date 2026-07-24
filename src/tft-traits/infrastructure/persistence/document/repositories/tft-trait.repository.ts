@@ -39,6 +39,7 @@ export class TftTraitsDocumentRepository implements TftTraitRepository {
   private leanToDomain(traitObject: any): TftTrait {
     const domainEntity = new TftTrait();
     domainEntity.id = traitObject._id?.toString() || traitObject._id;
+    domainEntity.season_id = traitObject.season_id || '16';
     domainEntity.apiName = traitObject.apiName;
     domainEntity.name = traitObject.name;
     domainEntity.enName = traitObject.enName;
@@ -80,6 +81,10 @@ export class TftTraitsDocumentRepository implements TftTraitRepository {
     paginationOptions: IPaginationOptions;
   }): Promise<TftTrait[]> {
     const where: FilterQuery<TftTraitSchemaClass> = {};
+
+    if (filterOptions?.season_id) {
+      where.season_id = filterOptions.season_id;
+    }
 
     if (filterOptions?.name) {
       where.name = { $regex: filterOptions.name, $options: 'i' };
@@ -158,4 +163,3 @@ export class TftTraitsDocumentRepository implements TftTraitRepository {
     await this.tftTraitsModel.deleteOne({ _id: id.toString() });
   }
 }
-

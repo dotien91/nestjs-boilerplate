@@ -3,12 +3,23 @@ import {
   IsArray,
   IsBoolean,
   IsNotEmpty,
+  IsIn,
   IsObject,
   IsOptional,
   IsString,
 } from 'class-validator';
 
 export class CreateTftItemDto {
+  @ApiPropertyOptional({ type: String, example: '18', default: '16' })
+  @IsOptional()
+  @IsString()
+  season_id?: string;
+
+  @ApiPropertyOptional({ type: String, example: 'bf-sword' })
+  @IsOptional()
+  @IsString()
+  slug?: string;
+
   @ApiProperty({
     type: String,
     example: 'TFT_Item_RabadonsDeathcap',
@@ -131,9 +142,11 @@ export class CreateTftItemDto {
   @ApiPropertyOptional({
     type: String,
     description: 'Type của item',
+    enum: ['basic', 'combined', 'radiant', 'elusive', 'consumable', 'artifact'],
   })
   @IsOptional()
   @IsString()
+  @IsIn(['basic', 'combined', 'radiant', 'elusive', 'consumable', 'artifact'])
   type?: string | null;
 
   @ApiPropertyOptional({
@@ -164,4 +177,3 @@ export class CreateTftItemDto {
   @IsString({ each: true })
   units?: string[];
 }
-

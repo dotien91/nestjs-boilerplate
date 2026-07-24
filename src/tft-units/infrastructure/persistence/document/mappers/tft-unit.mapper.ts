@@ -5,6 +5,8 @@ export class TftUnitMapper {
   static toDomain(raw: TftUnitSchemaClass): TftUnit {
     const domainEntity = new TftUnit();
     domainEntity.id = raw._id.toString();
+    domainEntity.season_id = raw.season_id || '16';
+    domainEntity.slug = raw.slug;
     domainEntity.apiName = raw.apiName;
     domainEntity.name = raw.name;
     domainEntity.enName = raw.enName;
@@ -34,6 +36,8 @@ export class TftUnitMapper {
       persistenceSchema._id = domainEntity.id;
     }
 
+    persistenceSchema.season_id = domainEntity.season_id || '16';
+    persistenceSchema.slug = domainEntity.slug;
     persistenceSchema.apiName = domainEntity.apiName;
     persistenceSchema.name = domainEntity.name;
     persistenceSchema.enName = domainEntity.enName;
@@ -56,4 +60,3 @@ export class TftUnitMapper {
     return persistenceSchema;
   }
 }
-

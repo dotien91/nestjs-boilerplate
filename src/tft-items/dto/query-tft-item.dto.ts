@@ -8,6 +8,19 @@ import {
 } from 'class-validator';
 
 export class FilterTftItemDto {
+  @ApiPropertyOptional({ type: String, example: '18' })
+  @IsOptional()
+  @IsString()
+  season_id?: string | null;
+
+  @ApiPropertyOptional({
+    type: String,
+    enum: ['basic', 'combined', 'radiant', 'elusive', 'consumable', 'artifact'],
+  })
+  @IsOptional()
+  @IsString()
+  type?: string | null;
+
   @ApiPropertyOptional({ type: String })
   @IsOptional()
   @IsString()
@@ -63,6 +76,19 @@ export class QueryTftItemDto {
   @IsOptional()
   limit?: number;
 
+  @ApiPropertyOptional({ type: String, example: '18' })
+  @IsOptional()
+  @IsString()
+  season_id?: string | null;
+
+  @ApiPropertyOptional({
+    type: String,
+    enum: ['basic', 'combined', 'radiant', 'elusive', 'consumable', 'artifact'],
+  })
+  @IsOptional()
+  @IsString()
+  type?: string | null;
+
   // Flat format: name=ItemName
   @ApiPropertyOptional({ type: String })
   @IsOptional()
@@ -108,4 +134,3 @@ export class QueryTftItemDto {
   @IsString()
   order?: string | null;
 }
-

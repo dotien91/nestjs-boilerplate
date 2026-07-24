@@ -8,6 +8,11 @@ import {
 } from 'class-validator';
 
 export class FilterTftAugmentDto {
+  @ApiPropertyOptional({ type: String, example: '18' })
+  @IsOptional()
+  @IsString()
+  season_id?: string | null;
+
   @ApiPropertyOptional({ type: String })
   @IsOptional()
   @IsString()
@@ -57,6 +62,11 @@ export class QueryTftAugmentDto {
   @IsOptional()
   limit?: number;
 
+  @ApiPropertyOptional({ type: String, example: '18' })
+  @IsOptional()
+  @IsString()
+  season_id?: string | null;
+
   // Flat format: name=AugmentName
   @ApiPropertyOptional({ type: String })
   @IsOptional()
@@ -94,4 +104,3 @@ export class QueryTftAugmentDto {
   @IsString()
   order?: string | null;
 }
-

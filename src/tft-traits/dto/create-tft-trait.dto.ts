@@ -28,6 +28,11 @@ export interface TraitUnitDto {
 }
 
 export class CreateTftTraitDto {
+  @ApiPropertyOptional({ type: String, example: '18', default: '16' })
+  @IsOptional()
+  @IsString()
+  season_id?: string;
+
   @ApiProperty({
     type: String,
     example: 'TFT16_Freljord',
@@ -105,4 +110,3 @@ export class CreateTftTraitDto {
   @IsString()
   type?: 'origin' | 'class' | null;
 }
-

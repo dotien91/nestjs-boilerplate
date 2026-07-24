@@ -12,10 +12,15 @@ export type TftItemSchemaDocument = HydratedDocument<TftItemSchemaClass>;
   },
 })
 export class TftItemSchemaClass extends EntityDocumentHelper {
+  @Prop({ required: true, type: String, default: '16', index: true })
+  season_id: string;
+
+  @Prop({ type: String, index: true })
+  slug: string;
+
   @Prop({
     required: true,
     type: String,
-    unique: true,
   })
   apiName: string;
 
@@ -156,10 +161,9 @@ export class TftItemSchemaClass extends EntityDocumentHelper {
 export const TftItemSchema = SchemaFactory.createForClass(TftItemSchemaClass);
 
 // Indexes để tối ưu query
-TftItemSchema.index({ apiName: 1 });
+TftItemSchema.index({ season_id: 1, apiName: 1 }, { unique: true });
 TftItemSchema.index({ name: 1 });
 TftItemSchema.index({ 'associatedTraits': 1 });
 TftItemSchema.index({ unique: 1 });
 TftItemSchema.index({ tier: 1 });
 TftItemSchema.index({ units: 1 });
-

@@ -78,6 +78,7 @@ export class TftAugmentsController {
     let filters: FilterTftAugmentDto | undefined = undefined;
     const filterObj: Partial<FilterTftAugmentDto> = {};
     
+    if (query?.season_id) filterObj.season_id = query.season_id;
     if (query?.name) filterObj.name = query.name;
     if (query?.apiName) filterObj.apiName = query.apiName;
     if (query?.trait) filterObj.trait = query.trait;
@@ -198,4 +199,3 @@ export class TftAugmentsController {
     return this.tftAugmentsService.remove(id);
   }
 }
-

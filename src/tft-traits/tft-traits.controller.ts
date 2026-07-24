@@ -75,6 +75,7 @@ export class TftTraitsController {
     let filters: FilterTftTraitDto | undefined = undefined;
     const filterObj: Partial<FilterTftTraitDto> = {};
     
+    if (query?.season_id) filterObj.season_id = query.season_id;
     if (query?.name) filterObj.name = query.name;
     if (query?.apiName) filterObj.apiName = query.apiName;
     if (query?.type) filterObj.type = query.type as 'origin' | 'class';
@@ -174,4 +175,3 @@ export class TftTraitsController {
     return this.tftTraitsService.remove(id);
   }
 }
-

@@ -15,7 +15,17 @@ export class TftUnitSchemaClass extends EntityDocumentHelper {
   @Prop({
     required: true,
     type: String,
-    unique: true,
+    default: '16',
+    index: true,
+  })
+  season_id: string;
+
+  @Prop({ type: String, index: true })
+  slug: string;
+
+  @Prop({
+    required: true,
+    type: String,
   })
   apiName: string;
 
@@ -163,10 +173,9 @@ export class TftUnitSchemaClass extends EntityDocumentHelper {
 export const TftUnitSchema = SchemaFactory.createForClass(TftUnitSchemaClass);
 
 // Indexes để tối ưu query
-TftUnitSchema.index({ apiName: 1 });
+TftUnitSchema.index({ season_id: 1, apiName: 1 }, { unique: true });
 TftUnitSchema.index({ name: 1 });
 TftUnitSchema.index({ cost: 1 });
 TftUnitSchema.index({ 'traits': 1 });
 TftUnitSchema.index({ role: 1 });
 TftUnitSchema.index({ tier: 1 });
-

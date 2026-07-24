@@ -37,6 +37,13 @@ export class TftItemsDocumentRepository implements TftItemRepository {
   }): Promise<{ data: TftItem[]; totalCount: number }> {
     const where: any = {};
 
+    if (filterOptions?.season_id) {
+      where.season_id = filterOptions.season_id;
+    }
+    if (filterOptions?.type) {
+      where.type = filterOptions.type;
+    }
+
     // 1. Lọc theo tên
     if (filterOptions?.name) {
       where.name = { $regex: filterOptions.name, $options: 'i' };
@@ -243,4 +250,3 @@ export class TftItemsDocumentRepository implements TftItemRepository {
     return apiNames.filter((s: string) => typeof s === 'string' && s.length > 0);
   }
 }
-

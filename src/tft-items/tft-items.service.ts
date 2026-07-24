@@ -35,6 +35,8 @@ export class TftItemsService {
     }
 
     const item = new TftItem();
+    item.season_id = createTftItemDto.season_id ?? '16';
+    item.slug = createTftItemDto.slug ?? createTftItemDto.apiName.toLowerCase();
     item.apiName = createTftItemDto.apiName;
     item.name = createTftItemDto.name;
     item.enName = createTftItemDto.enName;
@@ -114,4 +116,3 @@ export class TftItemsService {
     await this.tftItemsRepository.remove(id);
   }
 }
-

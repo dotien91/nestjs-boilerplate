@@ -1,16 +1,99 @@
-import { Body, Controller, HttpCode, HttpStatus, Post } from '@nestjs/common';
-import { ApiCreatedResponse, ApiOperation, ApiTags } from '@nestjs/swagger';
+import {
+  Body,
+  Controller,
+  HttpCode,
+  HttpStatus,
+  Post,
+  UseGuards,
+} from '@nestjs/common';
+import {
+  ApiBearerAuth,
+  ApiCreatedResponse,
+  ApiOperation,
+  ApiTags,
+} from '@nestjs/swagger';
+import { AuthGuard } from '@nestjs/passport';
 import { CrawlerService } from './crawler.service';
 import { CrawlCompDetailDto } from './dto/crawl-comp-detail.dto';
 import { CrawlTeamCompsDto } from './dto/crawl-team-comps.dto';
+import { CrawlMobalyticsSetDto } from './dto/crawl-mobalytics-set.dto';
+import { CrawlSetDto } from './dto/crawl-set.dto';
+import { MobalyticsSetCrawlerService } from './mobalytics-set-crawler.service';
+import { Roles } from '../roles/roles.decorator';
+import { RoleEnum } from '../roles/roles.enum';
+import { RolesGuard } from '../roles/roles.guard';
 
+@ApiBearerAuth()
+@Roles(RoleEnum.admin)
+@UseGuards(AuthGuard('jwt'), RolesGuard)
 @ApiTags('Crawler')
 @Controller({
   path: 'crawler',
   version: '1',
 })
 export class CrawlerController {
-  constructor(private readonly crawlerService: CrawlerService) {}
+  constructor(
+    private readonly crawlerService: CrawlerService,
+    private readonly mobalyticsSetCrawlerService: MobalyticsSetCrawlerService,
+  ) {}
+
+  @ApiOperation({
+    summary: 'Crawl và import toàn bộ dữ liệu của một mùa TFT',
+    description:
+      'Một request crawl units, items, traits, augments và compositions; lưu snapshot và upsert từng collection theo season_id.',
+  })
+  @Post('crawl-set')
+  @HttpCode(HttpStatus.OK)
+  async crawlSet(@Body() dto: CrawlSetDto) {
+    const seasonId = dto.season_id.toLowerCase().replace(/^set/, '');
+    const result = await this.mobalyticsSetCrawlerService.crawl({
+      setKey: `set${seasonId}`,
+      locale: dto.locale ?? 'en_us',
+      persist: true,
+      resources: dto.resources,
+    });
+    const imported = await this.mobalyticsSetCrawlerService.persistDataset(
+      result.data,
+      { downloadImages: dto.download_images ?? false },
+    );
+    return {
+      season_id: seasonId,
+      locale: dto.locale ?? 'en_us',
+      resources:
+        dto.resources ?? [
+          'units',
+          'items',
+          'traits',
+          'augments',
+          'compositions',
+        ],
+      source: result.data.source,
+      crawled: result.counts,
+      imported,
+      warnings: result.warnings,
+    };
+  }
+
+  @ApiOperation({
+    summary: 'Crawl toàn bộ public data của một Mobalytics set',
+    description:
+      'Crawl champions, champion details, items, traits, augments và team comps. Không gọi /api/tft. Có thể upsert snapshot theo season_id + locale.',
+  })
+  @Post('mobalytics-set')
+  @HttpCode(HttpStatus.OK)
+  async crawlMobalyticsSet(@Body() dto: CrawlMobalyticsSetDto) {
+    return this.mobalyticsSetCrawlerService.crawl({
+      setKey: dto.setKey,
+      locale: dto.locale ?? 'en_us',
+      persist: dto.persist ?? true,
+    }).then(async (result) => ({
+      ...result,
+      imported: await this.mobalyticsSetCrawlerService.persistDataset(
+        result.data,
+        { downloadImages: dto.download_images ?? false },
+      ),
+    }));
+  }
 
   @ApiOperation({
     summary: 'Crawl chi tiết 1 comp (Test)',

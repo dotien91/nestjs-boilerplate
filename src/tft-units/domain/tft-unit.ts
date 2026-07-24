@@ -37,6 +37,16 @@ export class TftUnit {
 
   @ApiProperty({
     type: String,
+    example: '18',
+    description: 'ID mùa TFT',
+  })
+  season_id: string;
+
+  @ApiProperty({ type: String, example: 'ahri' })
+  slug: string;
+
+  @ApiProperty({
+    type: String,
     example: 'TFT16_Tristana',
     description: 'API name của unit',
   })
@@ -142,4 +152,3 @@ export class TftUnit {
   @ApiProperty()
   deletedAt: Date;
 }
-

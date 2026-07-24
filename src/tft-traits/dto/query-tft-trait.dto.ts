@@ -7,6 +7,11 @@ import {
 } from 'class-validator';
 
 export class FilterTftTraitDto {
+  @ApiPropertyOptional({ type: String, example: '18' })
+  @IsOptional()
+  @IsString()
+  season_id?: string | null;
+
   @ApiPropertyOptional({ type: String })
   @IsOptional()
   @IsString()
@@ -50,6 +55,11 @@ export class QueryTftTraitDto {
   @IsOptional()
   limit?: number;
 
+  @ApiPropertyOptional({ type: String, example: '18' })
+  @IsOptional()
+  @IsString()
+  season_id?: string | null;
+
   // Flat format: name=TraitName
   @ApiPropertyOptional({ type: String })
   @IsOptional()
@@ -81,4 +91,3 @@ export class QueryTftTraitDto {
   @IsString()
   order?: string | null;
 }
-

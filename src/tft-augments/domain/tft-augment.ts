@@ -17,6 +17,9 @@ export class TftAugment {
   })
   id: number | string;
 
+  @ApiProperty({ type: String, example: '18', description: 'ID mùa TFT' })
+  season_id: string;
+
   @ApiProperty({
     type: String,
     example: 'TFT_Augment_ExclusiveCustomization',
@@ -131,4 +134,3 @@ export class TftAugment {
   @ApiProperty()
   deletedAt: Date;
 }
-

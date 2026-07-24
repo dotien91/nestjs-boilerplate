@@ -4,6 +4,8 @@
 
 ## Table of Contents
 
+- [BetFT Backend Module Handbook](project-modules.md)
+- [Mobalytics Set Crawler](mobalytics-set-crawler.md)
 - [Introduction](introduction.md)
 - [Installing and Running](installing-and-running.md)
 - [Architecture](architecture.md)

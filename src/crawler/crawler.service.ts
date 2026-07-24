@@ -541,7 +541,7 @@ export class CrawlerService {
 
     try {
       await page.goto(url, { waitUntil: 'networkidle2', timeout: 60000 });
-      await page.waitForSelector('a[href*="/tft/comps-guide/"]', { timeout: 15000 });
+      await page.waitForSelector('a[href*="/comps-guide/"]', { timeout: 15000 });
       
       // Cuộn xuống cuối để web load hết tất cả các đội hình
       await this.scrollUntilBottom(page);
@@ -550,7 +550,7 @@ export class CrawlerService {
       const $ = cheerio.load(content);
       const links = new Map<string, { url: string; name?: string; tier: string }>();
 
-      $('a[href*="/tft/comps-guide/"]').each((_, el) => {
+      $('a[href*="/comps-guide/"]').each((_, el) => {
         const href = $(el).attr('href');
         
         // --- QUÉT TIER TỪ THẺ HTML BÊN NGOÀI CỦA ĐỘI HÌNH ---

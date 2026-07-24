@@ -28,6 +28,9 @@ export class TftTrait {
   })
   id: number | string;
 
+  @ApiProperty({ type: String, example: '18', description: 'ID mùa TFT' })
+  season_id: string;
+
   @ApiProperty({
     type: String,
     example: 'TFT16_Freljord',
@@ -96,4 +99,3 @@ export class TftTrait {
   @ApiProperty()
   deletedAt: Date;
 }
-

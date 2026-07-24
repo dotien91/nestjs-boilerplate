@@ -37,6 +37,10 @@ export class TftAugmentsDocumentRepository implements TftAugmentRepository {
   }): Promise<{ data: TftAugment[]; totalCount: number }> {
     const where: FilterQuery<TftAugmentSchemaClass> = {};
 
+    if (filterOptions?.season_id) {
+      where.season_id = filterOptions.season_id;
+    }
+
     if (filterOptions?.name) {
       where.name = { $regex: filterOptions.name, $options: 'i' };
     }
@@ -126,4 +130,3 @@ export class TftAugmentsDocumentRepository implements TftAugmentRepository {
     await this.tftAugmentsModel.deleteOne({ _id: id.toString() });
   }
 }
-

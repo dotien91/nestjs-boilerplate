@@ -77,6 +77,8 @@ export class TftItemsController {
     // Build filters từ flat properties - chỉ giữ field có giá trị
     let filters: FilterTftItemDto | undefined = undefined;
     const filterObj: Partial<FilterTftItemDto> = {};
+    if (query?.season_id) filterObj.season_id = query.season_id;
+    if (query?.type) filterObj.type = query.type;
     if (query?.name) filterObj.name = query.name;
     if (query?.apiName) filterObj.apiName = query.apiName;
     if (query?.trait) filterObj.trait = query.trait;
@@ -177,4 +179,3 @@ export class TftItemsController {
     return this.tftItemsService.remove(id);
   }
 }
-

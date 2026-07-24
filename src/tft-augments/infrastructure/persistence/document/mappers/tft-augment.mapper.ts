@@ -5,6 +5,7 @@ export class TftAugmentMapper {
   static toDomain(raw: TftAugmentSchemaClass): TftAugment {
     const domainEntity = new TftAugment();
     domainEntity.id = raw._id.toString();
+    domainEntity.season_id = raw.season_id || '16';
     domainEntity.apiName = raw.apiName;
     domainEntity.name = raw.name;
     domainEntity.enName = raw.enName;
@@ -36,6 +37,7 @@ export class TftAugmentMapper {
       persistenceSchema._id = domainEntity.id;
     }
 
+    persistenceSchema.season_id = domainEntity.season_id || '16';
     persistenceSchema.apiName = domainEntity.apiName;
     persistenceSchema.name = domainEntity.name;
     persistenceSchema.enName = domainEntity.enName;
@@ -61,4 +63,3 @@ export class TftAugmentMapper {
     return persistenceSchema;
   }
 }
-

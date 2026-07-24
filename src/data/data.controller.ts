@@ -2,14 +2,27 @@ import {
   Controller,
   Get,
   Param,
+  Query,
   Res,
   NotFoundException,
   BadRequestException,
 } from '@nestjs/common';
 import { Response } from 'express';
-import { ApiTags, ApiOperation, ApiParam } from '@nestjs/swagger';
+import { ApiTags, ApiOperation, ApiParam, ApiQuery } from '@nestjs/swagger';
 import * as fs from 'fs';
 import * as path from 'path';
+import { TftSeasonSnapshotsService } from '../tft-season-snapshots/tft-season-snapshots.service';
+
+const DEFAULT_SEASON_ID = '16';
+
+const ApiSeasonIdQuery = () =>
+  ApiQuery({
+    name: 'season_id',
+    type: String,
+    required: false,
+    example: '16',
+    description: `ID mùa TFT. Mặc định là ${DEFAULT_SEASON_ID}`,
+  });
 
 @ApiTags('Data')
 @Controller({
@@ -20,10 +33,14 @@ export class DataController {
   // dist/asset khi chạy build (server), src/asset khi chạy từ source (dev)
   private readonly assetPath = path.join(__dirname, '..', 'asset');
 
+  constructor(
+    private readonly snapshotsService: TftSeasonSnapshotsService,
+  ) {}
+
   @ApiOperation({
-    summary: 'Lấy dữ liệu TFT Set 16 theo ngôn ngữ',
+    summary: 'Lấy dữ liệu TFT theo mùa và ngôn ngữ',
     description:
-      'Trả về file JSON chứa dữ liệu TFT Set 16 (units, items, traits, augments, ...) theo ngôn ngữ được chỉ định',
+      'Trả về file JSON chứa dữ liệu TFT (units, items, traits, augments, ...) theo season_id và ngôn ngữ được chỉ định',
   })
   @ApiParam({
     name: 'locale',
@@ -32,8 +49,13 @@ export class DataController {
     example: 'en_us',
     required: true,
   })
-  @Get('tft-set16/:locale')
-  async getTftSet16Data(@Param('locale') locale: string, @Res() res: Response) {
+  @ApiSeasonIdQuery()
+  @Get(['tft/:locale', 'tft-set16/:locale'])
+  async getTftData(
+    @Param('locale') locale: string,
+    @Query('season_id') seasonId: string | undefined,
+    @Res() res: Response,
+  ): Promise<void> {
     // Validate locale format
     if (!/^[a-z]{2}_[a-z]{2}$/.test(locale)) {
       throw new BadRequestException(
@@ -41,13 +63,25 @@ export class DataController {
       );
     }
 
-    const fileName = `TFTSet16_latest_${locale}.json`;
+    const normalizedSeasonId = this.normalizeSeasonId(seasonId);
+    const snapshot = await this.snapshotsService.find(
+      normalizedSeasonId,
+      locale,
+    );
+    if (snapshot) {
+      res.setHeader('Content-Type', 'application/json; charset=utf-8');
+      res.setHeader('Cache-Control', 'public, max-age=3600');
+      res.json(snapshot.data);
+      return;
+    }
+
+    const fileName = `TFTSet${normalizedSeasonId}_latest_${locale}.json`;
     const filePath = path.join(this.assetPath, fileName);
 
     // Check if file exists
     if (!fs.existsSync(filePath)) {
       throw new NotFoundException(
-        `Data file for locale '${locale}' not found`,
+        `Data file for season '${normalizedSeasonId}' and locale '${locale}' not found`,
       );
     }
 
@@ -64,18 +98,23 @@ export class DataController {
     summary: 'Lấy danh sách các ngôn ngữ có sẵn',
     description: 'Trả về danh sách các locale có file JSON data',
   })
+  @ApiSeasonIdQuery()
   @Get('tft-set16/locales')
-  getAvailableLocales() {
+  getAvailableLocales(@Query('season_id') seasonId?: string) {
     try {
+      const normalizedSeasonId = this.normalizeSeasonId(seasonId);
+      const filePrefix = `TFTSet${normalizedSeasonId}_latest_`;
       const files = fs.readdirSync(this.assetPath);
       const locales = files
         .filter(
           (file) =>
-            file.startsWith('TFTSet16_latest_') && file.endsWith('.json'),
+            file.startsWith(filePrefix) && file.endsWith('.json'),
         )
         .map((file) => {
-          // Extract locale from filename: TFTSet16_latest_en_us.json -> en_us
-          const match = file.match(/TFTSet16_latest_(.+)\.json$/);
+          // Extract locale from filename: TFTSet{season}_latest_en_us.json -> en_us
+          const match = file.match(
+            new RegExp(`^TFTSet${normalizedSeasonId}_latest_(.+)\\.json$`),
+          );
           return match ? match[1] : null;
         })
         .filter((locale) => locale !== null)
@@ -84,7 +123,8 @@ export class DataController {
       return {
         locales,
         count: locales.length,
-        message: 'Available locales for TFT Set 16 data',
+        season_id: normalizedSeasonId,
+        message: `Available locales for TFT Set ${normalizedSeasonId} data`,
       };
     } catch (error) {
       return {
@@ -97,7 +137,7 @@ export class DataController {
 
   @ApiOperation({
     summary: 'Lấy dữ liệu Units theo ngôn ngữ',
-    description: 'Trả về dữ liệu Units từ TFTSet16 file theo ngôn ngữ',
+    description: 'Trả về dữ liệu Units theo mùa và ngôn ngữ',
   })
   @ApiParam({
     name: 'locale',
@@ -106,15 +146,20 @@ export class DataController {
     example: 'en_us',
     required: true,
   })
+  @ApiSeasonIdQuery()
   @Get('units/:locale')
-  async getUnitsData(@Param('locale') locale: string, @Res() res: Response) {
+  async getUnitsData(
+    @Param('locale') locale: string,
+    @Query('season_id') seasonId: string | undefined,
+    @Res() res: Response,
+  ) {
     if (!/^[a-z]{2}_[a-z]{2}$/.test(locale)) {
       throw new BadRequestException(
         'Invalid locale format. Expected format: xx_xx (e.g., en_us, vi_vn)',
       );
     }
 
-    const units = this.getTftSet16Section(locale, 'units');
+    const units = await this.getTftSection(locale, 'units', seasonId);
 
     res.setHeader('Content-Type', 'application/json; charset=utf-8');
     res.setHeader('Cache-Control', 'public, max-age=3600');
@@ -124,7 +169,7 @@ export class DataController {
 
   @ApiOperation({
     summary: 'Lấy dữ liệu Items theo ngôn ngữ',
-    description: 'Trả về dữ liệu Items từ TFTSet16 file theo ngôn ngữ',
+    description: 'Trả về dữ liệu Items theo mùa và ngôn ngữ',
   })
   @ApiParam({
     name: 'locale',
@@ -133,15 +178,20 @@ export class DataController {
     example: 'en_us',
     required: true,
   })
+  @ApiSeasonIdQuery()
   @Get('items/:locale')
-  async getItemsData(@Param('locale') locale: string, @Res() res: Response) {
+  async getItemsData(
+    @Param('locale') locale: string,
+    @Query('season_id') seasonId: string | undefined,
+    @Res() res: Response,
+  ) {
     if (!/^[a-z]{2}_[a-z]{2}$/.test(locale)) {
       throw new BadRequestException(
         'Invalid locale format. Expected format: xx_xx (e.g., en_us, vi_vn)',
       );
     }
 
-    const items = this.getTftSet16Section(locale, 'items');
+    const items = await this.getTftSection(locale, 'items', seasonId);
 
     res.setHeader('Content-Type', 'application/json; charset=utf-8');
     res.setHeader('Cache-Control', 'public, max-age=3600');
@@ -150,15 +200,34 @@ export class DataController {
   }
 
   /**
-   * Helper method to extract a specific section from TFTSet16 JSON file
+   * Helper method to extract a specific section from a TFT season JSON file
    */
-  private getTftSet16Section(locale: string, section: string): any {
-    const fileName = `TFTSet16_latest_${locale}.json`;
+  private async getTftSection(
+    locale: string,
+    section: string,
+    seasonId?: string,
+  ): Promise<any> {
+    const normalizedSeasonId = this.normalizeSeasonId(seasonId);
+    const snapshot = await this.snapshotsService.find(
+      normalizedSeasonId,
+      locale,
+    );
+    if (snapshot) {
+      const snapshotData = snapshot.data as Record<string, unknown>;
+      if (!(section in snapshotData)) {
+        throw new NotFoundException(
+          `Section '${section}' not found in snapshot for season '${normalizedSeasonId}' and locale '${locale}'`,
+        );
+      }
+      return snapshotData[section];
+    }
+
+    const fileName = `TFTSet${normalizedSeasonId}_latest_${locale}.json`;
     const filePath = path.join(this.assetPath, fileName);
 
     if (!fs.existsSync(filePath)) {
       throw new NotFoundException(
-        `Data file for locale '${locale}' not found`,
+        `Data file for season '${normalizedSeasonId}' and locale '${locale}' not found`,
       );
     }
 
@@ -184,9 +253,22 @@ export class DataController {
     return jsonData[jsonKey];
   }
 
+  private normalizeSeasonId(seasonId?: string): string {
+    const value = (seasonId || DEFAULT_SEASON_ID).trim();
+    const normalizedValue = value.replace(/^set/i, '');
+
+    if (!/^\d+$/.test(normalizedValue)) {
+      throw new BadRequestException(
+        "Invalid season_id. Expected a number such as '16' or 'set16'",
+      );
+    }
+
+    return normalizedValue;
+  }
+
   @ApiOperation({
     summary: 'Lấy dữ liệu Augments theo ngôn ngữ',
-    description: 'Trả về dữ liệu Augments từ TFTSet16 file theo ngôn ngữ',
+    description: 'Trả về dữ liệu Augments theo mùa và ngôn ngữ',
   })
   @ApiParam({
     name: 'locale',
@@ -195,15 +277,20 @@ export class DataController {
     example: 'en_us',
     required: true,
   })
+  @ApiSeasonIdQuery()
   @Get('augments/:locale')
-  async getAugmentsData(@Param('locale') locale: string, @Res() res: Response) {
+  async getAugmentsData(
+    @Param('locale') locale: string,
+    @Query('season_id') seasonId: string | undefined,
+    @Res() res: Response,
+  ) {
     if (!/^[a-z]{2}_[a-z]{2}$/.test(locale)) {
       throw new BadRequestException(
         'Invalid locale format. Expected format: xx_xx (e.g., en_us, vi_vn)',
       );
     }
 
-    const augments = this.getTftSet16Section(locale, 'augments');
+    const augments = await this.getTftSection(locale, 'augments', seasonId);
 
     res.setHeader('Content-Type', 'application/json; charset=utf-8');
     res.setHeader('Cache-Control', 'public, max-age=3600');
@@ -213,7 +300,7 @@ export class DataController {
 
   @ApiOperation({
     summary: 'Lấy dữ liệu Traits theo ngôn ngữ',
-    description: 'Trả về dữ liệu Traits từ TFTSet16 file theo ngôn ngữ',
+    description: 'Trả về dữ liệu Traits theo mùa và ngôn ngữ',
   })
   @ApiParam({
     name: 'locale',
@@ -222,15 +309,20 @@ export class DataController {
     example: 'en_us',
     required: true,
   })
+  @ApiSeasonIdQuery()
   @Get('traits/:locale')
-  async getTraitsData(@Param('locale') locale: string, @Res() res: Response) {
+  async getTraitsData(
+    @Param('locale') locale: string,
+    @Query('season_id') seasonId: string | undefined,
+    @Res() res: Response,
+  ) {
     if (!/^[a-z]{2}_[a-z]{2}$/.test(locale)) {
       throw new BadRequestException(
         'Invalid locale format. Expected format: xx_xx (e.g., en_us, vi_vn)',
       );
     }
 
-    const traits = this.getTftSet16Section(locale, 'traits');
+    const traits = await this.getTftSection(locale, 'traits', seasonId);
 
     res.setHeader('Content-Type', 'application/json; charset=utf-8');
     res.setHeader('Cache-Control', 'public, max-age=3600');
@@ -240,7 +332,7 @@ export class DataController {
 
   @ApiOperation({
     summary: 'Lấy dữ liệu Armory Items theo ngôn ngữ',
-    description: 'Trả về dữ liệu Armory Items từ TFTSet16 file theo ngôn ngữ',
+    description: 'Trả về dữ liệu Armory Items theo mùa và ngôn ngữ',
   })
   @ApiParam({
     name: 'locale',
@@ -249,9 +341,11 @@ export class DataController {
     example: 'en_us',
     required: true,
   })
+  @ApiSeasonIdQuery()
   @Get('armory-items/:locale')
   async getArmoryItemsData(
     @Param('locale') locale: string,
+    @Query('season_id') seasonId: string | undefined,
     @Res() res: Response,
   ) {
     if (!/^[a-z]{2}_[a-z]{2}$/.test(locale)) {
@@ -260,7 +354,11 @@ export class DataController {
       );
     }
 
-    const armoryItems = this.getTftSet16Section(locale, 'armory-items');
+    const armoryItems = await this.getTftSection(
+      locale,
+      'armory-items',
+      seasonId,
+    );
 
     res.setHeader('Content-Type', 'application/json; charset=utf-8');
     res.setHeader('Cache-Control', 'public, max-age=3600');
@@ -270,7 +368,7 @@ export class DataController {
 
   @ApiOperation({
     summary: 'Lấy dữ liệu Augment Odds theo ngôn ngữ',
-    description: 'Trả về dữ liệu Augment Odds từ TFTSet16 file theo ngôn ngữ',
+    description: 'Trả về dữ liệu Augment Odds theo mùa và ngôn ngữ',
   })
   @ApiParam({
     name: 'locale',
@@ -279,9 +377,11 @@ export class DataController {
     example: 'en_us',
     required: true,
   })
+  @ApiSeasonIdQuery()
   @Get('augment-odds/:locale')
   async getAugmentOddsData(
     @Param('locale') locale: string,
+    @Query('season_id') seasonId: string | undefined,
     @Res() res: Response,
   ) {
     if (!/^[a-z]{2}_[a-z]{2}$/.test(locale)) {
@@ -290,7 +390,11 @@ export class DataController {
       );
     }
 
-    const augmentOdds = this.getTftSet16Section(locale, 'augment-odds');
+    const augmentOdds = await this.getTftSection(
+      locale,
+      'augment-odds',
+      seasonId,
+    );
 
     res.setHeader('Content-Type', 'application/json; charset=utf-8');
     res.setHeader('Cache-Control', 'public, max-age=3600');
@@ -300,7 +404,7 @@ export class DataController {
 
   @ApiOperation({
     summary: 'Lấy dữ liệu Roles theo ngôn ngữ',
-    description: 'Trả về dữ liệu Roles từ TFTSet16 file theo ngôn ngữ',
+    description: 'Trả về dữ liệu Roles theo mùa và ngôn ngữ',
   })
   @ApiParam({
     name: 'locale',
@@ -309,15 +413,20 @@ export class DataController {
     example: 'en_us',
     required: true,
   })
+  @ApiSeasonIdQuery()
   @Get('roles/:locale')
-  async getRolesData(@Param('locale') locale: string, @Res() res: Response) {
+  async getRolesData(
+    @Param('locale') locale: string,
+    @Query('season_id') seasonId: string | undefined,
+    @Res() res: Response,
+  ) {
     if (!/^[a-z]{2}_[a-z]{2}$/.test(locale)) {
       throw new BadRequestException(
         'Invalid locale format. Expected format: xx_xx (e.g., en_us, vi_vn)',
       );
     }
 
-    const roles = this.getTftSet16Section(locale, 'roles');
+    const roles = await this.getTftSection(locale, 'roles', seasonId);
 
     res.setHeader('Content-Type', 'application/json; charset=utf-8');
     res.setHeader('Cache-Control', 'public, max-age=3600');
@@ -327,7 +436,7 @@ export class DataController {
 
   @ApiOperation({
     summary: 'Lấy dữ liệu Portals theo ngôn ngữ',
-    description: 'Trả về dữ liệu Portals từ TFTSet16 file theo ngôn ngữ',
+    description: 'Trả về dữ liệu Portals theo mùa và ngôn ngữ',
   })
   @ApiParam({
     name: 'locale',
@@ -336,15 +445,20 @@ export class DataController {
     example: 'en_us',
     required: true,
   })
+  @ApiSeasonIdQuery()
   @Get('portals/:locale')
-  async getPortalsData(@Param('locale') locale: string, @Res() res: Response) {
+  async getPortalsData(
+    @Param('locale') locale: string,
+    @Query('season_id') seasonId: string | undefined,
+    @Res() res: Response,
+  ) {
     if (!/^[a-z]{2}_[a-z]{2}$/.test(locale)) {
       throw new BadRequestException(
         'Invalid locale format. Expected format: xx_xx (e.g., en_us, vi_vn)',
       );
     }
 
-    const portals = this.getTftSet16Section(locale, 'portals');
+    const portals = await this.getTftSection(locale, 'portals', seasonId);
 
     res.setHeader('Content-Type', 'application/json; charset=utf-8');
     res.setHeader('Cache-Control', 'public, max-age=3600');
@@ -354,7 +468,7 @@ export class DataController {
 
   @ApiOperation({
     summary: 'Lấy dữ liệu Encounters theo ngôn ngữ',
-    description: 'Trả về dữ liệu Encounters từ TFTSet16 file theo ngôn ngữ',
+    description: 'Trả về dữ liệu Encounters theo mùa và ngôn ngữ',
   })
   @ApiParam({
     name: 'locale',
@@ -363,9 +477,11 @@ export class DataController {
     example: 'en_us',
     required: true,
   })
+  @ApiSeasonIdQuery()
   @Get('encounters/:locale')
   async getEncountersData(
     @Param('locale') locale: string,
+    @Query('season_id') seasonId: string | undefined,
     @Res() res: Response,
   ) {
     if (!/^[a-z]{2}_[a-z]{2}$/.test(locale)) {
@@ -374,7 +490,11 @@ export class DataController {
       );
     }
 
-    const encounters = this.getTftSet16Section(locale, 'encounters');
+    const encounters = await this.getTftSection(
+      locale,
+      'encounters',
+      seasonId,
+    );
 
     res.setHeader('Content-Type', 'application/json; charset=utf-8');
     res.setHeader('Cache-Control', 'public, max-age=3600');
@@ -385,7 +505,7 @@ export class DataController {
   @ApiOperation({
     summary: 'Lấy dữ liệu Augment Categories theo ngôn ngữ',
     description:
-      'Trả về dữ liệu Augment Categories từ TFTSet16 file theo ngôn ngữ',
+      'Trả về dữ liệu Augment Categories theo mùa và ngôn ngữ',
   })
   @ApiParam({
     name: 'locale',
@@ -394,9 +514,11 @@ export class DataController {
     example: 'en_us',
     required: true,
   })
+  @ApiSeasonIdQuery()
   @Get('augment-categories/:locale')
   async getAugmentCategoriesData(
     @Param('locale') locale: string,
+    @Query('season_id') seasonId: string | undefined,
     @Res() res: Response,
   ) {
     if (!/^[a-z]{2}_[a-z]{2}$/.test(locale)) {
@@ -405,9 +527,10 @@ export class DataController {
       );
     }
 
-    const augmentCategories = this.getTftSet16Section(
+    const augmentCategories = await this.getTftSection(
       locale,
       'augment-categories',
+      seasonId,
     );
 
     res.setHeader('Content-Type', 'application/json; charset=utf-8');
@@ -419,7 +542,7 @@ export class DataController {
   @ApiOperation({
     summary: 'Lấy dữ liệu Extra Translations theo ngôn ngữ',
     description:
-      'Trả về dữ liệu Extra Translations từ TFTSet16 file theo ngôn ngữ',
+      'Trả về dữ liệu Extra Translations theo mùa và ngôn ngữ',
   })
   @ApiParam({
     name: 'locale',
@@ -428,9 +551,11 @@ export class DataController {
     example: 'en_us',
     required: true,
   })
+  @ApiSeasonIdQuery()
   @Get('extra-translations/:locale')
   async getExtraTranslationsData(
     @Param('locale') locale: string,
+    @Query('season_id') seasonId: string | undefined,
     @Res() res: Response,
   ) {
     if (!/^[a-z]{2}_[a-z]{2}$/.test(locale)) {
@@ -439,9 +564,10 @@ export class DataController {
       );
     }
 
-    const extraTranslations = this.getTftSet16Section(
+    const extraTranslations = await this.getTftSection(
       locale,
       'extra-translations',
+      seasonId,
     );
 
     res.setHeader('Content-Type', 'application/json; charset=utf-8');
@@ -452,7 +578,7 @@ export class DataController {
 
   @ApiOperation({
     summary: 'Lấy dữ liệu Zaps theo ngôn ngữ',
-    description: 'Trả về dữ liệu Zaps từ TFTSet16 file theo ngôn ngữ',
+    description: 'Trả về dữ liệu Zaps theo mùa và ngôn ngữ',
   })
   @ApiParam({
     name: 'locale',
@@ -461,15 +587,20 @@ export class DataController {
     example: 'en_us',
     required: true,
   })
+  @ApiSeasonIdQuery()
   @Get('zaps/:locale')
-  async getZapsData(@Param('locale') locale: string, @Res() res: Response) {
+  async getZapsData(
+    @Param('locale') locale: string,
+    @Query('season_id') seasonId: string | undefined,
+    @Res() res: Response,
+  ) {
     if (!/^[a-z]{2}_[a-z]{2}$/.test(locale)) {
       throw new BadRequestException(
         'Invalid locale format. Expected format: xx_xx (e.g., en_us, vi_vn)',
       );
     }
 
-    const zaps = this.getTftSet16Section(locale, 'zaps');
+    const zaps = await this.getTftSection(locale, 'zaps', seasonId);
 
     res.setHeader('Content-Type', 'application/json; charset=utf-8');
     res.setHeader('Cache-Control', 'public, max-age=3600');
@@ -517,4 +648,3 @@ export class DataController {
     res.sendFile(filePath);
   }
 }
-

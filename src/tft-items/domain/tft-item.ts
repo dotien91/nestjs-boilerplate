@@ -17,6 +17,12 @@ export class TftItem {
   })
   id: number | string;
 
+  @ApiProperty({ type: String, example: '18', description: 'ID mùa TFT' })
+  season_id: string;
+
+  @ApiProperty({ type: String, example: 'bf-sword' })
+  slug: string;
+
   @ApiProperty({
     type: String,
     example: 'TFT_Item_RabadonsDeathcap',
@@ -107,6 +113,7 @@ export class TftItem {
   @ApiPropertyOptional({
     type: String,
     description: 'Type của item',
+    enum: ['basic', 'combined', 'radiant', 'elusive', 'consumable', 'artifact'],
   })
   type?: string | null;
 
@@ -146,4 +153,3 @@ export class TftItem {
   @ApiProperty()
   deletedAt: Date;
 }
-

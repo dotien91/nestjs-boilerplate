@@ -8,6 +8,11 @@ import {
 } from 'class-validator';
 
 export class FilterTftUnitDto {
+  @ApiPropertyOptional({ type: String, example: '18' })
+  @IsOptional()
+  @IsString()
+  season_id?: string | null;
+
   @ApiPropertyOptional({ type: String })
   @IsOptional()
   @IsString()
@@ -56,6 +61,11 @@ export class QueryTftUnitDto {
   @IsNumber()
   @IsOptional()
   limit?: number;
+
+  @ApiPropertyOptional({ type: String, example: '18' })
+  @IsOptional()
+  @IsString()
+  season_id?: string | null;
 
   // Flat format: name=Longshot
   @ApiPropertyOptional({ type: String })

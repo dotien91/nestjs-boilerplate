@@ -305,6 +305,16 @@ export class CarryItemDto {
 }
 
 export class CreateCompositionDto {
+  @ApiPropertyOptional({
+    type: String,
+    example: '18',
+    default: '16',
+    description: 'ID mùa TFT',
+  })
+  @IsOptional()
+  @IsString()
+  season_id?: string;
+
   @ApiProperty({
     type: String,
     example: 'comp-daicogiap-yone',
@@ -506,4 +516,3 @@ export class CreateCompositionDto {
   @IsNumber()
   order?: number;
 }
-

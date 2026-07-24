@@ -13,6 +13,29 @@ export interface ImageResponse {
 export class ImagesService {
   private readonly IMAGE_BASE_PATH = join(process.cwd(), 'src', 'asset', 'images');
 
+  async getMobalyticsStyleImage(
+    type: 'champions' | 'items',
+    setKey: string,
+    slug: string,
+  ): Promise<ImageResponse> {
+    if (!/^set\d+$/.test(setKey) || !/^[a-z0-9-]+$/.test(slug)) {
+      throw new NotFoundException('Invalid image path');
+    }
+    const pathParts =
+      type === 'champions'
+        ? ['champions', 'icons', setKey, `${slug}.png`]
+        : ['items', setKey, `${slug}.png`];
+    const imagePath = join(this.IMAGE_BASE_PATH, ...pathParts);
+    if (!existsSync(imagePath)) {
+      throw new NotFoundException({ error: 'Image not found', type, setKey, slug });
+    }
+    return {
+      buffer: readFileSync(imagePath),
+      contentType: 'image/png',
+      filename: `${slug}.png`,
+    };
+  }
+
   /**
    * Normalize champion key
    * Input: "TFT16_Tristana" → "tft16_tristana"
@@ -153,4 +176,3 @@ export class ImagesService {
     };
   }
 }
-

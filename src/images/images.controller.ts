@@ -19,6 +19,47 @@ import { ImagesService } from './images.service';
 export class ImagesController {
   constructor(private readonly imagesService: ImagesService) {}
 
+  @Get('champions/icons/:setKey/:slug.png')
+  async getChampionIcon(
+    @Param('setKey') setKey: string,
+    @Param('slug') slug: string,
+    @Res() res: Response,
+  ): Promise<void> {
+    this.sendStoredImage(
+      res,
+      await this.imagesService.getMobalyticsStyleImage(
+        'champions',
+        setKey.toLowerCase(),
+        slug.toLowerCase(),
+      ),
+    );
+  }
+
+  @Get('items/:setKey/:slug.png')
+  async getItemIcon(
+    @Param('setKey') setKey: string,
+    @Param('slug') slug: string,
+    @Res() res: Response,
+  ): Promise<void> {
+    this.sendStoredImage(
+      res,
+      await this.imagesService.getMobalyticsStyleImage(
+        'items',
+        setKey.toLowerCase(),
+        slug.toLowerCase(),
+      ),
+    );
+  }
+
+  private sendStoredImage(
+    res: Response,
+    imageData: { buffer: Buffer; contentType: string },
+  ): void {
+    res.setHeader('Cache-Control', 'public, max-age=31536000, immutable');
+    res.setHeader('Content-Type', imageData.contentType);
+    res.send(imageData.buffer);
+  }
+
   @ApiOperation({
     summary: 'Lấy image TFT theo type và key',
     description:
@@ -69,7 +110,7 @@ export class ImagesController {
     @Query('width') width?: number,
     @Query('height') height?: number,
     @Query('size') size?: number,
-  ) {
+  ): Promise<void> {
     try {
       const imageData = await this.imagesService.getImage(type, key, ext);
 
@@ -90,17 +131,18 @@ export class ImagesController {
       //   // return res.send(resized);
       // }
 
-      return res.send(imageData.buffer);
+      res.send(imageData.buffer);
+      return;
     } catch (error) {
       if (error instanceof NotFoundException) {
-        return res.status(HttpStatus.NOT_FOUND).json({
+        res.status(HttpStatus.NOT_FOUND).json({
           error: 'Image not found',
           type,
           key: key.toLowerCase(),
         });
+        return;
       }
       throw error;
     }
   }
 }
-

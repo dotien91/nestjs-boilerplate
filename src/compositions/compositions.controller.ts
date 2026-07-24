@@ -255,6 +255,7 @@ export class CompositionsController {
 
     // 3. Manual Mapping cho các trường hợp nested và flat
     const allowedKeys: (keyof FilterCompositionDto)[] = [
+      'season_id',
       'name',
       'compId',
       'difficulty',

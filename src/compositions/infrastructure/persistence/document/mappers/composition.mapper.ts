@@ -12,6 +12,7 @@ export class CompositionMapper {
   static toDomain(raw: CompositionSchemaClass): Composition {
     const domainEntity = new Composition();
     domainEntity.id = raw._id.toString();
+    domainEntity.season_id = raw.season_id || '16';
     domainEntity.compId = raw.compId;
     domainEntity.name = raw.name;
     domainEntity.plan = raw.plan ?? undefined;
@@ -197,6 +198,7 @@ export class CompositionMapper {
       persistenceSchema._id = domainEntity.id as any;
     }
 
+    persistenceSchema.season_id = domainEntity.season_id || '16';
     persistenceSchema.compId = domainEntity.compId;
     persistenceSchema.name = domainEntity.name;
     persistenceSchema.plan = domainEntity.plan;
@@ -380,4 +382,3 @@ export class CompositionMapper {
     return persistenceSchema;
   }
 }
-
